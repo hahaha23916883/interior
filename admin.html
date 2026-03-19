@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>標注資料管理</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,sans-serif;background:#F8FAFC;color:#1E293B;min-height:100vh}
+.header{background:white;border-bottom:1px solid #E2E8F0;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:18px;font-weight:700;color:#1E293B}
+.header-right{display:flex;gap:10px;align-items:center}
+.stat-chips{display:flex;gap:8px}
+.chip{background:#EBF4FF;color:#185FA5;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+.btn-primary{background:#185FA5;color:white}.btn-primary:hover{background:#1451A0}
+.btn-danger{background:#FEE2E2;color:#B91C1C}.btn-danger:hover{background:#FECACA}
+.btn-secondary{background:#F1F5F9;color:#475569}.btn-secondary:hover{background:#E2E8F0}
+.btn-success{background:#D1FAE5;color:#065F46}.btn-success:hover{background:#A7F3D0}
+.toolbar{padding:16px 24px;display:flex;gap:10px;align-items:center;background:white;border-bottom:1px solid #E2E8F0}
+.search-input{flex:1;max-width:320px;padding:8px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;outline:none}
+.search-input:focus{border-color:#185FA5}
+.filter-select{padding:8px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;outline:none;background:white}
+.table-wrap{padding:24px;overflow-x:auto}
+table{width:100%;background:white;border-radius:12px;border:1px solid #E2E8F0;border-collapse:separate;border-spacing:0;overflow:hidden}
+th{background:#F8FAFC;padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#64748B;border-bottom:1px solid #E2E8F0;white-space:nowrap}
+td{padding:12px 16px;border-bottom:1px solid #F1F5F9;vertical-align:middle;font-size:13px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#F8FAFC}
+.thumb{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #E2E8F0;cursor:pointer}
+.thumb-placeholder{width:80px;height:60px;background:#F1F5F9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-blue{background:#EBF4FF;color:#185FA5}
+.badge-green{background:#D1FAE5;color:#065F46}
+.badge-orange{background:#FEF3C7;color:#92400E}
+.actions{display:flex;gap:6px}
+.loading{text-align:center;padding:48px;color:#94A3B8;font-size:14px}
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:white;border-radius:16px;width:90vw;max-width:900px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{padding:20px 24px;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center}
+.modal-header h2{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#94A3B8;line-height:1}
+.modal-body{padding:24px;overflow-y:auto;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.modal-footer{padding:16px 24px;border-top:1px solid #E2E8F0;display:flex;gap:10px;justify-content:flex-end}
+.detail-img{width:100%;border-radius:8px;border:1px solid #E2E8F0}
+.detail-section{margin-bottom:16px}
+.detail-section h3{font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.room-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;background:#EBF4FF;color:#185FA5;margin:2px}
+.json-area{font-family:monospace;font-size:11px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto}
+.empty{text-align:center;padding:64px;color:#94A3B8}
+.empty-icon{font-size:48px;margin-bottom:12px}
+/* Confirm dialog */
+.confirm-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center}
+.confirm-bg.open{display:flex}
+.confirm-box{background:white;border-radius:12px;padding:24px;width:320px;text-align:center}
+.confirm-box h3{margin-bottom:8px;font-size:16px}
+.confirm-box p{font-size:13px;color:#64748B;margin-bottom:20px}
+.confirm-btns{display:flex;gap:10px;justify-content:center}
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;display:none}
+.toast.show{display:block}
+.toast-success{background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0}
+.toast-error{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="/" style="font-size:20px;text-decoration:none">←</a>
+    <h1>📋 標注資料管理</h1>
+  </div>
+  <div class="header-right">
+    <div class="stat-chips">
+      <div class="chip">共 <span id="total-count">-</span> 筆</div>
+      <div class="chip">🏠 空間 <span id="total-rooms">-</span> 個</div>
+      <div class="chip">🚪 開口 <span id="total-openings">-</span> 個</div>
+      <div class="chip">🪑 傢俱 <span id="total-furniture">-</span> 個</div>
+    </div>
+    <button class="btn btn-success" onclick="exportAll()">⬇ 匯出全部 JSONL</button>
+    <button class="btn btn-secondary" onclick="loadData()">🔄 重新整理</button>
+  </div>
+</div>
+
+<div class="toolbar">
+  <input class="search-input" type="text" id="search-input" placeholder="搜尋空間名稱..." oninput="filterData()">
+  <select class="filter-select" id="sort-select" onchange="filterData()">
+    <option value="newest">最新優先</option>
+    <option value="oldest">最舊優先</option>
+    <option value="rooms_desc">空間數（多→少）</option>
+    <option value="rooms_asc">空間數（少→多）</option>
+  </select>
+  <select class="filter-select" id="filter-select" onchange="filterData()">
+    <option value="">全部品質</option>
+    <option value="verified">已驗證</option>
+    <option value="ai">AI 生成</option>
+  </select>
+</div>
+
+<div class="table-wrap">
+  <div class="loading" id="loading">⏳ 載入中...</div>
+  <table id="data-table" style="display:none">
+    <thead>
+      <tr>
+        <th>縮圖</th>
+        <th>建立時間</th>
+        <th>空間</th>
+        <th>開口</th>
+        <th>傢俱</th>
+        <th>品質</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+  <div class="empty" id="empty-state" style="display:none">
+    <div class="empty-icon">📭</div>
+    <p>沒有找到標注資料</p>
+  </div>
+</div>
+
+<!-- 詳情 Modal -->
+<div class="modal-bg" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">標注詳情</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="modal-delete-btn">🗑 刪除此筆</button>
+      <button class="btn btn-success" id="modal-export-btn">⬇ 匯出此筆 JSON</button>
+      <button class="btn btn-primary" id="modal-edit-btn">✏️ 編輯此筆</button>
+      <button class="btn btn-secondary" onclick="closeModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- 確認刪除 -->
+<div class="confirm-bg" id="confirm-bg">
+  <div class="confirm-box">
+    <h3>確認刪除</h3>
+    <p>此操作無法復原，確定要刪除這筆標注資料？</p>
+    <div class="confirm-btns">
+      <button class="btn btn-secondary" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">確認刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://duiycimttbzozdaoxzrh.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_PJptx3XXIU7fm7efyb2wEw_LspsF8qz';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+});
+
+let allData = [];
+let currentId = null;
+
+// ── 載入資料 ──────────────────────────────────
+async function loadData() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('data-table').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'none';
+
+  try {
+    const { data, error } = await sb
+      .from('annotations')
+      .select('id, created_at, rooms, walls, furniture, summary, quality, image_b64')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    allData = data || [];
+    updateStats();
+    filterData();
+  } catch (e) {
+    showToast('載入失敗：' + e.message, 'error');
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+function updateStats() {
+  document.getElementById('total-count').textContent = allData.length;
+  const totalRooms = allData.reduce((s, d) => s + (d.summary?.room_count || (d.rooms?.length || 0)), 0);
+  const totalOpenings = allData.reduce((s, d) => s + (d.summary?.opening_count || 0), 0);
+  const totalFurn = allData.reduce((s, d) => s + (d.summary?.furniture_count || 0), 0);
+  document.getElementById('total-rooms').textContent = totalRooms;
+  document.getElementById('total-openings').textContent = totalOpenings;
+  document.getElementById('total-furniture').textContent = totalFurn;
+}
+
+// ── 過濾 + 排序 ───────────────────────────────
+function filterData() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const sort = document.getElementById('sort-select').value;
+  const quality = document.getElementById('filter-select').value;
+
+  let filtered = allData.filter(d => {
+    const rooms = d.rooms || [];
+    const matchSearch = !q || rooms.some(r => (r.name || '').toLowerCase().includes(q));
+    const matchQuality = !quality || d.quality === quality;
+    return matchSearch && matchQuality;
+  });
+
+  filtered.sort((a, b) => {
+    if (sort === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+    if (sort === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
+    const ra = a.rooms?.length || 0, rb = b.rooms?.length || 0;
+    if (sort === 'rooms_desc') return rb - ra;
+    if (sort === 'rooms_asc') return ra - rb;
+    return 0;
+  });
+
+  renderTable(filtered);
+}
+
+// ── 渲染表格 ──────────────────────────────────
+function renderTable(data) {
+  document.getElementById('loading').style.display = 'none';
+  const tbody = document.getElementById('table-body');
+
+  if (!data.length) {
+    document.getElementById('data-table').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('data-table').style.display = 'table';
+  document.getElementById('empty-state').style.display = 'none';
+
+  tbody.innerHTML = data.map(d => {
+    const rooms = d.rooms || [];
+    const roomNames = rooms.slice(0, 3).map(r => r.name || '未命名').join('、');
+    const moreRooms = rooms.length > 3 ? `+${rooms.length - 3}` : '';
+    const openings = d.summary?.opening_count || 0;
+    const furniture = d.summary?.furniture_count || 0;
+    const date = new Date(d.created_at).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const qualityBadge = d.quality === 'verified'
+      ? '<span class="badge badge-green">✓ 已驗證</span>'
+      : '<span class="badge badge-orange">AI</span>';
+    const thumb = d.image_b64
+      ? `<img class="thumb" src="data:image/jpeg;base64,${d.image_b64.slice(0,100)}..." onclick="openDetail('${d.id}')" onerror="this.outerHTML='<div class=\\'thumb-placeholder\\'>🏠</div>'" onload="fixThumb(this,'${d.id}')">`
+      : '<div class="thumb-placeholder">🏠</div>';
+
+    return `<tr>
+      <td>${thumb}</td>
+      <td style="white-space:nowrap;color:#64748B">${date}</td>
+      <td>
+        <span style="font-weight:600">${rooms.length} 個空間</span><br>
+        <span style="font-size:11px;color:#94A3B8">${roomNames}${moreRooms ? ' ...' + moreRooms : ''}</span>
+      </td>
+      <td><span class="badge badge-blue">${openings}</span></td>
+      <td><span class="badge badge-blue">${furniture}</span></td>
+      <td>${qualityBadge}</td>
+      <td>
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="openDetail('${d.id}')">詳情</button>
+          <button type="button" class="btn btn-primary" style="padding:5px 10px;font-size:12px" onclick="editAnnotation('${d.id}')">✏️</button>
+          <button type="button" class="btn btn-success" style="padding:5px 10px;font-size:12px" onclick="exportOne('${d.id}')">⬇</button>
+          <button type="button" class="btn btn-danger" style="padding:5px 10px;font-size:12px" onclick="confirmDelete('${d.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// 修正 thumb：用完整 base64
+function fixThumb(img, id) {
+  const d = allData.find(x => x.id === id);
+  if (d?.image_b64) img.src = 'data:image/jpeg;base64,' + d.image_b64;
+}
+
+// ── 詳情 Modal ────────────────────────────────
+function openDetail(id) {
+  const d = allData.find(x => x.id === id);
+  if (!d) return;
+  currentId = id;
+  document.getElementById('modal-title').textContent = `標注詳情 — ${new Date(d.created_at).toLocaleString('zh-TW')}`;
+
+  const rooms = d.rooms || [];
+  const walls = d.walls || [];
+  const furniture = d.furnitureData || d.furniture || {};
+  const furnItems = Object.values(furniture).flat();
+
+  const roomTags = rooms.map(r =>
+    `<span class="room-tag">${r.name || '未命名'}</span>`
+  ).join('');
+
+  const wallInfo = Array.isArray(walls)
+    ? `${walls.length} 段牆體，${walls.reduce((s,w) => s+(w.openings?.length||0), 0)} 個開口`
+    : Object.keys(walls).length + ' 個空間有牆體資料';
+
+  const furnList = furnItems.slice(0, 12).map(f =>
+    `<span class="room-tag" style="background:#FEF3C7;color:#92400E">${f.icon||'📦'} ${f.name||f.type}</span>`
+  ).join('') + (furnItems.length > 12 ? `<span class="room-tag">+${furnItems.length-12} 更多</span>` : '');
+
+  const imgSrc = d.image_b64 ? 'data:image/jpeg;base64,' + d.image_b64 : null;
+
+  document.getElementById('modal-body').innerHTML = `
+    <div>
+      ${imgSrc ? `<img class="detail-img" src="${imgSrc}" alt="平面圖">` : '<div style="width:100%;height:200px;background:#F1F5F9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:48px">🏠</div>'}
+      <div class="detail-section" style="margin-top:16px">
+        <h3>統計</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+          <div style="background:#EBF4FF;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:700;color:#185FA5">${rooms.length}</div><div style="font-size:11px;color:#64748B">空間</div></div>
+          <div style="background:#EBF4FF;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:700;color:#185FA5">${d.summary?.opening_count||0}</div><div style="font-size:11px;color:#64748B">開口</div></div>
+          <div style="background:#EBF4FF;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:700;color:#185FA5">${furnItems.length}</div><div style="font-size:11px;color:#64748B">傢俱</div></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="detail-section">
+        <h3>空間列表</h3>
+        <div>${roomTags || '<span style="color:#94A3B8">無</span>'}</div>
+      </div>
+      <div class="detail-section">
+        <h3>牆體 / 開口</h3>
+        <p style="font-size:13px;color:#475569">${wallInfo}</p>
+      </div>
+      <div class="detail-section">
+        <h3>傢俱</h3>
+        <div>${furnList || '<span style="color:#94A3B8">無</span>'}</div>
+      </div>
+      <div class="detail-section">
+        <h3>ID</h3>
+        <div style="font-family:monospace;font-size:11px;color:#64748B">${d.id}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modal-delete-btn').onclick = () => confirmDelete(id);
+  document.getElementById('modal-export-btn').onclick = () => exportOne(id);
+  document.getElementById('modal-edit-btn').onclick = () => editAnnotation(id);
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('detail-modal').classList.remove('open');
+  currentId = null;
+}
+
+// ── 刪除 ──────────────────────────────────────
+function confirmDelete(id) {
+  currentId = id;
+  document.getElementById('confirm-bg').classList.add('open');
+  document.getElementById('confirm-ok-btn').onclick = () => doDelete(id);
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-bg').classList.remove('open');
+}
+
+async function doDelete(id) {
+  closeConfirm();
+  closeModal();
+  try {
+    const { error } = await sb.from('annotations').delete().eq('id', id);
+    if (error) throw error;
+    allData = allData.filter(d => d.id !== id);
+    updateStats();
+    filterData();
+    showToast('✅ 已刪除', 'success');
+  } catch (e) {
+    showToast('刪除失敗：' + e.message, 'error');
+  }
+}
+
+// ── 編輯（跳轉主頁）─────────────────────────────
+function editAnnotation(id) {
+  window.open('/?id=' + id, '_blank');
+}
+
+// ── 匯出 ──────────────────────────────────────
+function exportOne(id) {
+  const d = allData.find(x => x.id === id);
+  if (!d) return;
+  const json = JSON.stringify(d, null, 2);
+  download('annotation_' + id.slice(0,8) + '.json', json, 'application/json');
+  showToast('✅ 已匯出', 'success');
+}
+
+function exportAll() {
+  if (!allData.length) { showToast('沒有資料可匯出', 'error'); return; }
+  const jsonl = allData.map(d => JSON.stringify(d)).join('\n');
+  download('annotations_' + new Date().toISOString().slice(0,10) + '.jsonl', jsonl, 'application/x-jsonlines');
+  showToast(`✅ 已匯出 ${allData.length} 筆 JSONL`, 'success');
+}
+
+function download(filename, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = filename;
+  a.click();
+}
+
+// ── Toast ─────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show toast-' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ── 關閉 modal 點背景 ─────────────────────────
+document.getElementById('detail-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('detail-modal')) closeModal();
+});
+document.getElementById('confirm-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('confirm-bg')) closeConfirm();
+});
+
+loadData();
+</script>
+</body>
+</html>

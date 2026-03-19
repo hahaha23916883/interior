@@ -403,14 +403,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
       </div>
 
 <!-- Export card -->
-      <div class="card" id="export-card" style="display:none">
+      <div class="card" id="export-card">
         <div class="card-title">標注進度</div>
         <div class="export-stats">
           <div class="stat-box"><div class="stat-num" id="stat-rooms">0</div><div class="stat-label">空間</div></div>
           <div class="stat-box"><div class="stat-num" id="stat-openings">0</div><div class="stat-label">開口</div></div>
           <div class="stat-box"><div class="stat-num" id="stat-furniture">0</div><div class="stat-label">傢俱</div></div>
         </div>
-        <button class="btn btn-primary" id="save-db-btn" style="width:100%;margin-bottom:8px;font-size:14px;padding:10px" onclick="saveAnnotation()">💾 儲存標注到資料庫</button>
+        <button type="button" class="btn btn-primary" id="save-db-btn" style="width:100%;margin-bottom:8px;font-size:14px;padding:10px" onclick="event.preventDefault();saveAnnotation()">💾 儲存標注到資料庫</button>
         <button class="btn btn-secondary" style="width:100%;margin-bottom:12px;font-size:12px" onclick="exportData()">匯出 JSONL（備用）</button>
         <div style="border-top:1px solid #eee;padding-top:10px;margin-top:4px">
           <div style="font-size:11px;color:#888;margin-bottom:6px">資料庫累積量</div>
@@ -429,7 +429,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
             </div>
           </div>
           <div style="font-size:11px;text-align:center" id="db-ready-hint">載入中...</div>
-          <button class="btn btn-secondary" style="width:100%;margin-top:8px;font-size:11px" onclick="loadStats()">🔄 重新整理</button>
+          <button type="button" class="btn btn-secondary" style="width:100%;margin-top:8px;font-size:11px" onclick="loadStats()">🔄 重新整理</button>
+          <a href="/admin.html" target="_blank" style="display:block;width:100%;margin-top:8px;padding:8px;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:8px;text-align:center;font-size:12px;color:#065F46;text-decoration:none;font-weight:600">📋 管理所有標注資料 →</a>
         </div>
       </div>
     </div>
@@ -543,7 +544,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 // ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://duiycimttbzozdaoxzrh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PJptx3XXIU7fm7efyb2wEw_LspsF8qz';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+});
 
 async function saveAnnotation(){
   if(!imgB64){showError('請先上傳圖片');return;}
@@ -643,6 +646,7 @@ const WALL_STRIP_WIDE=0.42;
 // 狀態
 // ══════════════════════════════════════════════
 let img=null,imgB64=null,imgMediaType='image/jpeg';
+let editingId=null; // 若非 null 表示正在編輯已存的標注
 // 縮放平移狀態
 let viewScale=1, viewOffsetX=0, viewOffsetY=0;
 let isPanning=false, panStartX=0, panStartY=0, panOriginX=0, panOriginY=0;
@@ -693,7 +697,6 @@ function loadImage(file){
       document.getElementById('upload-zone').style.display='none';
       canvas.style.display='block';
       document.getElementById('toolbar').style.display='flex';
-      document.getElementById('export-card').style.display='block';
       const exportBtn=document.getElementById('export-btn');
       if(exportBtn) exportBtn.disabled=false;
       renderCanvas();
@@ -3940,21 +3943,30 @@ saveAnnotation=async function(){
   const saveBtn=document.getElementById('save-db-btn');
   saveBtn.disabled=true;saveBtn.textContent='儲存中...';
   try{
-    const{data:imgRecord,error:imgErr}=await sb.from('images').insert({
-      file_name:'annotation_'+Date.now()+'.jpg',media_type:imgMediaType,
-      width:img?.naturalWidth||0,height:img?.naturalHeight||0,source:'annotation_platform'
-    }).select().single();
-    if(imgErr) throw imgErr;
     const totalO=walls2.reduce((s,w)=>s+w.openings.length,0);
     const totalF=Object.values(furnitureData).reduce((s,f)=>s+f.length,0);
-    const{error:annErr}=await sb.from('annotations').insert({
-      image_id:imgRecord.id,image_b64:imgB64,
+    const annData={
+      image_b64:imgB64,
       rooms:rooms,walls:walls2,furniture:furnitureData,
       summary:{room_count:rooms.length,wall_count:walls2.length,opening_count:totalO,furniture_count:totalF},
       source:'annotation_platform',quality:'verified'
-    });
-    if(annErr) throw annErr;
-    showSuccess('✅ 已儲存到資料庫！（'+imgRecord.id.slice(0,8)+'...）');
+    };
+    if(editingId){
+      // 更新模式：UPDATE 現有記錄
+      const{error:updErr}=await sb.from('annotations').update(annData).eq('id',editingId);
+      if(updErr) throw updErr;
+      showSuccess('✅ 已更新標注！（'+editingId.slice(0,8)+'...）');
+    }else{
+      // 新增模式：INSERT 新 image + annotation
+      const{data:imgRecord,error:imgErr}=await sb.from('images').insert({
+        file_name:'annotation_'+Date.now()+'.jpg',media_type:imgMediaType,
+        width:img?.naturalWidth||0,height:img?.naturalHeight||0,source:'annotation_platform'
+      }).select().single();
+      if(imgErr) throw imgErr;
+      const{error:annErr}=await sb.from('annotations').insert({image_id:imgRecord.id,...annData});
+      if(annErr) throw annErr;
+      showSuccess('✅ 已儲存到資料庫！（'+imgRecord.id.slice(0,8)+'...）');
+    }
     loadStats();
   }catch(e){showError('儲存失敗：'+e.message);}
   finally{saveBtn.disabled=false;saveBtn.textContent='💾 儲存標注到資料庫';}
@@ -3965,6 +3977,74 @@ goStep=function(n){
   _origGoStep(n);
   if(n===2){setWallTool('draw');renderWallList();}
 };
+
+// ── 載入已存標注以供編輯 ─────────────────────────
+async function loadAnnotationForEdit(id){
+  try{
+    showSuccess('⏳ 載入標注資料中...');
+    const{data,error}=await sb.from('annotations').select('*').eq('id',id).single();
+    if(error) throw error;
+    if(!data) throw new Error('找不到標注資料');
+
+    // 還原狀態
+    editingId=id;
+    rooms=data.rooms||[];
+    walls2=data.walls||[];
+    furnitureData=data.furniture||{};
+    imgB64=data.image_b64||null;
+    imgMediaType=data.image_media_type||'image/jpeg';
+
+    // 更新計數器（避免 ID 衝突）
+    if(walls2.length) wallIdCnt=Math.max(...walls2.map(w=>w.id||0),0);
+    const allOpenings=walls2.flatMap(w=>w.openings||[]);
+    if(allOpenings.length) openingIdCnt=Math.max(...allOpenings.map(o=>o.id||0),0);
+
+    if(imgB64){
+      const image=new Image();
+      image.onload=()=>{
+        img=image;
+        document.getElementById('upload-zone').style.display='none';
+        canvas.style.display='block';
+        document.getElementById('toolbar').style.display='flex';
+        const zb=document.getElementById('zoom-bar');
+        const zh=document.getElementById('zoom-hint');
+        if(zb) zb.style.display='flex';
+        if(zh) zh.style.display='block';
+        renderCanvas();
+        resetView();
+        updateStats();
+        goStep(1);
+      };
+      image.src='data:'+imgMediaType+';base64,'+imgB64;
+    }
+
+    // 顯示編輯模式 banner
+    let banner=document.getElementById('edit-mode-banner');
+    if(!banner){
+      banner=document.createElement('div');
+      banner.id='edit-mode-banner';
+      banner.style.cssText='background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#92400E;font-weight:600;line-height:1.4';
+      const sidebar=document.querySelector('.sidebar');
+      if(sidebar) sidebar.insertBefore(banner,sidebar.firstChild);
+    }
+    banner.innerHTML='✏️ 編輯模式<br><span style="font-weight:400;font-size:11px">ID: '+id.slice(0,8)+'...</span>';
+
+    // 修改儲存按鈕文字
+    const saveBtn=document.getElementById('save-db-btn');
+    if(saveBtn) saveBtn.textContent='💾 更新標注到資料庫';
+
+    showSuccess('✅ 已載入標注，可開始修改');
+  }catch(e){
+    showError('載入失敗：'+e.message);
+  }
+}
+
+// ── 啟動時檢查 URL 參數 ────────────────────────
+(async function(){
+  const params=new URLSearchParams(location.search);
+  const id=params.get('id');
+  if(id) await loadAnnotationForEdit(id);
+})();
 
 // ── AI 識別全部牆面 ──────────────────────────
 async function runAllWallsAI(){
