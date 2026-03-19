@@ -1,0 +1,4006 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>平面圖標注訓練平台</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;color:#1a1a1a;min-height:100vh}
+.app{max-width:1300px;margin:0 auto;padding:1.5rem}
+
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.header h1{font-size:18px;font-weight:600}
+.header-right{display:flex;gap:8px;align-items:center}
+
+/* Steps */
+.steps{display:flex;gap:0;margin-bottom:1.5rem;border:1px solid #ddd;border-radius:10px;overflow:hidden;background:white}
+.step{flex:1;padding:12px 16px;display:flex;align-items:center;gap:10px;border-right:1px solid #e5e5e3;opacity:.45;cursor:pointer;transition:all .15s}
+.step:last-child{border-right:none}
+.step.active{opacity:1;background:#EBF4FF}
+.step.done{opacity:.8;background:#F0FDF4}
+.step-num{width:26px;height:26px;border-radius:50%;background:#e5e5e3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.step.active .step-num{background:#185FA5;color:white}
+.step.done .step-num{background:#10B981;color:white}
+.step-info .step-title{font-size:13px;font-weight:500}
+.step-info .step-sub{font-size:11px;color:#aaa}
+
+/* Layout */
+.main{display:grid;grid-template-columns:1fr 320px;gap:1rem;align-items:start}
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+
+/* Canvas */
+.canvas-card{background:white;border:1px solid #ddd;border-radius:12px;overflow:hidden;position:relative;user-select:none;-webkit-user-select:none}
+#canvas{display:block;width:100%;cursor:default}
+.zoom-bar{position:absolute;bottom:12px;right:12px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.92);border:1px solid #ddd;border-radius:8px;padding:5px 10px;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+.zoom-bar button{background:none;border:none;cursor:pointer;font-size:14px;color:#555;padding:0 2px;line-height:1;font-weight:500}
+.zoom-bar button:hover{color:#185FA5}
+.zoom-bar input[type=range]{width:80px;accent-color:#185FA5;cursor:pointer}
+.zoom-bar span{font-size:11px;color:#555;min-width:32px;text-align:center}
+.zoom-hint{position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,0.45);color:white;font-size:10px;padding:3px 8px;border-radius:5px;pointer-events:none;z-index:10;line-height:1.6}
+.upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:500px;cursor:pointer;color:#bbb;border:2px dashed #ddd;border-radius:12px;background:#fafafa;transition:all .2s}
+.upload-zone:hover{border-color:#185FA5;color:#185FA5;background:#EBF4FF}
+.upload-zone svg{margin-bottom:12px}
+.upload-zone p{font-size:14px}
+.upload-zone small{font-size:12px;margin-top:4px;color:#ccc}
+#file-input{display:none}
+
+/* Toolbar */
+.toolbar{display:flex;gap:6px;padding:10px 12px;background:#fafafa;border-bottom:1px solid #eee;flex-wrap:wrap;align-items:center}
+.tool-btn{padding:5px 12px;border-radius:7px;border:1.5px solid #ddd;font-size:12px;font-weight:500;cursor:pointer;background:white;color:#555;transition:all .15s;white-space:nowrap}
+.tool-btn:hover{border-color:#185FA5;color:#185FA5}
+.tool-btn.active{background:#185FA5;color:white;border-color:#185FA5}
+.tool-btn:disabled{opacity:.4;cursor:not-allowed}
+.tool-sep{width:1px;height:20px;background:#e5e5e3;flex-shrink:0}
+.tool-hint{font-size:11px;color:#aaa;margin-left:4px}
+
+/* Sidebar */
+.sidebar{display:flex;flex-direction:column;gap:10px}
+.card{background:white;border:1px solid #ddd;border-radius:12px;padding:1rem}
+.card-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+
+/* Buttons */
+.btn{padding:7px 14px;border-radius:8px;border:none;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-primary{background:#185FA5;color:white}.btn-primary:hover{background:#0C447C}
+.btn-primary:disabled{background:#ccc;cursor:not-allowed}
+.btn-secondary{background:white;color:#333;border:1px solid #ddd}.btn-secondary:hover{background:#f5f5f3}
+.btn-success{background:#10B981;color:white}.btn-success:hover{background:#059669}
+.btn-danger{background:#EF4444;color:white}.btn-danger:hover{background:#DC2626}
+.btn-warn{background:#F59E0B;color:white}.btn-warn:hover{background:#D97706}
+.btn-sm{font-size:11px;padding:4px 10px}
+.btn-icon{background:none;border:none;cursor:pointer;color:#aaa;padding:3px 5px;border-radius:4px;font-size:13px}
+.btn-icon:hover{color:#555;background:#f0f0ee}
+
+/* Room list */
+.room-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;cursor:pointer;border:1.5px solid transparent;margin-bottom:4px;transition:all .12s}
+.room-row:hover{background:#f5f5f3}
+.room-row.selected{border-color:#185FA5;background:#EBF4FF}
+.room-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.room-text{flex:1;min-width:0}
+.room-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.room-meta{font-size:10px;color:#aaa}
+.badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:500;margin-left:4px}
+.badge-ai{background:#EBF4FF;color:#185FA5}
+.badge-done{background:#F0FDF4;color:#10B981}
+
+/* Wall tabs */
+.wall-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px}
+.wall-tab{padding:6px;border-radius:7px;border:1.5px solid #e5e5e3;background:white;font-size:12px;font-weight:500;cursor:pointer;text-align:center;transition:all .12s;color:#555;position:relative}
+.wall-tab:hover{border-color:#185FA5;color:#185FA5}
+.wall-tab.active{background:#185FA5;color:white;border-color:#185FA5}
+.wall-tab .wall-count{position:absolute;top:-5px;right:-5px;background:#10B981;color:white;border-radius:50%;width:16px;height:16px;font-size:9px;display:flex;align-items:center;justify-content:center}
+
+/* 浮動門窗選單 */
+.floating-menu{
+  position:fixed;z-index:1000;background:white;border:1px solid #ddd;
+  border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);
+  padding:10px;min-width:200px;display:none;
+}
+.floating-menu-title{font-size:11px;font-weight:600;color:#888;
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;
+  display:flex;justify-content:space-between;align-items:center}
+.floating-menu-title button{background:none;border:none;cursor:pointer;
+  color:#bbb;font-size:14px;padding:0;line-height:1}
+.floating-menu-title button:hover{color:#555}
+.fmenu-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px}
+.fmenu-btn{padding:6px 4px;border-radius:7px;border:1.5px solid #ddd;
+  background:white;font-size:11px;cursor:pointer;text-align:center;
+  transition:all .12s;color:#555;line-height:1.3;min-height:52px}
+.fmenu-btn:hover{border-color:#185FA5;background:#EBF4FF;color:#185FA5}
+.fmenu-btn.active-opening{border-color:#185FA5;background:#185FA5;color:white}
+.fmenu-section{font-size:10px;font-weight:500;color:#aaa;margin:6px 0 4px;
+  text-transform:uppercase;letter-spacing:.04em}
+.fmenu-door-actions{display:flex;gap:5px;margin-top:6px}
+.fmenu-door-actions button{flex:1;padding:5px;border-radius:6px;border:1px solid #ddd;
+  background:white;font-size:11px;cursor:pointer;transition:all .12s}
+.fmenu-door-actions button:hover{border-color:#F59E0B;background:#FFF8E7}
+
+/* Step 2 牆體工具 */
+.wall-tool-btn{padding:6px 12px;border-radius:7px;border:1.5px solid #ddd;font-size:12px;font-weight:500;cursor:pointer;background:white;color:#555;transition:all .15s;white-space:nowrap}
+.wall-tool-btn:hover{border-color:#185FA5;color:#185FA5}
+.wall-tool-btn.active{background:#185FA5;color:white;border-color:#185FA5}
+.wall-row{display:flex;align-items:center;gap:6px;padding:7px 8px;background:#f5f5f3;border-radius:7px;margin-bottom:4px;cursor:pointer;border:1.5px solid transparent;transition:all .12s}
+.wall-row:hover{background:#EBF4FF;border-color:#B5D4F4}
+.wall-row.selected-wall{border-color:#185FA5;background:#EBF4FF}
+.wall-color{width:4px;height:28px;border-radius:2px;flex-shrink:0}
+.wall-info{flex:1;min-width:0}
+.wall-name-s{font-size:12px;font-weight:500}
+.wall-meta-s{font-size:10px;color:#aaa}
+.opening-on-wall{display:flex;align-items:center;gap:5px;padding:4px 8px;background:white;border-radius:5px;margin-top:4px;font-size:11px;border:1px solid #e5e5e3;cursor:pointer}
+.opening-on-wall:hover{border-color:#EF4444}
+.opening-on-wall.selected-opening{border-color:#185FA5;background:#EBF4FF}
+
+/* Opening list */
+.opening-row{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#f5f5f3;border-radius:6px;margin-bottom:4px;font-size:12px}
+.opening-icon{font-size:13px;flex-shrink:0}
+.opening-info{flex:1}
+.opening-name{font-weight:500}
+.opening-pos{font-size:10px;color:#aaa}
+.add-opening{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.add-opening select,.add-opening input{flex:1;min-width:80px;padding:5px 7px;border:1px solid #ddd;border-radius:6px;font-size:11px;background:white}
+.add-opening button{padding:5px 10px;border-radius:6px;border:none;background:#185FA5;color:white;font-size:11px;cursor:pointer;white-space:nowrap}
+
+/* Furniture list */
+.furniture-row{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#f5f5f3;border-radius:6px;margin-bottom:4px;font-size:12px}
+.furniture-icon{font-size:16px;flex-shrink:0}
+.furniture-info{flex:1}
+.furniture-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px}
+.furn-btn{padding:6px 4px;border-radius:6px;border:1px solid #ddd;background:white;font-size:10px;cursor:pointer;text-align:center;transition:all .12s}
+.furn-btn:hover{border-color:#185FA5;background:#EBF4FF}
+
+/* Loading */
+.loading-overlay{position:absolute;inset:0;background:rgba(255,255,255,.92);display:none;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;z-index:20}
+.spinner{width:28px;height:28px;border:2.5px solid #e5e5e3;border-top-color:#185FA5;border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:13px;color:#555;font-weight:500}
+.loading-sub{font-size:11px;color:#aaa;margin-top:4px;text-align:center;max-width:200px}
+
+/* Error */
+.error-bar{background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:9px 12px;color:#B91C1C;font-size:12px;margin-bottom:10px;display:none}
+
+/* Export */
+.export-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-box{background:#f5f5f3;border-radius:8px;padding:10px;text-align:center}
+.stat-num{font-size:20px;font-weight:600;color:#185FA5}
+.stat-label{font-size:10px;color:#888;margin-top:2px}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:white;border-radius:14px;padding:1.5rem;width:360px;box-shadow:0 12px 40px rgba(0,0,0,.15)}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:1rem}
+.modal label{font-size:11px;color:#888;display:block;margin-bottom:3px;margin-top:10px}
+.modal select,.modal input{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:white}
+.modal-actions{display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end}
+
+.hint-box{background:#FFF8E7;border:1px solid #FDE68A;border-radius:8px;padding:9px 12px;font-size:11px;color:#92400E;line-height:1.7;margin-bottom:10px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>🏠 平面圖標注訓練平台</h1>
+    <div class="header-right">
+      <div id="scale-header-box" style="display:none;flex-direction:column;gap:3px;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:8px;padding:6px 10px;min-width:160px">
+        <div style="display:flex;align-items:center;gap:6px;cursor:pointer" onclick="openScaleModal()" title="點擊重新設定比例尺">
+          <span style="font-size:13px">📐</span>
+          <div>
+            <div style="font-size:11px;font-weight:500;color:#065F46" id="scale-header-label">未設定比例尺</div>
+            <div style="font-size:10px;color:#10B981">點擊設定</div>
+          </div>
+        </div>
+        <div id="scale-status" style="font-size:10px;color:#888;line-height:1.5;display:none"></div>
+      </div>
+      <input type="hidden" id="api-key" value="YOUR_ANTHROPIC_API_KEY" />
+      <button class="btn btn-success" id="export-btn" disabled onclick="exportData()">匯出 JSONL</button>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step active" id="step-1" onclick="goStep(1)">
+      <div class="step-num">1</div>
+      <div class="step-info"><div class="step-title">空間識別</div><div class="step-sub">標注所有空間範圍</div></div>
+    </div>
+    <div class="step" id="step-2" onclick="goStep(2)">
+      <div class="step-num">2</div>
+      <div class="step-info"><div class="step-title">牆體 · 門窗</div><div class="step-sub">標注開口位置</div></div>
+    </div>
+    <div class="step" id="step-3" onclick="goStep(3)">
+      <div class="step-num">3</div>
+      <div class="step-info"><div class="step-title">傢俱擺設</div><div class="step-sub">標注傢俱位置</div></div>
+    </div>
+  </div>
+
+  <div class="error-bar" id="error-bar"></div>
+
+  <div class="main">
+    <!-- Canvas -->
+    <div class="canvas-card" id="canvas-card">
+      <div class="toolbar" id="toolbar" style="display:none">
+        <!-- Step 1 tools -->
+        <div id="tools-step1" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button class="tool-btn active" id="tool-select" onclick="setTool('select')">👆 選取</button>
+          <button class="tool-btn" id="tool-rect" onclick="setTool('rect')">▭ 矩形</button>
+          <button class="tool-btn" id="tool-poly" onclick="setTool('poly')">⬡ 多邊形</button>
+          <div class="tool-sep"></div>
+          <button class="tool-btn" id="undo-btn" onclick="undoAction()" title="復原 Ctrl+Z" disabled>↩ 復原</button>
+          <span id="poly-hint" style="display:none;font-size:11px;color:#F59E0B;font-weight:500">靠近起點閉合 · Shift=水平/垂直 · Backspace=刪上一點 · ESC=取消</span>
+          <div class="tool-sep"></div>
+          <button class="btn btn-sm btn-primary" id="ai-btn" onclick="runAI()">⚡ AI 自動識別</button>
+        </div>
+        <!-- Step 2 tools -->
+        <div id="tools-step2" style="display:none;gap:6px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:12px;color:#555;font-weight:500">選擇右側類型後，點擊平面圖牆面標注開口 · 點擊圓圈刪除</span>
+        </div>
+        <!-- Step 3 tools -->
+        <div id="tools-step3" style="display:none;gap:6px;align-items:center;flex-wrap:wrap">
+          <button id="ftool-select" class="tool-btn active" onclick="setFurnTool('select')">▲ 選取</button>
+          <button id="ftool-rect" class="tool-btn" onclick="setFurnTool('rect')">▭ 矩形</button>
+          <button id="ftool-poly" class="tool-btn" onclick="setFurnTool('poly')">⬡ 多邊形</button>
+          <div class="tool-sep"></div>
+          <button id="ftool-delete" class="tool-btn" onclick="setFurnTool('delete')" style="color:#EF4444">✕ 刪除</button>
+          <span class="tool-hint" id="ftool-hint">選取或拖移傢俱；矩形/多邊形工具可手動框選</span>
+        </div>
+        <span class="tool-hint" id="tool-hint"></span>
+      </div>
+      <input type="file" id="file-input" accept="image/jpeg,image/png" style="display:none"/>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <p>點擊上傳平面圖</p><small>JPG 或 PNG</small>
+      </div>
+      <canvas id="canvas" style="display:none"></canvas>
+      <div class="zoom-bar" id="zoom-bar" style="display:none">
+        <button onclick="setZoom(viewScale/1.25)">－</button>
+        <input type="range" id="zoom-slider" min="20" max="400" value="100" step="5"
+          oninput="setZoomFromSlider(this.value)">
+        <span id="zoom-label">100%</span>
+        <button onclick="setZoom(viewScale*1.25)">＋</button>
+        <button onclick="resetView()" title="重置">↺</button>
+      </div>
+      <div class="zoom-hint" id="zoom-hint" style="display:none">空白鍵+拖移 平移 · 雙擊重置</div>
+      <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-txt" id="loading-txt">AI 識別中</div>
+        <div class="loading-sub" id="loading-sub"></div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Step 1 sidebar -->
+      <div id="sidebar-step1">
+        <div class="card">
+          <div class="card-title">空間列表
+            <button class="btn btn-sm btn-primary" onclick="addNewRoom()" style="font-size:10px;padding:3px 8px">＋ 新增</button>
+            </div>
+          <div id="room-list"><div style="font-size:12px;color:#bbb;text-align:center;padding:1rem">上傳圖片後開始標注</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">操作說明</div>
+          <div style="font-size:11px;color:#888;line-height:1.9">
+            <b style="color:#555">1.</b> 點「AI 自動識別」獲得初始結果<br>
+            <b style="color:#555">2.</b> 點選空間確認位置是否正確<br>
+            <b style="color:#555">3.</b> 用矩形或多邊形工具重新框選<br>
+            <b style="color:#555">4.</b> 所有空間確認後進入 Step 2
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 sidebar -->
+      <div id="sidebar-step2" style="display:none">
+        <div class="card">
+          <div class="card-title">工具</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <button class="wall-tool-btn active" id="wtool-draw" onclick="setWallTool('draw')">✏️ 畫牆體</button>
+            <button class="wall-tool-btn" id="wtool-select" onclick="setWallTool('select')">👆 選取</button>
+            <button class="wall-tool-btn" id="wtool-delete" onclick="setWallTool('delete')">🗑 刪除</button>
+            <button class="wall-tool-btn" onclick="if(wallDrawPoints.length>1){walls2.pop();wallDrawPoints.pop();renderWallList();updateStats();renderCanvas();}else{wallDrawPoints=[];wallDrawStart=null;wallDrawCurrent=null;renderCanvas();}">↩ 退一步</button>
+          </div>
+          <div style="font-size:11px;color:#aaa;line-height:1.7" id="wtool-hint">連續點擊畫線段 · 雙擊結束 · Shift=水平/垂直 · Backspace=退一點 · ESC=取消</div>
+          <div id="step2-progress" style="display:none;font-size:11px;color:#185FA5;margin-top:6px"></div>
+        </div>
+        <div class="card" id="opening-add-card" style="display:none">
+          <div class="card-title">新增門窗到選取牆體 <span id="selected-wall-name" style="font-weight:400;color:#aaa;font-size:10px"></span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
+            <button class="wall-tool-btn" onclick="addOpeningToWall('window','雙扇推拉窗','120')">🪟 推拉窗</button>
+            <button class="wall-tool-btn" onclick="addOpeningToWall('window','落地窗','150')">🪟 落地窗</button>
+            <button class="wall-tool-btn" onclick="addOpeningToWall('window','固定窗','90')">🪟 固定窗</button>
+            <button class="wall-tool-btn" onclick="addOpeningToWall('window','氣密窗','90')">🪟 氣密窗</button>
+            <button class="wall-tool-btn" onclick="addOpeningToWall('door','單開門','90')">🚪 單開門</button>
+            <button class="wall-tool-btn" onclick="addOpeningToWall('door','雙開門','150')">🚪 雙開門</button>
+            <button class="wall-tool-btn" onclick="addOpeningToWall('door','推拉門','120')">🚪 推拉門</button>
+            <button class="wall-tool-btn" onclick="addOpeningToWall('door','折疊門','90')">🚪 折疊門</button>
+          </div>
+          <div style="font-size:10px;color:#aaa">新增後可在牆體上拖移門窗位置</div>
+        </div>
+        <div class="card">
+          <div class="card-title">牆體列表 <button class="btn btn-sm" style="background:#10B981;color:white;border:none;font-size:10px" onclick="runAllWallsAI()">⚡ AI 識別</button></div>
+          <div id="wall-list"><div style="font-size:11px;color:#bbb;text-align:center;padding:8px">尚無牆體，請用畫牆工具新增</div></div>
+        </div>
+        <div class="card">
+          <div style="font-size:11px;color:#888;line-height:1.9">
+            <b style="color:#555">1.</b> 畫牆：點起點 → 點終點<br>
+            <b style="color:#555">2.</b> 選取牆體後可新增門窗<br>
+            <b style="color:#555">3.</b> 門窗可沿牆拖移調整位置<br>
+            <b style="color:#555">4.</b> 刪除模式：點擊刪除牆體或門窗
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 sidebar -->
+      <div id="sidebar-step3" style="display:none">
+        <div class="card" style="text-align:center">
+          <button class="btn btn-warn" onclick="runFurnitureAIFull()"
+            style="width:100%;font-size:14px;padding:12px">⚡ AI 識別全圖傢俱</button>
+          <div style="font-size:11px;color:#888;margin-top:8px">一鍵識別整張平面圖所有傢俱</div>
+          <div id="step3-progress" style="display:none;font-size:11px;color:#185FA5;margin-top:6px"></div>
+        </div>
+
+        <!-- 傢俱編輯面板 -->
+        <div class="card" id="furn-edit-card" style="display:none">
+          <div class="card-title" style="margin-bottom:12px">編輯傢俱</div>
+          <label style="font-size:11px;color:#888;display:block;margin-bottom:4px">傢俱類型</label>
+          <select id="furn-type-select" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:white;margin-bottom:12px" onchange="onFurnTypeChange(this.value)">
+            <optgroup label="臥室">
+              <option value="bed_double">雙人床</option>
+              <option value="bed_single">單人床</option>
+              <option value="wardrobe">衣櫃</option>
+              <option value="nightstand">床頭櫃</option>
+            </optgroup>
+            <optgroup label="客廳">
+              <option value="sofa">沙發</option>
+              <option value="sofa_l">L型沙發</option>
+              <option value="coffee_table">茶几</option>
+              <option value="tv_stand">電視櫃</option>
+            </optgroup>
+            <optgroup label="餐廳">
+              <option value="dining_table">餐桌</option>
+              <option value="dining_chair">餐椅</option>
+            </optgroup>
+            <optgroup label="廚房">
+              <option value="kitchen_counter">廚具台面</option>
+              <option value="stove">爐具</option>
+              <option value="refrigerator">冰箱</option>
+              <option value="sink_kitchen">廚房水槽</option>
+            </optgroup>
+            <optgroup label="衛浴">
+              <option value="toilet">馬桶</option>
+              <option value="bathtub">浴缸</option>
+              <option value="shower">淋浴間</option>
+              <option value="sink_bath">洗手台</option>
+            </optgroup>
+            <optgroup label="書房">
+              <option value="desk">書桌</option>
+              <option value="office_chair">辦公椅</option>
+              <option value="bookshelf">書櫃</option>
+            </optgroup>
+            <optgroup label="其他">
+              <option value="washing_machine">洗衣機</option>
+              <option value="plant">植栽</option>
+              <option value="other">其他</option>
+            </optgroup>
+          </select>
+          <label style="font-size:11px;color:#888;display:block;margin-bottom:6px">旋轉角度</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <button class="btn btn-secondary btn-sm" onclick="rotateFurnSelected(-90)">−90°</button>
+            <button class="btn btn-secondary btn-sm" onclick="rotateFurnSelected(-1)">−1°</button>
+            <span id="furn-rot-display" style="flex:1;text-align:center;font-size:13px;font-weight:600;color:#185FA5">0°</span>
+            <button class="btn btn-secondary btn-sm" onclick="rotateFurnSelected(1)">+1°</button>
+            <button class="btn btn-secondary btn-sm" onclick="rotateFurnSelected(90)">+90°</button>
+          </div>
+          <input type="range" id="furn-rot-slider" min="0" max="359" step="1" value="0"
+            style="width:100%;accent-color:#185FA5;margin-bottom:12px"
+            oninput="setFurnRotationFromSlider(+this.value)">
+          <button class="btn btn-danger" style="width:100%;font-size:12px" onclick="deleteFurnSelected()">刪除此傢俱</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">已識別傢俱 <span id="furn-count" style="font-weight:400;color:#aaa"></span></div>
+          <div id="furniture-list-global" style="max-height:300px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+<!-- Export card -->
+      <div class="card" id="export-card" style="display:none">
+        <div class="card-title">標注進度</div>
+        <div class="export-stats">
+          <div class="stat-box"><div class="stat-num" id="stat-rooms">0</div><div class="stat-label">空間</div></div>
+          <div class="stat-box"><div class="stat-num" id="stat-openings">0</div><div class="stat-label">開口</div></div>
+          <div class="stat-box"><div class="stat-num" id="stat-furniture">0</div><div class="stat-label">傢俱</div></div>
+        </div>
+        <button class="btn btn-primary" id="save-db-btn" style="width:100%;margin-bottom:8px;font-size:14px;padding:10px" onclick="saveAnnotation()">💾 儲存標注到資料庫</button>
+        <button class="btn btn-secondary" style="width:100%;margin-bottom:12px;font-size:12px" onclick="exportData()">匯出 JSONL（備用）</button>
+        <div style="border-top:1px solid #eee;padding-top:10px;margin-top:4px">
+          <div style="font-size:11px;color:#888;margin-bottom:6px">資料庫累積量</div>
+          <div style="background:#EBF4FF;border-radius:8px;padding:10px;text-align:center;margin-bottom:8px">
+            <div style="font-size:28px;font-weight:700;color:#185FA5" id="db-total-count">-</div>
+            <div style="font-size:11px;color:#185FA5">可用訓練資料總筆數</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <div style="flex:1;background:#f5f5f3;border-radius:7px;padding:7px;text-align:center">
+              <div style="font-size:16px;font-weight:600;color:#185FA5" id="db-ann-count">-</div>
+              <div style="font-size:10px;color:#888">人工標注</div>
+            </div>
+            <div style="flex:1;background:#f5f5f3;border-radius:7px;padding:7px;text-align:center">
+              <div style="font-size:16px;font-weight:600;color:#10B981" id="db-ses-count">-</div>
+              <div style="font-size:10px;color:#888">使用者修正</div>
+            </div>
+          </div>
+          <div style="font-size:11px;text-align:center" id="db-ready-hint">載入中...</div>
+          <button class="btn btn-secondary" style="width:100%;margin-top:8px;font-size:11px" onclick="loadStats()">🔄 重新整理</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal：比例尺設定 -->
+<div class="modal-bg" id="scale-modal">
+  <div class="modal" style="width:380px">
+    <h3>📐 設定比例尺</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.7">
+      選擇圖面中的已知物件，點擊「開始標定」後在圖面上點選該物件的兩端，系統自動計算比例尺。
+    </p>
+    <label style="font-size:11px;color:#888;display:block;margin-bottom:4px">選擇參考物件</label>
+    <select id="scale-modal-select"
+      style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:white;margin-bottom:10px"
+      onchange="onScaleModalChange(this.value)">
+      <option value="">請選擇...</option>
+      <optgroup label="床">
+        <option value="200">雙人床 長邊 200cm</option>
+        <option value="150">雙人床 短邊 150cm</option>
+        <option value="180">雙人床 短邊 180cm</option>
+        <option value="190">單人床 長邊 190cm</option>
+        <option value="100">單人床 短邊 100cm</option>
+      </optgroup>
+      <optgroup label="門">
+        <option value="90">標準單門 90cm</option>
+        <option value="80">標準單門 80cm</option>
+        <option value="150">標準雙門 150cm</option>
+      </optgroup>
+      <optgroup label="衛浴">
+        <option value="150">標準浴缸長 150cm</option>
+        <option value="70">標準浴缸寬 70cm</option>
+        <option value="65">標準馬桶深 65cm</option>
+        <option value="60">標準洗手台寬 60cm</option>
+      </optgroup>
+      <optgroup label="廚房">
+        <option value="60">廚具深度 60cm</option>
+      </optgroup>
+      <optgroup label="自訂">
+        <option value="custom">輸入實際距離...</option>
+      </optgroup>
+    </select>
+    <div id="scale-modal-custom" style="display:none;margin-bottom:10px">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px">實際距離 (cm)</label>
+      <input type="number" id="scale-modal-custom-val" placeholder="例：120"
+        style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px"/>
+    </div>
+    <div id="scale-modal-preview" style="display:none;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:8px;padding:10px;font-size:12px;color:#065F46;margin-bottom:10px;line-height:1.7"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="skipScaleModal()">稍後設定</button>
+      <button class="btn btn-primary" id="scale-modal-btn" onclick="startScaleModalMark()" disabled>開始標定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal：選擇傢俱類型 -->
+<div class="modal-bg" id="furn-type-modal">
+  <div class="modal" style="width:420px;max-height:80vh;overflow-y:auto">
+    <h3>選擇傢俱類型</h3>
+    <div id="furn-type-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px"></div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-secondary" onclick="cancelFurnType()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal：命名空間 -->
+<div class="modal-bg" id="name-modal">
+  <div class="modal">
+    <h3>命名此空間</h3>
+    <label>空間類型</label>
+    <select id="modal-room-type">
+      <optgroup label="起居"><option value="客廳|Living Room">客廳</option><option value="餐廳|Dining Room">餐廳</option><option value="廚房|Kitchen">廚房</option><option value="書房|Study Room">書房</option><option value="書房/工作區|Study Area">書房/工作區</option></optgroup>
+      <optgroup label="臥室"><option value="主臥室|Master Bedroom">主臥室</option><option value="次臥室|Bedroom 2">次臥室</option><option value="客房|Guest Room">客房</option><option value="兒童房|Children's Room">兒童房</option></optgroup>
+      <optgroup label="衛浴"><option value="主衛浴|Master Bathroom">主衛浴</option><option value="衛浴|Bathroom">衛浴</option></optgroup>
+      <optgroup label="其他"><option value="玄關|Entrance">玄關</option><option value="陽台|Balcony">陽台</option><option value="工作陽台|Service Balcony">工作陽台</option><option value="走廊|Corridor">走廊</option><option value="儲藏室|Storage Room">儲藏室</option><option value="更衣室|Walk-in Closet">更衣室</option><option value="自訂|Custom">自訂...</option></optgroup>
+    </select>
+    <div id="modal-custom-wrap" style="display:none">
+      <label>中文名稱</label><input type="text" id="modal-custom-zh" placeholder="例：和室"/>
+      <label style="margin-top:8px">英文</label><input type="text" id="modal-custom-en"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="cancelShape()">取消</button>
+      <button class="btn btn-primary" onclick="confirmShape()">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal：開口位置標注 -->
+<div class="modal-bg" id="opening-modal">
+  <div class="modal">
+    <h3 id="opening-modal-title">標注開口</h3>
+    <label>開口類型</label>
+    <select id="opening-modal-type">
+      <optgroup label="窗戶"><option value="window|雙扇推拉窗">雙扇推拉窗</option><option value="window|單扇推拉窗">單扇推拉窗</option><option value="window|固定窗">固定窗</option><option value="window|落地窗">落地窗</option><option value="window|氣密窗">氣密窗</option></optgroup>
+      <optgroup label="門"><option value="door|單開門">單開門</option><option value="door|雙開門">雙開門</option><option value="door|推拉門">推拉門</option><option value="door|折疊門">折疊門</option><option value="door|玻璃門">玻璃門</option></optgroup>
+    </select>
+    <label>寬度（cm）</label>
+    <input type="number" id="opening-modal-width" value="90" min="30" max="400"/>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="cancelOpening()">取消</button>
+      <button class="btn btn-primary" onclick="confirmOpening()">確認標注</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// Supabase 初始化
+// ══════════════════════════════════════════════
+const SUPABASE_URL = 'https://duiycimttbzozdaoxzrh.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_PJptx3XXIU7fm7efyb2wEw_LspsF8qz';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function saveAnnotation(){
+  if(!imgB64){showError('請先上傳圖片');return;}
+  if(!rooms.length){showError('請先標注空間');return;}
+  const saveBtn=document.getElementById('save-db-btn');
+  saveBtn.disabled=true;saveBtn.textContent='儲存中...';
+  try{
+    // 先儲存圖片記錄
+    const{data:imgRecord,error:imgErr}=await sb.from('images').insert({
+      file_name:'annotation_'+Date.now()+'.jpg',
+      media_type:imgMediaType,
+      width:img?.naturalWidth||0,
+      height:img?.naturalHeight||0,
+      source:'annotation_platform'
+    }).select().single();
+    if(imgErr)throw imgErr;
+
+    // 儲存標注資料
+    const totalOpenings=Object.values(wallData).reduce((s,wd)=>s+Object.values(wd).reduce((s2,w)=>s2+(w.openings?.length||0),0),0);
+    const totalFurniture=Object.values(furnitureData).reduce((s,f)=>s+f.length,0);
+    const{error:annErr}=await sb.from('annotations').insert({
+      image_id:imgRecord.id,
+      image_b64:imgB64,
+      rooms:rooms,
+      walls:wallData,
+      furniture:furnitureData,
+      summary:{
+        room_count:rooms.length,
+        opening_count:totalOpenings,
+        furniture_count:totalFurniture
+      },
+      source:'annotation_platform',
+      quality:'verified'
+    });
+    if(annErr)throw annErr;
+    showSuccess('✅ 已儲存到資料庫！（圖片 ID: '+imgRecord.id.slice(0,8)+'...）');
+    updateStats();
+  }catch(e){showError('儲存失敗：'+e.message);}
+  finally{saveBtn.disabled=false;saveBtn.textContent='儲存到資料庫';}
+}
+
+async function loadStats(){
+  try{
+    const[{count:annCount},{count:sesCount}]=await Promise.all([
+      sb.from('annotations').select('*',{count:'exact',head:true}),
+      sb.from('user_sessions').select('*',{count:'exact',head:true})
+    ]);
+    const total=(annCount||0)+(sesCount||0);
+    document.getElementById('db-ann-count').textContent=annCount||0;
+    document.getElementById('db-ses-count').textContent=sesCount||0;
+    document.getElementById('db-total-count').textContent=total;
+    // Fine-tune 建議
+    const readyEl=document.getElementById('db-ready-hint');
+    if(total>=50) readyEl.textContent='✅ 可以開始 Fine-tune！';
+    else readyEl.textContent=`還需要 ${50-total} 筆達到 Fine-tune 門檻（50筆）`;
+    readyEl.style.color=total>=50?'#10B981':'#888';
+  }catch(e){console.warn('載入統計失敗',e);}
+}
+
+// ══════════════════════════════════════════════
+// 常數
+// ══════════════════════════════════════════════
+const COLORS=['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#F97316','#84CC16','#EC4899','#14B8A6','#6366F1','#FB923C','#F472B6','#34D399'];
+const ROOM_TYPES=['客廳|Living Room','餐廳|Dining Room','廚房|Kitchen','書房|Study Room','書房/工作區|Study Area','主臥室|Master Bedroom','次臥室|Bedroom 2','客房|Guest Room','兒童房|Children\'s Room','主衛浴|Master Bathroom','衛浴|Bathroom','玄關|Entrance','陽台|Balcony','工作陽台|Service Balcony','走廊|Corridor','儲藏室|Storage Room','更衣室|Walk-in Closet'];
+const FURNITURE_LIST=[
+  {id:'bed_double',name:'雙人床',icon:'🛏',w:160,h:200,dir:'head',dirLabel:'床頭'},
+  {id:'bed_single',name:'單人床',icon:'🛏',w:100,h:200,dir:'head',dirLabel:'床頭'},
+  {id:'wardrobe',name:'衣櫃',icon:'🗄',w:120,h:60},
+  {id:'nightstand',name:'床頭櫃',icon:'🟫',w:50,h:50},
+  {id:'sofa',name:'沙發',icon:'🛋',w:200,h:80,dir:'back',dirLabel:'靠背'},
+  {id:'sofa_l',name:'L型沙發',icon:'🛋',w:240,h:160,dir:'back',dirLabel:'靠背'},
+  {id:'coffee_table',name:'茶几',icon:'🪵',w:110,h:60},
+  {id:'tv_stand',name:'電視櫃',icon:'📺',w:160,h:45,dir:'wall',dirLabel:'靠牆'},
+  {id:'dining_table',name:'餐桌',icon:'🪑',w:120,h:80},
+  {id:'dining_chair',name:'餐椅',icon:'🪑',w:45,h:45,dir:'back',dirLabel:'椅背'},
+  {id:'kitchen_counter',name:'廚具台面',icon:'🍳',w:200,h:60,dir:'wall',dirLabel:'靠牆'},
+  {id:'stove',name:'爐具',icon:'🍳',w:60,h:60,dir:'wall',dirLabel:'靠牆'},
+  {id:'refrigerator',name:'冰箱',icon:'❄',w:65,h:70,dir:'wall',dirLabel:'靠牆'},
+  {id:'sink_kitchen',name:'廚房水槽',icon:'🚿',w:80,h:60,dir:'wall',dirLabel:'靠牆'},
+  {id:'toilet',name:'馬桶',icon:'🚽',w:40,h:70,dir:'tank',dirLabel:'水箱'},
+  {id:'bathtub',name:'浴缸',icon:'🛁',w:80,h:160,dir:'head',dirLabel:'頭部'},
+  {id:'shower',name:'淋浴間',icon:'🚿',w:90,h:90},
+  {id:'sink_bath',name:'洗手台',icon:'🚿',w:60,h:50,dir:'wall',dirLabel:'靠牆'},
+  {id:'desk',name:'書桌',icon:'🖥',w:120,h:60,dir:'wall',dirLabel:'靠牆'},
+  {id:'office_chair',name:'辦公椅',icon:'🪑',w:55,h:55,dir:'back',dirLabel:'椅背'},
+  {id:'bookshelf',name:'書櫃',icon:'📚',w:100,h:30,dir:'wall',dirLabel:'靠牆'},
+  {id:'washing_machine',name:'洗衣機',icon:'👕',w:60,h:60,dir:'wall',dirLabel:'靠牆'},
+  {id:'plant',name:'植栽',icon:'🌿',w:40,h:40},
+  {id:'other',name:'其他',icon:'📦',w:60,h:60},
+];
+const FURN_MAP=Object.fromEntries(FURNITURE_LIST.map(f=>[f.id,f]));
+const EXPAND=0.12;
+const WALL_STRIP=0.22;
+const WALL_STRIP_WIDE=0.42;
+
+// ══════════════════════════════════════════════
+// 狀態
+// ══════════════════════════════════════════════
+let img=null,imgB64=null,imgMediaType='image/jpeg';
+// 縮放平移狀態
+let viewScale=1, viewOffsetX=0, viewOffsetY=0;
+let isPanning=false, panStartX=0, panStartY=0, panOriginX=0, panOriginY=0;
+let spaceDown=false;
+const MIN_SCALE=0.2, MAX_SCALE=8;
+let currentStep=1,currentTool='select';
+let rooms=[],selectedRoom=null;
+let selectedWall='north';
+let wallData={};   // roomName -> {north,south,east,west}
+let furnitureData={};  // roomName -> [{id,name,icon,x,y,rotation}]
+let dragging=null,resizing=null;
+let rectStart=null,rectCurrent=null;
+let polyPoints=[],polyDrawing=false,polyCurrent=null,polyShiftLock=false;
+let shiftDown=false; // 全域 Shift 鍵狀態
+let selectedPolyVertex=null; // {roomIdx, vertexIdx} 已選取的頂點
+let polyDragIdx=null,polyDragRoom=null;
+let pendingShape=null;
+let pendingOpeningPos=null;
+let shiftRectStart=null,shiftRectCurrent=null; // Shift+拖移合併矩形 // {position_pct, wall}
+let placingFurniture=null;
+// 新傢俱 bbox 標注狀態
+let furnTool='select'; // select / rect / poly / delete
+let furnRectStart=null,furnRectCurrent=null;
+let furnPolyPoints=[],furnPolyDrawing=false,furnPolyCurrent=null;
+let pendingFurnBbox=null; // 畫完矩形/多邊形後等待選類型
+let furnDragging=null; // {roomName,furnId,startRx,startRy,origBbox}
+let selectedFurnKey=null; // 選取的傢俱：{roomName, furnId}
+let furnResizing=null; // {roomName, furnId, handle, origBbox, startX, startY}
+let furnIdCnt=1000;
+
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+
+// ══════════════════════════════════════════════
+// Upload
+// ══════════════════════════════════════════════
+// upload-zone click handled by onclick attribute
+document.getElementById('file-input').addEventListener('change',e=>{if(e.target.files[0])loadImage(e.target.files[0]);});
+
+function loadImage(file){
+  imgMediaType=file.type||'image/jpeg';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    imgB64=e.target.result.split(',')[1];
+    const image=new Image();
+    image.onload=()=>{
+      img=image;
+      document.getElementById('upload-zone').style.display='none';
+      canvas.style.display='block';
+      document.getElementById('toolbar').style.display='flex';
+      document.getElementById('export-card').style.display='block';
+      const exportBtn=document.getElementById('export-btn');
+      if(exportBtn) exportBtn.disabled=false;
+      renderCanvas();
+      resetView();
+      loadStats();
+      const zb=document.getElementById('zoom-bar');
+      const zh=document.getElementById('zoom-hint');
+      if(zb) zb.style.display='flex';
+      if(zh) zh.style.display='block';
+      // 上傳後：顯示比例尺設定 modal（設定後才進行空間辨識）
+      goStep(1); // 確保在 Step 1
+      setTimeout(()=>{
+        document.getElementById('scale-header-box').style.display='flex';
+        openScaleModal();
+      },300);
+    };
+    image.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════════════════
+// Step 導航
+// ══════════════════════════════════════════════
+function goStep(n){
+  if(!img&&n>1){showError('請先上傳圖片');return;}
+  currentStep=n;
+  [1,2,3].forEach(i=>{
+    const el=document.getElementById('step-'+i);
+    el.className='step'+(i===n?' active':i<n?' done':'');
+    el.querySelector('.step-num').style.background=i===n?'#185FA5':i<n?'#10B981':'';
+    el.querySelector('.step-num').style.color=i<=n?'white':'';
+  });
+  ['step1','step2','step3'].forEach(id=>document.getElementById('sidebar-'+id).style.display='none');
+  document.getElementById('sidebar-step'+n).style.display='block';
+  document.getElementById('tools-step1').style.display=n===1?'flex':'none';
+  document.getElementById('tools-step2').style.display=n===2?'flex':'none';
+  document.getElementById('tools-step3').style.display=n===3?'flex':'none';
+  if(n===2){renderGlobalOpeningList();}
+  if(n===3){setFurnTool('select');renderFurnListGlobal();}
+  updateStats();
+  renderCanvas();
+}
+
+// ══════════════════════════════════════════════
+// 影像前處理
+// ══════════════════════════════════════════════
+function preprocessImage(){
+  const W=img.naturalWidth,H=img.naturalHeight;
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const gctx=c.getContext('2d');gctx.drawImage(img,0,0);
+  const d=gctx.getImageData(0,0,W,H),p=d.data;
+  const gray=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++) gray[i]=Math.round(0.299*p[i*4]+0.587*p[i*4+1]+0.114*p[i*4+2]);
+  const sorted=[...gray].sort((a,b)=>a-b);
+  const lo=sorted[Math.floor(W*H*0.02)],hi=sorted[Math.floor(W*H*0.98)];
+  for(let i=0;i<W*H;i++){
+    const v=Math.min(255,Math.max(0,Math.round((gray[i]-lo)/(hi-lo)*255)));
+    p[i*4]=p[i*4+1]=p[i*4+2]=v;p[i*4+3]=255;
+  }
+  gctx.putImageData(d,0,0);
+  return c.toDataURL('image/jpeg',0.92).split(',')[1];
+}
+
+function cropRegion(x,y,w,h,extraPad=0){
+  const W=img.naturalWidth,H=img.naturalHeight;
+  const sx=Math.max(0,(x-extraPad))*W,sy=Math.max(0,(y-extraPad))*H;
+  const sw=Math.min(W-sx,(w+extraPad*2)*W),sh=Math.min(H-sy,(h+extraPad*2)*H);
+  const c=document.createElement('canvas');c.width=Math.round(sw);c.height=Math.round(sh);
+  c.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,c.width,c.height);
+  return c.toDataURL('image/jpeg',0.93).split(',')[1];
+}
+
+function getRoomBounds(room){
+  if(room.type==='polygon'&&room.points){
+    return{minX:Math.min(...room.points.map(p=>p.x)),minY:Math.min(...room.points.map(p=>p.y)),maxX:Math.max(...room.points.map(p=>p.x)),maxY:Math.max(...room.points.map(p=>p.y))};
+  }
+  if(room.bbox) return{minX:room.bbox.x,minY:room.bbox.y,maxX:room.bbox.x+room.bbox.w,maxY:room.bbox.y+room.bbox.h};
+  return null;
+}
+
+function getWallCrop(room,wall,wide=false){
+  const b=getRoomBounds(room);if(!b)return null;
+  const{minX,minY,maxX,maxY}=b;
+  const rw=maxX-minX,rh=maxY-minY;
+  const strip=wide?WALL_STRIP_WIDE:WALL_STRIP;
+  const pad=EXPAND;
+  let x,y,w,h;
+  if(wall==='north'){x=minX-rw*pad;y=minY-rh*pad;w=rw+rw*pad*2;h=rh*strip+rh*pad;}
+  else if(wall==='south'){x=minX-rw*pad;y=maxY-rh*strip;w=rw+rw*pad*2;h=rh*strip+rh*pad;}
+  else if(wall==='west'){x=minX-rw*pad;y=minY-rh*pad;w=rw*strip+rw*pad;h=rh+rh*pad*2;}
+  else{x=maxX-rw*strip;y=minY-rh*pad;w=rw*strip+rw*pad;h=rh+rh*pad*2;}
+  return cropRegion(Math.max(0,x),Math.max(0,y),Math.min(1-Math.max(0,x),w),Math.min(1-Math.max(0,y),h));
+}
+
+// ══════════════════════════════════════════════
+// Claude API
+// ══════════════════════════════════════════════
+async function claudeCall(messages,maxTokens=2000){
+  const ak=document.getElementById('api-key').value.replace(/[^\x20-\x7E]/g,'').trim();
+  if(!ak)throw new Error('請填入 Anthropic API Key');
+  const headers=new Headers();
+  headers.append('Content-Type','application/json');
+  headers.append('x-api-key',ak);
+  headers.append('anthropic-version','2023-06-01');
+  headers.append('anthropic-dangerous-direct-browser-access','true');
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:maxTokens,messages})});
+  const data=await resp.json();
+  if(!resp.ok)throw new Error(data.error?.message||'Claude API 錯誤');
+  const text=data.content[0].text.trim();
+  const match=text.match(/\{[\s\S]*\}/);
+  if(!match)throw new Error('回傳格式錯誤');
+  return JSON.parse(match[0]);
+}
+
+// ══════════════════════════════════════════════
+// Step 1 - AI 識別空間
+// ══════════════════════════════════════════════
+async function runAI(){
+  if(!img){showError('請先上傳平面圖');return;}
+  showLoading('AI 識別空間中...','分析圖面文字與圖示');
+  try{
+    const processedB64=preprocessImage();
+    const result=await claudeCall([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:processedB64}},
+      {type:'text',text:`This is a grayscale floor plan. Identify ALL spaces using these clues:
+
+TEXT LABELS (highest priority): Read Chinese (主臥室,客廳,浴室) or English (BEDROOM,LIVING ROOM) labels.
+
+VISUAL CLUES for unlabeled spaces:
+- BEDROOM: large rectangle + two semicircles at top (bed) → 臥室/主臥室
+- MASTER BEDROOM: large bed + wardrobe X-patterns + private bathroom → 主臥室
+- BATHROOM: oval+rectangle (toilet) + semicircle (sink) + rectangle (bathtub/shower) → 衛浴
+- KITCHEN: rectangle+small circles (stove) + rectangle+circle (sink) → 廚房
+- LIVING ROOM: curved/L-shape sofa + coffee table → 客廳
+- DINING ROOM: rectangle table + small rectangles around (chairs) → 餐廳
+- ENTRANCE: near largest door arc, small elongated space → 玄關
+- BALCONY: building perimeter, thin space, may have circle (plant/washer) → 陽台
+- STORAGE: small space, NO furniture → 儲藏室
+- WALK-IN CLOSET: walls lined with X-patterns, near master bedroom → 更衣室
+- CORRIDOR: narrow elongated, connects rooms, no furniture → 走廊
+- STUDY: desk rectangle + bookshelf lines → 書房
+
+For each space output a rough bbox (x,y,w,h as 0.0-1.0 of image size).
+
+Output ONLY JSON:
+{"summary":{"layout_type":"格局","total_rooms":0,"area_estimate":"坪數"},"rooms":[{"name":"中文","name_en":"English","identified_by":"text_label 或 bed_symbol 等","bbox":{"x":0.1,"y":0.1,"w":0.25,"h":0.3},"doors":0,"windows":0}]}`}
+    ]}],4000);
+    rooms=result.rooms.map(r=>({...r,aiEstimated:true}));
+    renderCanvas();renderRoomList();
+    if(result.summary){
+      // 顯示摘要
+    }
+  }catch(e){showError('識別失敗：'+e.message);}
+  finally{hideLoading();}
+}
+
+// ══════════════════════════════════════════════
+// Step 2 - AI 識別牆體開口
+// ══════════════════════════════════════════════
+async function runWallAI(){
+  if(selectedRoom===null){showError('請先選擇空間');return;}
+  const room=rooms[selectedRoom];
+  showLoading(`AI 分析 ${room.name} ${wallName(selectedWall)}...`,'識別門窗位置');
+  try{
+    const stripB64=getWallCrop(room,selectedWall,false);
+    const wideB64=getWallCrop(room,selectedWall,true);
+    if(!stripB64)throw new Error('無法裁切牆面');
+    const b=getRoomBounds(room);
+    const wallLen=selectedWall==='north'||selectedWall==='south'
+      ?Math.round((b.maxX-b.minX)*img.naturalWidth)
+      :Math.round((b.maxY-b.minY)*img.naturalHeight);
+    const WINDOW_STYLES=['單扇推拉窗','雙扇推拉窗','固定窗','落地窗','橫拉窗','氣密窗'];
+    const DOOR_STYLES=['單開門','雙開門','推拉門','折疊門','玻璃門'];
+    const result=await claudeCall([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:stripB64}},
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:wideB64}},
+      {type:'text',text:`Image 1: narrow wall strip. Image 2: wider context view.
+This is the ${wallName(selectedWall)} of "${room.name}" room. Wall length ≈ ${wallLen}px.
+
+Find ALL openings. For each opening:
+- position_pct: center position from LEFT edge (0=far left, 100=far right)
+- width_pct: opening width as % of total wall length
+- width: estimated cm (door ~90cm, window ~100-150cm)
+
+WINDOW symbols: gap+parallel lines, hatched rectangle on wall, bright break in dark wall line
+DOOR symbols: quarter-circle arc, straight line+arc, parallel lines (sliding)
+
+Window styles: ${WINDOW_STYLES.join('/')}
+Door styles: ${DOOR_STYLES.join('/')}
+
+Output ONLY JSON:
+{"material":"paint","height":280,"openings":[{"type":"window","style":"雙扇推拉窗","position_pct":25,"width_pct":20,"width":"120"}]}
+If no openings: {"material":"paint","height":280,"openings":[]}`}
+    ]}],700);
+    const key=room.name;
+    if(!wallData[key])initWallData(key);
+    wallData[key][selectedWall]=result;
+    renderOpeningList();
+    renderCanvas();
+    updateStats();
+  }catch(e){showError('識別失敗：'+e.message);}
+  finally{hideLoading();}
+}
+
+function initWallData(key){
+  wallData[key]={north:{material:'paint',height:280,openings:[]},south:{material:'paint',height:280,openings:[]},east:{material:'paint',height:280,openings:[]},west:{material:'paint',height:280,openings:[]}};
+}
+
+// ══════════════════════════════════════════════
+// Step 3 - AI 識別傢俱
+// ══════════════════════════════════════════════
+// ── Step 3 傢俱標注工具 ──────────────────────
+function setFurnTool(t){
+  furnTool=t;
+  document.querySelectorAll('[id^="ftool-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('ftool-'+t)?.classList.add('active');
+  const hints={select:'點擊傢俱選取；拖移調整位置與大小',rect:'拖移畫出傢俱矩形範圍，放開後選擇傢俱類型',poly:'點擊新增錨點，靠近起點閉合，完成後選擇傢俱類型',delete:'點擊傢俱刪除'};
+  const hint=document.getElementById('ftool-hint');if(hint) hint.textContent=hints[t]||'';
+  if(!spaceDown) canvas.style.cursor=(t==='rect'||t==='poly')?'crosshair':'default';
+  if(t!=='rect'){furnRectStart=null;furnRectCurrent=null;}
+  if(t!=='poly'){furnPolyPoints=[];furnPolyDrawing=false;furnPolyCurrent=null;}
+  renderCanvas();
+}
+
+function getFurnList(){
+  // 取得所有空間的傢俱扁平列表
+  const list=[];
+  Object.entries(furnitureData).forEach(([roomName,items])=>{
+    items.forEach(f=>list.push({...f,roomName}));
+  });
+  return list;
+}
+
+function getFurnAtPoint(rx,ry){
+  // 在像素空間做旋轉碰撞（避免非正方形 canvas 的 normalized 混淆）
+  const mxPx=rx*canvas.width, myPx=ry*canvas.height;
+  for(const[roomName,items] of Object.entries(furnitureData)){
+    for(const f of [...items].reverse()){
+      if(!f.bbox) continue;
+      const cx=(f.bbox.x+f.bbox.w/2)*canvas.width;
+      const cy=(f.bbox.y+f.bbox.h/2)*canvas.height;
+      const hw=f.bbox.w*canvas.width/2, hh=f.bbox.h*canvas.height/2;
+      const rad=-(f.rotation||0)*Math.PI/180;
+      const dx=mxPx-cx, dy=myPx-cy;
+      const lx=dx*Math.cos(rad)-dy*Math.sin(rad);
+      const ly=dx*Math.sin(rad)+dy*Math.cos(rad);
+      if(lx>=-hw&&lx<=hw&&ly>=-hh&&ly<=hh) return{roomName,furnId:f.id};
+    }
+  }
+  return null;
+}
+
+function getFurnResizeHandle(rx,ry){
+  if(!selectedFurnKey) return null;
+  const {roomName,furnId}=selectedFurnKey;
+  const f=(furnitureData[roomName]||[]).find(f=>f.id===furnId);
+  if(!f?.bbox) return null;
+  // 全在像素空間計算，避免非正方形 canvas 的 normalized 混淆
+  const mxPx=rx*canvas.width, myPx=ry*canvas.height;
+  const tolPx=14/viewScale;
+  const {x,y,w,h}=f.bbox;
+  const cx=(x+w/2)*canvas.width, cy=(y+h/2)*canvas.height;
+  const hw=w*canvas.width/2, hh=h*canvas.height/2;
+  const rad=(f.rotation||0)*Math.PI/180;
+  const cos=Math.cos(rad), sin=Math.sin(rad);
+  // 四角（旋轉後）
+  const corners=[['tl',-hw,-hh],['tr',hw,-hh],['bl',-hw,hh],['br',hw,hh]];
+  for(const[handle,lx,ly] of corners){
+    const hx=cx+lx*cos-ly*sin, hy=cy+lx*sin+ly*cos;
+    if(Math.hypot(mxPx-hx,myPx-hy)<tolPx) return{roomName,furnId,handle};
+  }
+  // 旋轉 handle（頂邊中心上方）
+  const sc=Math.max(0.3,1/viewScale);
+  const rotDist=hh+16*sc;
+  const rhx=cx+rotDist*sin, rhy=cy-rotDist*cos;
+  if(Math.hypot(mxPx-rhx,myPx-rhy)<tolPx*1.5) return{roomName,furnId,handle:'rotate'};
+  return null;
+}
+
+function updateSelectedFurn(field,value){
+  if(!selectedFurnKey) return;
+  const {roomName,furnId}=selectedFurnKey;
+  const list=furnitureData[roomName]||[];
+  const f=list.find(f=>f.id===furnId);
+  if(!f) return;
+  pushUndo();
+  if(field==='type'){
+    f.type=value;
+    const info=FURN_MAP[value];
+    f.name=info?.name||value;
+    f.icon=info?.icon||'📦';
+  } else if(field==='rotation'){
+    f.rotation=value;
+  }
+  renderCanvas();renderFurnListGlobal();
+}
+
+function deleteSelectedFurn(){
+  if(!selectedFurnKey) return;
+  const {roomName,furnId}=selectedFurnKey;
+  pushUndo();
+  furnitureData[roomName]=(furnitureData[roomName]||[]).filter(f=>f.id!==furnId);
+  selectedFurnKey=null;
+  document.getElementById('furn-edit-card').style.display='none';
+  renderCanvas();renderFurnListGlobal();updateStats();
+}
+
+function renderFurnListGlobal(){
+  const list=document.getElementById('furniture-list-global');
+  const count=document.getElementById('furn-count');
+  if(!list) return;
+  const all=getFurnList();
+  count.textContent=`(${all.length})`;
+  list.innerHTML='';
+  all.forEach(f=>{
+    const isSel=selectedFurnKey?.furnId===f.id&&selectedFurnKey?.roomName===f.roomName;
+    const div=document.createElement('div');
+    div.style.cssText=`display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:6px;cursor:pointer;border:1.5px solid ${isSel?'#185FA5':'transparent'};background:${isSel?'#EBF4FF':''}`;
+    div.innerHTML=`<div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500">${f.name}</div>
+        <div style="font-size:10px;color:#aaa">${f.roomName} · ${f.rotation||0}°</div>
+      </div>
+      <button style="background:none;border:none;cursor:pointer;color:#EF4444;font-size:12px" data-rn="${f.roomName}" data-fid="${f.id}">✕</button>`;
+    div.querySelector('button').addEventListener('click',ev=>{
+      ev.stopPropagation();
+      const rn=ev.target.dataset.rn,fid=+ev.target.dataset.fid;
+      pushUndo();
+      furnitureData[rn]=(furnitureData[rn]||[]).filter(f=>f.id!==fid);
+      if(selectedFurnKey?.furnId===fid) selectedFurnKey=null;
+      renderCanvas();renderFurnListGlobal();updateStats();
+    });
+    div.addEventListener('click',()=>{
+      selectedFurnKey={roomName:f.roomName,furnId:f.id};
+      showFurnEditCard(f);renderCanvas();renderFurnListGlobal();
+    });
+    list.appendChild(div);
+  });
+}
+
+function showFurnEditCard(f){
+  const card=document.getElementById('furn-edit-card');
+  if(!card) return;
+  card.style.display='block';
+  updateFurnEditPanel(f);
+}
+function updateFurnEditPanel(f){
+  const sel=document.getElementById('furn-type-select');
+  if(sel) sel.value=f.type||'other';
+  const rot=(f.rotation||0);
+  const disp=document.getElementById('furn-rot-display');
+  if(disp) disp.textContent=rot+'°';
+  const slider=document.getElementById('furn-rot-slider');
+  if(slider) slider.value=rot;
+}
+function onFurnTypeChange(typeId){
+  if(!selectedFurnKey) return;
+  const {roomName,furnId}=selectedFurnKey;
+  const items=furnitureData[roomName]||[];
+  const f=items.find(f=>f.id===furnId);
+  if(!f) return;
+  const info=FURN_MAP[typeId]||{name:'其他',icon:'📦'};
+  pushUndo();
+  f.type=typeId;f.name=info.name;f.icon=info.icon;
+  renderCanvas();renderFurnListGlobal();
+}
+function rotateFurnSelected(delta){
+  if(!selectedFurnKey) return;
+  const {roomName,furnId}=selectedFurnKey;
+  const f=(furnitureData[roomName]||[]).find(f=>f.id===furnId);
+  if(!f) return;
+  f.rotation=((f.rotation||0)+delta+360)%360;
+  updateFurnEditPanel(f);renderCanvas();
+}
+function setFurnRotationFromSlider(val){
+  if(!selectedFurnKey) return;
+  const {roomName,furnId}=selectedFurnKey;
+  const f=(furnitureData[roomName]||[]).find(f=>f.id===furnId);
+  if(!f) return;
+  f.rotation=val;
+  updateFurnEditPanel(f);renderCanvas();
+}
+function deleteFurnSelected(){
+  if(!selectedFurnKey) return;
+  const {roomName,furnId}=selectedFurnKey;
+  pushUndo();
+  furnitureData[roomName]=(furnitureData[roomName]||[]).filter(f=>f.id!==furnId);
+  selectedFurnKey=null;
+  document.getElementById('furn-edit-card').style.display='none';
+  renderCanvas();renderFurnListGlobal();updateStats();
+}
+
+// ── 找出某點所在的空間名稱 ──────────────────
+function findRoomForPoint(rx,ry){
+  // rx,ry 為 0~1 的相對座標
+  for(let i=rooms.length-1;i>=0;i--){
+    if(rooms[i].hidden) continue;
+    if(hitTest(rooms[i], rx*canvas.width, ry*canvas.height))
+      return rooms[i].name;
+  }
+  return null;
+}
+// 舊名稱相容
+function findRoomAtPoint(rx,ry){ return findRoomForPoint(rx,ry); }
+
+// ── 傢俱類型選擇 Modal ────────────────────────
+function showFurnTypeModal(){
+  const modal=document.getElementById('furn-type-modal');
+  const grid=document.getElementById('furn-type-grid');
+  grid.innerHTML='';
+  FURNITURE_LIST.forEach(f=>{
+    const btn=document.createElement('button');
+    btn.style.cssText='padding:8px 4px;border:1px solid #ddd;border-radius:8px;background:white;cursor:pointer;font-size:12px;text-align:center;transition:all .12s';
+    btn.textContent=f.name;
+    btn.onmouseenter=()=>{btn.style.borderColor='#185FA5';btn.style.background='#EBF4FF';};
+    btn.onmouseleave=()=>{btn.style.borderColor='#ddd';btn.style.background='white';};
+    btn.addEventListener('click',()=>confirmFurnType(f.id));
+    grid.appendChild(btn);
+  });
+  modal.classList.add('show');
+}
+function confirmFurnType(typeId){
+  if(!pendingFurnBbox){cancelFurnType();return;}
+  const info=FURN_MAP[typeId]||{name:'其他',icon:'📦'};
+  pushUndo();
+  const newId=++furnIdCnt;
+  const shape=pendingFurnBbox;
+  let bbox;
+  if(shape.type==='bbox'){
+    bbox=shape.bbox;
+  } else {
+    // polygon → compute bounding box
+    const xs=shape.points.map(p=>p.x),ys=shape.points.map(p=>p.y);
+    const x=Math.min(...xs),y=Math.min(...ys);
+    bbox={x,y,w:Math.max(...xs)-x,h:Math.max(...ys)-y};
+  }
+  const cx=bbox.x+bbox.w/2,cy=bbox.y+bbox.h/2;
+  const roomName=findRoomForPoint(cx,cy)||'未指定空間';
+  if(!furnitureData[roomName]) furnitureData[roomName]=[];
+  const item={id:newId,type:typeId,name:info.name,icon:info.icon,bbox,rotation:0};
+  if(shape.type==='polygon') item.points=shape.points;
+  furnitureData[roomName].push(item);
+  selectedFurnKey={roomName,furnId:newId};
+  pendingFurnBbox=null;
+  document.getElementById('furn-type-modal').classList.remove('show');
+  renderCanvas();renderFurnListGlobal();updateStats();
+}
+function cancelFurnType(){
+  pendingFurnBbox=null;
+  document.getElementById('furn-type-modal').classList.remove('show');
+}
+
+// 根據位置猜測傢俱類型（簡單對應空間）
+function guessFurnType(rx,ry,w,h){
+  const roomName=findRoomForPoint(rx,ry)||'';
+  if(/臥|床/.test(roomName)) return w>h?'bed_double':'wardrobe';
+  if(/廚/.test(roomName)) return 'kitchen_counter';
+  if(/衛|浴/.test(roomName)) return 'toilet';
+  if(/餐/.test(roomName)) return 'dining_table';
+  if(/客/.test(roomName)) return 'sofa';
+  if(/書|工作/.test(roomName)) return 'desk';
+  return 'other';
+}
+
+// ── AI 識別整張圖傢俱（不需先標注空間）──────
+async function runFurnitureAIFull(){
+  if(!img){showError('請先上傳圖片');return;}
+  const prog=document.getElementById('step3-progress');
+  prog.style.display='block';
+  prog.textContent='AI 識別整張圖傢俱中...';
+  showLoading('AI 識別傢俱中...','分析整張平面圖，請稍候');
+  try{
+    const result=await claudeCall([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:imgMediaType,data:imgB64}},
+      {type:'text',text:`This is a floor plan image. Find ALL furniture/fixture symbols in the ENTIRE image.
+
+For each item output:
+- type: one of [bed_double,bed_single,wardrobe,nightstand,sofa,sofa_l,coffee_table,tv_stand,dining_table,dining_chair,kitchen_counter,stove,refrigerator,sink_kitchen,toilet,bathtub,shower,sink_bath,desk,office_chair,bookshelf,washing_machine,plant,other]
+- bbox: {x,y,w,h} as fractions of the FULL image (0.0–1.0)
+- rotation: 0, 90, 180, or 270
+- room: Chinese room name if visible (e.g. 主臥室, 客廳), else ""
+
+Be thorough — cover every room. Output ONLY JSON:
+{"furniture":[{"type":"bed_double","bbox":{"x":0.05,"y":0.1,"w":0.15,"h":0.18},"rotation":0,"room":"主臥室"}]}`}
+    ]}],4000);
+
+    pushUndo();
+    (result.furniture||[]).forEach(f=>{
+      const info=FURN_MAP[f.type]||{name:'其他',icon:'📦'};
+      const cx=f.bbox.x+f.bbox.w/2, cy=f.bbox.y+f.bbox.h/2;
+      const roomName=findRoomForPoint(cx,cy)||f.room||'全圖';
+      if(!furnitureData[roomName]) furnitureData[roomName]=[];
+      furnitureData[roomName].push({
+        id:++furnIdCnt, type:f.type||'other',
+        name:info.name, icon:info.icon,
+        bbox:{x:f.bbox.x, y:f.bbox.y, w:f.bbox.w, h:f.bbox.h},
+        rotation:f.rotation||0,
+        aiGenerated:true
+      });
+    });
+    const total=Object.values(furnitureData).reduce((s,f)=>s+f.length,0);
+    prog.textContent=`✅ 完成！共識別 ${total} 件傢俱`;
+    renderCanvas();renderFurnListGlobal();updateStats();
+  }catch(e){showError('識別失敗：'+e.message);prog.style.display='none';}
+  finally{hideLoading();}
+}
+
+// 舊函式：逐空間識別（保留供單一空間使用）
+async function runFurnitureAIAll(){
+  await runFurnitureAIFull();
+}
+
+async function runFurnitureAISingle(room){
+  const b=getRoomBounds(room);
+  if(!b) return;
+  try{
+    const croppedB64=cropRegion(b.minX,b.minY,b.maxX-b.minX,b.maxY-b.minY,EXPAND);
+    const result=await claudeCall([{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:croppedB64}},
+      {type:'text',text:`This is a cropped floor plan of "${room.name}". The image dimensions represent the room bounds.
+
+Find ALL furniture symbols. For each item output:
+- type: one of [bed_double,bed_single,wardrobe,nightstand,sofa,sofa_l,coffee_table,tv_stand,dining_table,dining_chair,kitchen_counter,stove,refrigerator,sink_kitchen,toilet,bathtub,shower,sink_bath,desk,office_chair,bookshelf,washing_machine,plant,other]
+- bbox: {x,y,w,h} as fractions of THIS cropped image (0.0-1.0)
+- rotation: 0, 90, 180, or 270
+
+Output ONLY JSON: {"furniture":[{"type":"bed_double","bbox":{"x":0.1,"y":0.2,"w":0.3,"h":0.4},"rotation":0}]}`}
+    ]}],1500);
+
+    const key=room.name;
+    if(!furnitureData[key]) furnitureData[key]=[];
+    const padX=(b.maxX-b.minX)*EXPAND, padY=(b.maxY-b.minY)*EXPAND;
+    const ox=Math.max(0,b.minX-padX), oy=Math.max(0,b.minY-padY);
+    const ow=Math.min(1,b.maxX-b.minX+padX*2), oh=Math.min(1,b.maxY-b.minY+padY*2);
+    (result.furniture||[]).forEach(f=>{
+      const info=FURN_MAP[f.type]||{name:f.type,icon:'📦'};
+      furnitureData[key].push({
+        id:++furnIdCnt, type:f.type,
+        name:info.name, icon:info.icon,
+        bbox:{x:ox+f.bbox.x*ow, y:oy+f.bbox.y*oh, w:f.bbox.w*ow, h:f.bbox.h*oh},
+        rotation:f.rotation||0,
+        aiGenerated:true
+      });
+    });
+    await new Promise(r=>setTimeout(r,300));
+  }catch(e){console.warn(room.name,'傢俱識別失敗',e);}
+}
+
+async function runFurnitureAI(){
+  if(selectedRoom===null){showError('請先選擇空間');return;}
+  await runFurnitureAISingle(rooms[selectedRoom]);
+  renderCanvas();renderFurnListGlobal();updateStats();
+}
+
+
+// ══════════════════════════════════════════════
+// Canvas 繪製
+// ══════════════════════════════════════════════
+function applyTransform(){
+  // 不用 CSS transform，改在 renderCanvas 裡用 ctx.setTransform
+  renderCanvas();
+}
+
+function resetView(){
+  viewScale=1;viewOffsetX=0;viewOffsetY=0;
+  renderCanvas();
+  updateZoomIndicator();
+}
+
+function setZoom(newScale, cx, cy){
+  // cx, cy: 縮放中心（canvas 像素，預設為 canvas 中心）
+  const cxPx=cx??canvas.width/2, cyPx=cy??canvas.height/2;
+  newScale=Math.max(MIN_SCALE,Math.min(MAX_SCALE,newScale));
+  viewOffsetX=cxPx-newScale*(cxPx-viewOffsetX)/viewScale;
+  viewOffsetY=cyPx-newScale*(cyPx-viewOffsetY)/viewScale;
+  viewScale=newScale;
+  renderCanvas();
+  updateZoomIndicator();
+}
+
+function setZoomFromSlider(val){
+  setZoom(val/100);
+}
+
+function updateZoomIndicator(){
+  const label=document.getElementById('zoom-label');
+  const slider=document.getElementById('zoom-slider');
+  if(label) label.textContent=Math.round(viewScale*100)+'%';
+  if(slider) slider.value=Math.round(viewScale*100);
+}
+
+function renderCanvas(){
+  if(!img)return;
+  const card=document.getElementById('canvas-card');
+  const maxW=(card&&card.clientWidth>0?card.clientWidth:800);
+  canvas.width=maxW;
+  canvas.height=img.naturalHeight*(maxW/img.naturalWidth);
+  // 先用 identity 清除整個 canvas
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // 套用縮放平移
+  ctx.setTransform(viewScale,0,0,viewScale,viewOffsetX,viewOffsetY);
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+
+  if(currentStep===1){
+    // Step 1：只顯示空間色塊
+    rooms.forEach((room,i)=>{
+      if(room.hidden)return;
+      const color=COLORS[i%COLORS.length];
+      drawRoomShape(room,color,selectedRoom===i,i);
+    });
+    // Shift+矩形合併預覽
+    if(shiftRectStart&&shiftRectCurrent){
+      const x=Math.min(shiftRectStart.x,shiftRectCurrent.x);
+      const y=Math.min(shiftRectStart.y,shiftRectCurrent.y);
+      const w=Math.abs(shiftRectCurrent.x-shiftRectStart.x);
+      const h=Math.abs(shiftRectCurrent.y-shiftRectStart.y);
+      ctx.strokeStyle='#10B981';ctx.lineWidth=2;ctx.setLineDash([5,3]);
+      ctx.strokeRect(x,y,w,h);ctx.fillStyle='rgba(16,185,129,0.12)';ctx.fillRect(x,y,w,h);
+      ctx.setLineDash([]);
+      ctx.font='11px -apple-system';ctx.fillStyle='#10B981';ctx.fillText('合併到選取空間',x+4,y-5);
+    }
+  } else if(currentStep===2){
+    // Step 2：只顯示所有牆體輪廓（無填色），高亮所有開口
+    rooms.forEach((room,i)=>{
+      drawRoomOutline(room,COLORS[i%COLORS.length]);
+    });
+    drawAllOpeningMarkers();
+  } else if(currentStep===3){
+    // Step 3：只顯示傢俱，不顯示空間輪廓
+    Object.values(furnitureData).forEach(items=>{
+      items.forEach(f=>drawFurniture(f));
+    });
+    // 繪製中的傢俱多邊形預覽
+    if(furnTool==='poly'&&furnPolyPoints.length>0){
+      const pts=furnPolyPoints.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+      ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+      pts.forEach(p=>ctx.lineTo(p.x,p.y));
+      ctx.strokeStyle='#F59E0B';ctx.lineWidth=2;ctx.setLineDash([]);ctx.stroke();
+      if(furnPolyCurrent){
+        const sx=furnPolyCurrent.x*canvas.width,sy=furnPolyCurrent.y*canvas.height;
+        const nearStart=pts.length>=3&&Math.hypot(sx-pts[0].x,sy-pts[0].y)<12;
+        ctx.strokeStyle=nearStart?'#10B981':'#F59E0B';
+        ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+        ctx.beginPath();ctx.moveTo(pts[pts.length-1].x,pts[pts.length-1].y);ctx.lineTo(sx,sy);ctx.stroke();
+        ctx.setLineDash([]);
+        if(nearStart){
+          ctx.strokeStyle='#10B981';ctx.lineWidth=2;
+          ctx.beginPath();ctx.arc(pts[0].x,pts[0].y,10,0,Math.PI*2);ctx.stroke();
+          ctx.font='11px -apple-system';ctx.fillStyle='#10B981';ctx.textAlign='center';
+          ctx.fillText('閉合',pts[0].x,pts[0].y-16);ctx.textAlign='start';
+        }
+      }
+      pts.forEach((p,i)=>{
+        ctx.fillStyle=i===0?'#EF4444':'#F59E0B';
+        ctx.strokeStyle='white';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.arc(p.x,p.y,i===0?7:5,0,Math.PI*2);ctx.fill();ctx.stroke();
+      });
+    }
+  }
+
+  // 繪製中的形狀預覽
+  if(currentTool==='rect'&&rectStart&&rectCurrent){
+    const x=Math.min(rectStart.x,rectCurrent.x),y=Math.min(rectStart.y,rectCurrent.y);
+    const w=Math.abs(rectCurrent.x-rectStart.x),h=Math.abs(rectCurrent.y-rectStart.y);
+    ctx.strokeStyle='#F59E0B';ctx.lineWidth=2;ctx.setLineDash([6,3]);
+    ctx.strokeRect(x,y,w,h);ctx.fillStyle='rgba(245,158,11,0.1)';ctx.fillRect(x,y,w,h);
+    ctx.setLineDash([]);
+  }
+  if(currentTool==='poly'&&polyPoints.length>0){
+    const pts=polyPoints.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+    // 已確認的線段
+    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+    pts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.strokeStyle='#F59E0B';ctx.lineWidth=2;ctx.setLineDash([]);ctx.stroke();
+    // 預覽線（到鼠標位置，含 Shift 鎖定）
+    if(polyCurrent){
+      const snapped=polyShiftSnap(polyPoints[polyPoints.length-1],polyCurrent);
+      const sx=snapped.x*canvas.width,sy=snapped.y*canvas.height;
+      // 靠近起點時顯示閉合提示
+      const nearStart=Math.hypot(sx-pts[0].x,sy-pts[0].y)<12;
+      ctx.strokeStyle=nearStart?'#10B981':'#F59E0B';
+      ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+      ctx.beginPath();ctx.moveTo(pts[pts.length-1].x,pts[pts.length-1].y);ctx.lineTo(sx,sy);ctx.stroke();
+      ctx.setLineDash([]);
+      // 鎖定軸線提示
+      if(polyShiftLock&&polyPoints.length>0){
+        ctx.strokeStyle='rgba(245,158,11,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+        const lp=polyPoints[polyPoints.length-1];
+        if(Math.abs(polyCurrent.x-lp.x)>Math.abs(polyCurrent.y-lp.y)){
+          // 水平鎖定：畫延伸水平線
+          ctx.beginPath();ctx.moveTo(0,lp.y*canvas.height);ctx.lineTo(canvas.width,lp.y*canvas.height);ctx.stroke();
+        } else {
+          // 垂直鎖定：畫延伸垂直線
+          ctx.beginPath();ctx.moveTo(lp.x*canvas.width,0);ctx.lineTo(lp.x*canvas.width,canvas.height);ctx.stroke();
+        }
+        ctx.setLineDash([]);
+      }
+      // 靠近起點閉合圓圈
+      if(nearStart){
+        ctx.strokeStyle='#10B981';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(pts[0].x,pts[0].y,10,0,Math.PI*2);ctx.stroke();
+        ctx.font='11px -apple-system';ctx.fillStyle='#10B981';ctx.textAlign='center';
+        ctx.fillText('閉合',pts[0].x,pts[0].y-16);ctx.textAlign='start';
+      }
+    }
+    // 各頂點
+    pts.forEach((p,i)=>{
+      const isFirst=i===0;
+      ctx.fillStyle=isFirst?'#EF4444':'#F59E0B';
+      ctx.strokeStyle='white';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(p.x,p.y,isFirst?7:5,0,Math.PI*2);ctx.fill();ctx.stroke();
+      // 頂點序號
+      ctx.font='9px -apple-system';ctx.fillStyle='white';ctx.textAlign='center';
+      ctx.fillText(i+1,p.x,p.y+3);ctx.textAlign='start';
+    });
+  }
+}
+
+// Step 2：只畫輪廓線，無填色
+function drawRoomOutline(room,color){
+  if(room.type==='polygon'&&room.points){
+    const pts=room.points.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.closePath();
+    ctx.strokeStyle=color+'88';ctx.lineWidth=1.5;ctx.stroke();
+  } else if(room.bbox){
+    const bx=room.bbox.x*canvas.width,by=room.bbox.y*canvas.height;
+    const bw=room.bbox.w*canvas.width,bh=room.bbox.h*canvas.height;
+    ctx.strokeStyle=color+'88';ctx.lineWidth=1.5;ctx.strokeRect(bx,by,bw,bh);
+  }
+}
+
+// Step 2：畫所有空間的所有牆面開口
+function drawAllOpeningMarkers(){
+  Object.entries(wallData).forEach(([roomName,walls])=>{
+    const roomIdx=rooms.findIndex(r=>r.name===roomName);
+    if(roomIdx<0)return;
+    const room=rooms[roomIdx];
+    const b=getRoomBounds(room);if(!b)return;
+    const{minX,minY,maxX,maxY}=b;
+    ['north','south','east','west'].forEach(wall=>{
+      const openings=walls[wall]?.openings||[];
+      openings.forEach(o=>{
+        const pct=(o.position_pct||50)/100;
+        let px,py;
+        if(wall==='north'){px=(minX+(maxX-minX)*pct)*canvas.width;py=minY*canvas.height;}
+        else if(wall==='south'){px=(minX+(maxX-minX)*pct)*canvas.width;py=maxY*canvas.height;}
+        else if(wall==='west'){px=minX*canvas.width;py=(minY+(maxY-minY)*pct)*canvas.height;}
+        else{px=maxX*canvas.width;py=(minY+(maxY-minY)*pct)*canvas.height;}
+        const isWin=o.type==='window';
+        ctx.fillStyle=isWin?'#3B82F6':'#F59E0B';
+        ctx.strokeStyle='white';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(px,py,8,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.font='bold 9px -apple-system';ctx.fillStyle='white';ctx.textAlign='center';
+        ctx.fillText(isWin?'W':'D',px,py+3);ctx.textAlign='start';
+      });
+    });
+  });
+}
+
+function drawRoomShape(room,color,isSel,idx){
+  if(room.type==='polygon'&&room.points){
+    const pts=room.points.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.closePath();
+    ctx.fillStyle=color+(isSel?'40':'22');ctx.fill();
+    ctx.strokeStyle=color;ctx.lineWidth=isSel?2.5:1.5;ctx.stroke();
+    if(isSel&&currentStep===1){
+      // 角錨點（可拖移）
+      pts.forEach((p,pi)=>{
+        const isDrag=polyDragIdx===pi&&polyDragRoom===idx;
+        const isSel=selectedPolyVertex?.roomIdx===idx&&selectedPolyVertex?.vertexIdx===pi;
+        ctx.fillStyle=(isDrag||isSel)?'#EF4444':'white';
+        ctx.strokeStyle=color;ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fill();ctx.stroke();
+      });
+      // 邊中點（點擊新增頂點）
+      pts.forEach((p,pi)=>{
+        const next=pts[(pi+1)%pts.length];
+        const mx2=(p.x+next.x)/2,my2=(p.y+next.y)/2;
+        ctx.fillStyle=color+'88';ctx.strokeStyle='white';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.arc(mx2,my2,5,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.font='9px -apple-system';ctx.fillStyle='white';ctx.textAlign='center';
+        ctx.fillText('+',mx2,my2+3);ctx.textAlign='start';
+      });
+    }
+    const cx=pts.reduce((s,p)=>s+p.x,0)/pts.length;
+    const cy=pts.reduce((s,p)=>s+p.y,0)/pts.length;
+    drawLabel(room.name,cx,cy,color);
+  } else if(room.bbox){
+    const bx=room.bbox.x*canvas.width,by=room.bbox.y*canvas.height;
+    const bw=room.bbox.w*canvas.width,bh=room.bbox.h*canvas.height;
+    ctx.fillStyle=color+(isSel?'40':'22');ctx.fillRect(bx,by,bw,bh);
+    ctx.strokeStyle=color;ctx.lineWidth=isSel?2.5:1.5;ctx.strokeRect(bx,by,bw,bh);
+    if(isSel&&currentStep===1){
+      // 四角錨點（可拖移調整大小）
+      [[bx,by,'tl'],[bx+bw,by,'tr'],[bx,by+bh,'bl'],[bx+bw,by+bh,'br']].forEach(([cx,cy,dir])=>{
+        ctx.fillStyle='white';ctx.strokeStyle=color;ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.fill();ctx.stroke();
+      });
+      // 四邊中點（點擊新增錨點 → 轉換多邊形）
+      [[bx+bw/2,by,'n'],[bx+bw,by+bh/2,'e'],[bx+bw/2,by+bh,'s'],[bx,by+bh/2,'w']].forEach(([cx,cy,dir])=>{
+        ctx.fillStyle=color+'99';ctx.strokeStyle='white';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.font='bold 10px -apple-system';ctx.fillStyle='white';ctx.textAlign='center';
+        ctx.fillText('+',cx,cy+3.5);ctx.textAlign='start';
+      });
+    }
+    drawLabel(room.name,bx+bw/2,by+bh/2,color);
+  }
+}
+
+function drawLabel(text,cx,cy,color){
+  ctx.font='500 12px -apple-system,sans-serif';ctx.textAlign='center';
+  const tw=ctx.measureText(text).width;
+  ctx.fillStyle=color+'EE';
+  ctx.beginPath();if(ctx.roundRect)ctx.roundRect(cx-tw/2-6,cy-8,tw+12,18,4);else ctx.rect(cx-tw/2-6,cy-8,tw+12,18);
+  ctx.fill();ctx.fillStyle='white';ctx.fillText(text,cx,cy+4);ctx.textAlign='start';
+}
+
+function drawWallHighlight(room,wall){
+  const b=getRoomBounds(room);if(!b)return;
+  const{minX,minY,maxX,maxY}=b;
+  const lines={north:{x1:minX,y1:minY,x2:maxX,y2:minY},south:{x1:minX,y1:maxY,x2:maxX,y2:maxY},west:{x1:minX,y1:minY,x2:minX,y2:maxY},east:{x1:maxX,y1:minY,x2:maxX,y2:maxY}};
+  Object.entries(lines).forEach(([dir,l])=>{
+    const isActive=dir===wall;
+    ctx.strokeStyle=isActive?'#EF4444':'rgba(0,0,0,0.2)';
+    ctx.lineWidth=isActive?5:1;
+    ctx.beginPath();
+    ctx.moveTo(l.x1*canvas.width,l.y1*canvas.height);
+    ctx.lineTo(l.x2*canvas.width,l.y2*canvas.height);
+    ctx.stroke();
+  });
+}
+
+function drawOpeningMarkers(room,wall){
+  const key=room.name;
+  if(!wallData[key])return;
+  const openings=wallData[key][wall]?.openings||[];
+  const b=getRoomBounds(room);if(!b)return;
+  const{minX,minY,maxX,maxY}=b;
+  openings.forEach((o,i)=>{
+    const pct=(o.position_pct||50)/100;
+    let px,py;
+    if(wall==='north'){px=(minX+(maxX-minX)*pct)*canvas.width;py=minY*canvas.height;}
+    else if(wall==='south'){px=(minX+(maxX-minX)*pct)*canvas.width;py=maxY*canvas.height;}
+    else if(wall==='west'){px=minX*canvas.width;py=(minY+(maxY-minY)*pct)*canvas.height;}
+    else{px=maxX*canvas.width;py=(minY+(maxY-minY)*pct)*canvas.height;}
+    // 開口標記
+    ctx.fillStyle=o.type==='window'?'#3B82F6':'#F59E0B';
+    ctx.strokeStyle='white';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(px,py,8,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.font='bold 10px -apple-system';ctx.fillStyle='white';ctx.textAlign='center';
+    ctx.fillText(o.type==='window'?'W':'D',px,py+4);ctx.textAlign='start';
+  });
+}
+
+function drawFurniture(f,isRoomSel){
+  if(!f.bbox) return;
+  const {x,y,w,h}=f.bbox;
+  const px=x*canvas.width, py=y*canvas.height;
+  const pw=w*canvas.width, ph=h*canvas.height;
+  const cx=px+pw/2, cy=py+ph/2;
+  const isSel=selectedFurnKey?.furnId===f.id;
+  const sc=Math.max(0.3,1/viewScale);
+
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate((f.rotation||0)*Math.PI/180);
+
+  // 填色背景
+  ctx.fillStyle=isSel?'rgba(24,95,165,0.15)':f.aiGenerated?'rgba(16,185,129,0.1)':'rgba(0,0,0,0.07)';
+  ctx.strokeStyle=isSel?'#185FA5':f.aiGenerated?'#10B981':'#888';
+  ctx.lineWidth=isSel?2*sc:1.2*sc;
+  ctx.setLineDash(f.aiGenerated&&!isSel?[3*sc,2*sc]:[]);
+  if(ctx.roundRect) ctx.roundRect(-pw/2,-ph/2,pw,ph,3);
+  else ctx.rect(-pw/2,-ph/2,pw,ph);
+  ctx.fill();ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 方向指示器（靠頂邊的有色條 + 標籤）
+  const info=FURN_MAP[f.type||'other'];
+  let barH=0;
+  if(info?.dir){
+    barH=Math.max(4*sc, ph*0.12);
+    ctx.fillStyle='rgba(24,95,165,0.55)';
+    ctx.fillRect(-pw/2,-ph/2,pw,barH);
+    if(pw>30){
+      ctx.font=`bold ${Math.max(7*sc,Math.min(barH*0.75,11*sc))}px -apple-system`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle='white';
+      ctx.fillText(info.dirLabel,0,-ph/2+barH/2);
+    }
+  }
+
+  // 中心文字（名稱）
+  const fontSize=Math.max(8*sc, Math.min(pw*0.55/Math.max(2,f.name.length), ph*0.45));
+  ctx.font=`${fontSize}px -apple-system`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='#333';ctx.fillText(f.name,0,barH*0.3);
+
+  ctx.restore();
+
+  // 選取時畫 resize handles（四角）+ 旋轉 handle（頂邊中心上方）
+  if(isSel){
+    const rad=(f.rotation||0)*Math.PI/180;
+    const cos=Math.cos(rad),sin=Math.sin(rad);
+    // 四角（未旋轉座標 → 旋轉後）
+    [[-pw/2,-ph/2],[pw/2,-ph/2],[-pw/2,ph/2],[pw/2,ph/2]].forEach(([lx,ly])=>{
+      const hx=cx+lx*cos-ly*sin, hy=cy+lx*sin+ly*cos;
+      ctx.fillStyle='white';ctx.strokeStyle='#185FA5';ctx.lineWidth=1.5*sc;
+      ctx.beginPath();ctx.arc(hx,hy,5*sc,0,Math.PI*2);ctx.fill();ctx.stroke();
+    });
+    // 旋轉 handle（頂邊中心上方 16px）
+    const rotDist=ph/2+16*sc;
+    const rhx=cx+0*cos-(-rotDist)*sin, rhy=cy+0*sin+(-rotDist)*cos;
+    ctx.fillStyle='#F59E0B';ctx.strokeStyle='white';ctx.lineWidth=1.5*sc;
+    ctx.beginPath();ctx.arc(rhx,rhy,6*sc,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // 旋轉 handle 與頂邊的連線
+    const topMx=cx+0*cos-(-ph/2)*sin, topMy=cy+0*sin+(-ph/2)*cos;
+    ctx.strokeStyle='#F59E0B';ctx.lineWidth=1*sc;ctx.setLineDash([3*sc,2*sc]);
+    ctx.beginPath();ctx.moveTo(topMx,topMy);ctx.lineTo(rhx,rhy);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// 取得旋轉後某個局部座標的全域座標
+function rotPt(cx,cy,lx,ly,rad){
+  return{x:cx+lx*Math.cos(rad)-ly*Math.sin(rad),y:cy+lx*Math.sin(rad)+ly*Math.cos(rad)};
+}
+
+// ══════════════════════════════════════════════
+// Mouse events
+// ══════════════════════════════════════════════
+canvas.addEventListener('mousedown',e=>{
+  const{mx,my}=getPos(e);
+
+  // Step 2：點擊任意牆面放置開口
+  if(currentStep===2){
+    const sel=document.getElementById('opening-type-sel');
+    if(sel&&sel.value){
+      // 找最近的牆面
+      const hit=findNearestWall(mx/canvas.width,my/canvas.height,0.05);
+      if(hit){
+        const{roomIdx,wall,position_pct}=hit;
+        const[type,style]=sel.value.split('|');
+        const width=document.getElementById('opening-width').value||'90';
+        const key=rooms[roomIdx].name;
+        if(!wallData[key])initWallData(key);
+        wallData[key][wall].openings.push({type,style,position_pct,width});
+        renderCanvas();renderGlobalOpeningList();updateStats();
+        return;
+      }
+    }
+    // 點擊開口圓圈刪除
+    const delHit=findOpeningAtPoint(mx/canvas.width,my/canvas.height);
+    if(delHit){
+      const{roomName,wall,idx}=delHit;
+      wallData[roomName][wall].openings.splice(idx,1);
+      renderCanvas();renderGlobalOpeningList();updateStats();
+      return;
+    }
+    return;
+  }
+
+  // Step 1：Shift+拖移 = 合併矩形
+  if(currentStep===1&&e.shiftKey&&selectedRoom!==null){
+    shiftRectStart={x:mx,y:my};shiftRectCurrent={x:mx,y:my};
+    return;
+  }
+  // Step 3: 傢俱標注
+  if(currentStep===3){
+    const rx=mx/canvas.width,ry=my/canvas.height;
+    if(furnTool==='rect'){
+      furnRectStart={x:rx,y:ry};furnRectCurrent={x:rx,y:ry};return;
+    }
+    if(furnTool==='poly'){
+      if(!furnPolyDrawing){furnPolyDrawing=true;furnPolyPoints=[];}
+      // 靠近起點閉合
+      if(furnPolyPoints.length>=3){
+        const p0=furnPolyPoints[0];
+        if(Math.hypot(rx-p0.x,ry-p0.y)<0.02){
+          // 閉合 → 顯示傢俱類型選擇
+          pendingFurnBbox={type:'polygon',points:[...furnPolyPoints]};
+          furnPolyPoints=[];furnPolyDrawing=false;furnPolyCurrent=null;
+          renderCanvas();showFurnTypeModal();return;
+        }
+      }
+      furnPolyPoints.push({x:rx,y:ry});renderCanvas();return;
+    }
+    if(furnTool==='delete'){
+      const hit=getFurnAtPoint(rx,ry);
+      if(hit){
+        pushUndo();
+        furnitureData[hit.roomName]=(furnitureData[hit.roomName]||[]).filter(f=>f.id!==hit.furnId);
+        if(selectedFurnKey?.furnId===hit.furnId) selectedFurnKey=null;
+        renderCanvas();renderFurnListGlobal();updateStats();
+      }
+      return;
+    }
+    if(furnTool==='select'){
+      // 先找 resize handle
+      const rh=getFurnResizeHandle(rx,ry);
+      if(rh){const _f=(furnitureData[rh.roomName]||[]).find(f=>f.id===rh.furnId);furnResizing={...rh,startX:rx,startY:ry,origBbox:{..._f?.bbox},origRot:_f?.rotation||0};return;}
+      // 點擊傢俱選取
+      const hit=getFurnAtPoint(rx,ry);
+      if(hit){
+        selectedFurnKey=hit;
+        const f=(furnitureData[hit.roomName]||[]).find(f=>f.id===hit.furnId);
+        if(f){
+          showFurnEditCard(f);
+          // 開始拖移
+          furnDragging={roomName:hit.roomName,furnId:hit.furnId,startRx:rx,startRy:ry,origBbox:{...f.bbox}};
+        }
+        renderCanvas();renderFurnListGlobal();
+      } else {
+        selectedFurnKey=null;
+        document.getElementById('furn-edit-card').style.display='none';
+        renderCanvas();renderFurnListGlobal();
+      }
+      return;
+    }
+  }
+  if(currentTool==='rect'){rectStart={x:mx,y:my};rectCurrent={x:mx,y:my};return;}
+  if(currentTool==='poly'){
+    if(!polyDrawing){polyDrawing=true;polyPoints=[];}
+    // Shift 鎖定
+    let rx2=mx/canvas.width, ry2=my/canvas.height;
+    if(polyShiftLock&&polyPoints.length>0){
+      const snapped=polyShiftSnap(polyPoints[polyPoints.length-1],{x:rx2,y:ry2});
+      rx2=snapped.x; ry2=snapped.y;
+    }
+    // 靠近起點 → 閉合多邊形
+    if(polyPoints.length>=3){
+      const sx=polyPoints[0].x*canvas.width, sy=polyPoints[0].y*canvas.height;
+      if(Math.hypot(mx-sx,my-sy)<12){
+        // 閉合
+        pendingShape={type:'polygon',points:[...polyPoints]};
+        polyPoints=[];polyDrawing=false;polyCurrent=null;polyShiftLock=false;
+        const _ph=document.getElementById('poly-hint');if(_ph)_ph.style.display='none';
+        renderCanvas();
+        document.getElementById('name-modal').classList.add('show');
+        return;
+      }
+    }
+    polyPoints.push({x:rx2,y:ry2});
+    if(polyPoints.length===1){
+      const _ph2=document.getElementById('poly-hint');if(_ph2)_ph2.style.display='inline';
+    }
+    renderCanvas();return;
+  }
+  // select
+  if(currentStep===1){
+    if(selectedRoom!==null){
+      const room=rooms[selectedRoom];
+      const MID_TOL=9;
+
+      // ① 矩形邊中點 → 新增錨點並轉換成多邊形
+      if(room.bbox){
+        const midHit=findBboxMidpointHit(room,mx,my,MID_TOL);
+        if(midHit){
+          pushUndo();
+          const pts=bboxToPolygon(room.bbox);
+          const i=midHit.insertAfter;
+          const newPt={x:(pts[i].x+pts[(i+1)%4].x)/2, y:(pts[i].y+pts[(i+1)%4].y)/2};
+          pts.splice(i+1,0,newPt);
+          room.type='polygon'; room.points=pts; delete room.bbox;
+          polyDragIdx=i+1; polyDragRoom=selectedRoom;
+          selectedPolyVertex={roomIdx:selectedRoom,vertexIdx:i+1};
+          renderCanvas();renderRoomList();return;
+        }
+      }
+
+      // ② 多邊形邊中點 → 新增頂點
+      if(room.type==='polygon'&&room.points){
+        const midHit=findPolyMidpointHit(room,mx,my,MID_TOL);
+        if(midHit){
+          pushUndo();
+          const i=midHit.insertAfter;
+          const next=(i+1)%room.points.length;
+          const newPt={x:(room.points[i].x+room.points[next].x)/2, y:(room.points[i].y+room.points[next].y)/2};
+          room.points.splice(i+1,0,newPt);
+          polyDragIdx=i+1; polyDragRoom=selectedRoom;
+          selectedPolyVertex={roomIdx:selectedRoom,vertexIdx:i+1};
+          renderCanvas();return;
+        }
+      }
+
+      // ③ 多邊形頂點 → 拖移
+      if(room.type==='polygon'&&room.points){
+        const pts=room.points.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+        for(let vi=0;vi<pts.length;vi++){
+          if(Math.hypot(mx-pts[vi].x,my-pts[vi].y)<10){
+            polyDragIdx=vi;polyDragRoom=selectedRoom;
+            selectedPolyVertex={roomIdx:selectedRoom,vertexIdx:vi};
+            return;
+          }
+        }
+      }
+
+      // ④ 矩形角錨點 → 縮放
+      if(room.bbox){
+        const bx=room.bbox.x*canvas.width,by=room.bbox.y*canvas.height;
+        const bw=room.bbox.w*canvas.width,bh=room.bbox.h*canvas.height;
+        for(const[cx,cy,dir]of[[bx,by,'tl'],[bx+bw,by,'tr'],[bx,by+bh,'bl'],[bx+bw,by+bh,'br']]){
+          if(Math.hypot(mx-cx,my-cy)<10){resizing={idx:selectedRoom,dir,startMx:mx,startMy:my,origBbox:{...room.bbox}};return;}
+        }
+      }
+    }
+    // ⑤ 點擊任意空間 → 選取並開始拖移
+    for(let i=rooms.length-1;i>=0;i--){
+      if(rooms[i].hidden) continue;
+      if(hitTest(rooms[i],mx,my)){
+        selectedRoom=i;
+        dragging={idx:i,startMx:mx,startMy:my,
+          origBbox:rooms[i].bbox?{...rooms[i].bbox}:null,
+          origPoints:rooms[i].points?rooms[i].points.map(p=>({...p})):null};
+        renderCanvas();renderRoomList();return;
+      }
+    }
+    // ⑥ 點擊空白處 → 取消選取
+    selectedRoom=null;selectedPolyVertex=null;renderCanvas();renderRoomList();
+  }
+  if(currentStep===2){
+    for(let i=rooms.length-1;i>=0;i--){
+      if(hitTest(rooms[i],mx,my)){selectedRoom=i;renderStep2RoomList();renderCanvas();renderOpeningList();return;}
+    }
+  }
+  if(currentStep===3){
+    for(let i=rooms.length-1;i>=0;i--){
+      if(hitTest(rooms[i],mx,my)){selectedRoom=i;renderFurnListGlobal();renderCanvas();return;}
+    }
+  }
+});
+
+canvas.addEventListener('mousemove',e=>{
+  const{mx,my}=getPos(e);
+  if(shiftRectStart){shiftRectCurrent={x:mx,y:my};renderCanvas();return;}
+  // Step 3 rect
+  if(currentStep===3&&furnTool==='rect'&&furnRectStart){furnRectCurrent={x:mx/canvas.width,y:my/canvas.height};renderCanvas();return;}
+  if(currentStep===3&&furnTool==='poly'&&furnPolyDrawing){furnPolyCurrent={x:mx/canvas.width,y:my/canvas.height};renderCanvas();return;}
+  if(currentTool==='rect'&&rectStart){rectCurrent={x:mx,y:my};renderCanvas();return;}
+  if(currentTool==='poly'&&polyDrawing){
+    polyCurrent={x:mx/canvas.width,y:my/canvas.height};
+    renderCanvas();return;
+  }
+  if(polyDragIdx!==null&&polyDragRoom!==null){
+    let rx2=mx/canvas.width, ry2=my/canvas.height;
+    // Shift 鎖定：對齊相鄰頂點
+    if(polyShiftLock){
+      const room=rooms[polyDragRoom];
+      if(room.points){
+        const pts=room.points;
+        const n=pts.length;
+        const prev=pts[(polyDragIdx-1+n)%n];
+        const next=pts[(polyDragIdx+1)%n];
+        // 找最近的相鄰點做軸對齊
+        const dxP=Math.abs(rx2-prev.x),dyP=Math.abs(ry2-prev.y);
+        const dxN=Math.abs(rx2-next.x),dyN=Math.abs(ry2-next.y);
+        const ref=dxP+dyP<dxN+dyN?prev:next;
+        if(Math.abs(rx2-ref.x)<Math.abs(ry2-ref.y)) rx2=ref.x;
+        else ry2=ref.y;
+      }
+    }
+    rooms[polyDragRoom].points[polyDragIdx]={x:rx2,y:ry2};
+    renderCanvas();return;
+  }
+  if(resizing){
+    const r=rooms[resizing.idx],ob=resizing.origBbox;
+    const dx=(mx-resizing.startMx)/canvas.width,dy=(my-resizing.startMy)/canvas.height;
+    let{x,y,w,h}=ob;
+    if(resizing.dir==='tl'){x=ob.x+dx;y=ob.y+dy;w=ob.w-dx;h=ob.h-dy;}
+    else if(resizing.dir==='tr'){w=ob.w+dx;y=ob.y+dy;h=ob.h-dy;}
+    else if(resizing.dir==='bl'){x=ob.x+dx;w=ob.w-dx;h=ob.h+dy;}
+    else{w=ob.w+dx;h=ob.h+dy;}
+    if(w>0.02&&h>0.02){r.bbox={x:Math.max(0,x),y:Math.max(0,y),w:Math.min(1-Math.max(0,x),w),h:Math.min(1-Math.max(0,y),h)};renderCanvas();}
+    return;
+  }
+  if(dragging){
+    const r=rooms[dragging.idx];
+    const dx=(mx-dragging.startMx)/canvas.width,dy=(my-dragging.startMy)/canvas.height;
+    if(r.bbox&&dragging.origBbox){const ob=dragging.origBbox;r.bbox={x:Math.max(0,Math.min(1-ob.w,ob.x+dx)),y:Math.max(0,Math.min(1-ob.h,ob.y+dy)),w:ob.w,h:ob.h};}
+    if(r.type==='polygon'&&dragging.origPoints){r.points=dragging.origPoints.map(p=>({x:Math.max(0,Math.min(1,p.x+dx)),y:Math.max(0,Math.min(1,p.y+dy))}));}
+    renderCanvas();
+  }
+});
+
+canvas.addEventListener('mouseup',e=>{
+  const{mx,my}=getPos(e);
+  // Step 3: 完成矩形框選 → 顯示傢俱類型選擇 Modal
+  if(currentStep===3&&furnTool==='rect'&&furnRectStart){
+    const rx=mx/canvas.width,ry=my/canvas.height;
+    const x=Math.min(furnRectStart.x,rx),y=Math.min(furnRectStart.y,ry);
+    const w=Math.abs(rx-furnRectStart.x),h=Math.abs(ry-furnRectStart.y);
+    if(w>0.01&&h>0.01){
+      pendingFurnBbox={type:'bbox',bbox:{x,y,w,h}};
+      showFurnTypeModal();
+    }
+    furnRectStart=null;furnRectCurrent=null;renderCanvas();return;
+  }
+  if(furnDragging){pushUndo();furnDragging=null;renderCanvas();return;}
+  if(furnResizing){pushUndo();furnResizing=null;renderCanvas();return;}
+  if(dragging||resizing||polyDragIdx!==null) pushUndo();
+  polyDragIdx=null;polyDragRoom=null;
+  // 保留 selectedPolyVertex 讓使用者能按 Delete 刪除頂點
+
+  // Shift 合併矩形
+  if(shiftRectStart&&selectedRoom!==null){
+    const x=Math.min(shiftRectStart.x,mx)/canvas.width;
+    const y=Math.min(shiftRectStart.y,my)/canvas.height;
+    const w=Math.abs(mx-shiftRectStart.x)/canvas.width;
+    const h=Math.abs(my-shiftRectStart.y)/canvas.height;
+    if(w>0.02&&h>0.02){
+      mergeRectToRoom(selectedRoom,{x,y,w,h});
+    }
+    shiftRectStart=null;shiftRectCurrent=null;
+    renderCanvas();return;
+  }
+
+  if(currentTool==='rect'&&rectStart){
+    const x=Math.min(rectStart.x,mx)/canvas.width,y=Math.min(rectStart.y,my)/canvas.height;
+    const w=Math.abs(mx-rectStart.x)/canvas.width,h=Math.abs(my-rectStart.y)/canvas.height;
+    if(w>0.02&&h>0.02){pendingShape={type:'bbox',bbox:{x,y,w,h}};document.getElementById('name-modal').classList.add('show');}
+    rectStart=null;rectCurrent=null;renderCanvas();
+  }
+  dragging=null;resizing=null;
+});
+
+// Shift 鍵鎖定軸線
+// ══════════════════════════════════════════════
+// 縮放 / 平移事件（等 DOM 載入後再綁定）
+// ══════════════════════════════════════════════
+function initZoomPanEvents(){
+  const card=document.getElementById('canvas-card');
+  if(!card){console.warn('canvas-card not found');return;}
+
+  // 滾輪：不做任何動作（避免干擾頁面滾動）
+  card.addEventListener('wheel',e=>{
+    if(e.altKey||e.ctrlKey) e.preventDefault();
+  },{passive:false});
+
+  // 空白鍵 + 左鍵拖移 平移
+  canvas.addEventListener('mousedown',e=>{
+    if(spaceDown&&e.button===0){
+      isPanning=true;
+      // 記錄開始時的 canvas 像素位置
+      const rect=canvas.getBoundingClientRect();
+      const scaleX=canvas.width/rect.width;
+      const scaleY=canvas.height/rect.height;
+      panStartX=e.clientX*scaleX;
+      panStartY=e.clientY*scaleY;
+      panOriginX=viewOffsetX;panOriginY=viewOffsetY;
+      canvas.style.cursor='grabbing';
+      e.stopImmediatePropagation();
+      return;
+    }
+  },true);
+
+  document.addEventListener('mousemove',e=>{
+    if(!isPanning) return;
+    const rect=canvas.getBoundingClientRect();
+    const scaleX=canvas.width/rect.width;
+    const scaleY=canvas.height/rect.height;
+    viewOffsetX=panOriginX+(e.clientX*scaleX-panStartX);
+    viewOffsetY=panOriginY+(e.clientY*scaleY-panStartY);
+    renderCanvas();
+  });
+
+  document.addEventListener('mouseup',e=>{
+    if(isPanning){
+      isPanning=false;
+      canvas.style.cursor=spaceDown?'grab':'default';
+    }
+  });
+
+  // 雙擊重置視圖
+  card.addEventListener('dblclick',e=>{
+    if(e.target!==canvas) return;
+    if(viewScale!==1||viewOffsetX!==0||viewOffsetY!==0){
+      resetView();
+      e.stopPropagation();
+    }
+  });
+}
+
+// DOM 載入後執行
+document.addEventListener('DOMContentLoaded',()=>initZoomPanEvents());
+// 若 DOMContentLoaded 已經觸發（script 在 body 結尾）則直接執行
+if(document.readyState!=='loading') initZoomPanEvents();
+
+document.addEventListener('keydown',e=>{
+  // Ctrl+Z 復原
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){
+    e.preventDefault();undoAction();return;
+  }
+  // 空白鍵：平移模式
+  if(e.key===' '&&!e.target.matches('input,select,textarea')){
+    e.preventDefault();
+    if(!spaceDown){spaceDown=true;canvas.style.cursor='grab';}
+    return;
+  }
+  // Shift 鎖定（多邊形 + 牆體 + 全域）
+  if(e.key==='Shift'){
+    shiftDown=true;
+    if(currentTool==='poly') polyShiftLock=true;
+    if(currentStep===2&&wallTool==='draw') wallShiftLock=true;
+    renderCanvas();
+  }
+  // ESC 取消
+  if(e.key==='Escape'){
+    if(currentTool==='poly'){
+      polyPoints=[];polyDrawing=false;polyCurrent=null;polyShiftLock=false;
+      const _ph=document.getElementById('poly-hint');if(_ph)_ph.style.display='none';
+      renderCanvas();
+    }
+    if(currentStep===2&&wallTool==='draw'){
+      wallDrawPoints=[];wallDrawStart=null;wallDrawCurrent=null;wallShiftLock=false;
+      renderCanvas();
+    }
+  }
+  // Backspace / Delete：退一步
+  if(e.key==='Backspace'||e.key==='Delete'){
+    // Step 1：
+    // A. 若有選取的頂點（select 模式下紅色錨點）→ 刪除該頂點
+    if(currentStep===1&&currentTool==='select'&&selectedPolyVertex!==null){
+      const {roomIdx, vertexIdx}=selectedPolyVertex;
+      const room=rooms[roomIdx];
+      if(room&&room.type==='polygon'&&room.points&&room.points.length>3){
+        pushUndo();
+        room.points.splice(vertexIdx,1);
+        selectedPolyVertex=null;
+        renderCanvas();renderRoomList();
+        e.preventDefault();
+        return;
+      } else if(room&&room.points&&room.points.length<=3){
+        // 少於3點不能再刪，改為提示
+        selectedPolyVertex=null;
+        renderCanvas();
+        return;
+      }
+    }
+    // B. 多邊形繪製中刪除最後頂點
+    if(currentTool==='poly'&&polyPoints.length>0){
+      polyPoints.pop();
+      if(polyPoints.length===0) polyDrawing=false;
+      renderCanvas();
+    }
+    // Step 2：刪除選取的牆體或門窗
+    if(currentStep===2){
+      // 畫牆模式退一步
+      if(wallTool==='draw'&&wallDrawPoints.length>1){
+        pushUndo();walls2.pop();wallDrawPoints.pop();
+        renderWallList();updateStats();renderCanvas();
+        return;
+      }
+      // 選取模式：刪除選取中的門窗（優先）或牆體
+      if(wallTool==='select'){
+        if(selectedOpeningId&&selectedWallId){
+          // 刪除門窗，牆體保留
+          pushUndo();
+          const w=walls2.find(w=>w.id===selectedWallId);
+          if(w) w.openings=w.openings.filter(o=>o.id!==selectedOpeningId);
+          selectedOpeningId=null;
+          renderCanvas();renderWallList();updateStats();
+          return;
+        }
+        if(selectedWallId){
+          // 刪除整條牆體
+          pushUndo();
+          walls2=walls2.filter(w=>w.id!==selectedWallId);
+          selectedWallId=null;
+          document.getElementById('opening-add-card').style.display='none';
+          renderCanvas();renderWallList();updateStats();
+          return;
+        }
+      }
+    }
+  }
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='Shift'){shiftDown=false;polyShiftLock=false;wallShiftLock=false;}
+  if(e.key===' '){
+    spaceDown=false;isPanning=false;
+    canvas.style.cursor='default';
+  }
+  renderCanvas();
+});
+
+canvas.addEventListener('dblclick',e=>{
+  // 牆體連續繪製：雙擊結束
+  if(currentStep===2&&wallTool==='draw'&&wallDrawPoints.length>0){
+    wallDrawPoints=[];wallDrawStart=null;wallDrawCurrent=null;wallShiftLock=false;
+    renderCanvas();return;
+  }
+  if(currentTool==='poly'&&polyPoints.length>=3){
+    pendingShape={type:'polygon',points:[...polyPoints]};
+    polyPoints=[];polyDrawing=false;polyCurrent=null;polyShiftLock=false;
+    const _ph=document.getElementById('poly-hint');if(_ph)_ph.style.display='none';
+    renderCanvas();
+    document.getElementById('name-modal').classList.add('show');
+  }
+});
+
+canvas.addEventListener('contextmenu',e=>{
+  if(currentStep!==1||currentTool!=='select') return;
+  e.preventDefault();
+  if(selectedRoom===null) return;
+  const room=rooms[selectedRoom];
+  if(room.type!=='polygon'||!room.points||room.points.length<=3) return;
+  const{mx,my}=getPos(e);
+  const pts=room.points.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+  for(let vi=0;vi<pts.length;vi++){
+    if(Math.hypot(mx-pts[vi].x,my-pts[vi].y)<10){
+      pushUndo();
+      room.points.splice(vi,1);
+      renderCanvas();renderRoomList();return;
+    }
+  }
+});
+
+canvas.addEventListener('mouseleave',()=>{if(currentTool==='rect'){rectStart=null;rectCurrent=null;}shiftRectStart=null;shiftRectCurrent=null;dragging=null;resizing=null;polyDragIdx=null;polyDragRoom=null;renderCanvas();});
+
+function getPos(e){
+  // canvas 用 ctx.setTransform 縮放，所以要反算回 canvas 像素座標
+  const rect=canvas.getBoundingClientRect();
+  // 先算出滑鼠在 canvas element 內的比例位置
+  const sx=(e.clientX-rect.left)*(canvas.width/rect.width);
+  const sy=(e.clientY-rect.top)*(canvas.height/rect.height);
+  // 再反算 setTransform：screen pixel = viewScale * canvas_px + offset
+  // => canvas_px = (screen_px - offset) / viewScale
+  const mx=(sx-viewOffsetX)/viewScale;
+  const my=(sy-viewOffsetY)/viewScale;
+  return{mx,my};
+}
+
+function hitTest(room,mx,my){
+  if(room.type==='polygon'&&room.points){
+    const pts=room.points.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+    return pointInPoly(mx,my,pts);
+  }
+  if(room.bbox){const bx=room.bbox.x*canvas.width,by=room.bbox.y*canvas.height;return mx>=bx&&mx<=bx+room.bbox.w*canvas.width&&my>=by&&my<=by+room.bbox.h*canvas.height;}
+  return false;
+}
+function pointInPoly(x,y,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))inside=!inside;}return inside;}
+
+function isNearWall(rx,ry,b,wall,tol){
+  if(wall==='north')return Math.abs(ry-b.minY)<tol&&rx>=b.minX-tol&&rx<=b.maxX+tol;
+  if(wall==='south')return Math.abs(ry-b.maxY)<tol&&rx>=b.minX-tol&&rx<=b.maxX+tol;
+  if(wall==='west')return Math.abs(rx-b.minX)<tol&&ry>=b.minY-tol&&ry<=b.maxY+tol;
+  if(wall==='east')return Math.abs(rx-b.maxX)<tol&&ry>=b.minY-tol&&ry<=b.maxY+tol;
+  return false;
+}
+
+function getWallPosition(rx,ry,b,wall){
+  if(wall==='north'||wall==='south')return{position_pct:Math.round((rx-b.minX)/(b.maxX-b.minX)*100)};
+  return{position_pct:Math.round((ry-b.minY)/(b.maxY-b.minY)*100)};
+}
+
+// ══════════════════════════════════════════════
+// Tool 切換
+// ══════════════════════════════════════════════
+// ── 空間錨點輔助函數 ──────────────────────────
+// 偵測矩形邊中點命中（返回要插入的位置）
+function findBboxMidpointHit(room,mx,my,tol){
+  if(!room.bbox) return null;
+  const bx=room.bbox.x*canvas.width,by=room.bbox.y*canvas.height;
+  const bw=room.bbox.w*canvas.width,bh=room.bbox.h*canvas.height;
+  const mids=[
+    {x:bx+bw/2,y:by,  dir:'n', insertAfter:0}, // 上邊：插在頂點0後
+    {x:bx+bw,  y:by+bh/2,dir:'e', insertAfter:1}, // 右邊：插在頂點1後
+    {x:bx+bw/2,y:by+bh,dir:'s', insertAfter:2}, // 下邊：插在頂點2後
+    {x:bx,     y:by+bh/2,dir:'w', insertAfter:3}, // 左邊：插在頂點3後
+  ];
+  for(const m of mids){
+    if(Math.hypot(mx-m.x,my-m.y)<tol) return m;
+  }
+  return null;
+}
+
+// 偵測多邊形邊中點命中
+function findPolyMidpointHit(room,mx,my,tol){
+  if(room.type!=='polygon'||!room.points) return null;
+  const pts=room.points.map(p=>({x:p.x*canvas.width,y:p.y*canvas.height}));
+  for(let i=0;i<pts.length;i++){
+    const next=pts[(i+1)%pts.length];
+    const midX=(pts[i].x+next.x)/2, midY=(pts[i].y+next.y)/2;
+    if(Math.hypot(mx-midX,my-midY)<tol) return{insertAfter:i};
+  }
+  return null;
+}
+
+// 矩形轉多邊形（4個頂點，逆時針）
+function bboxToPolygon(bbox){
+  return[
+    {x:bbox.x,        y:bbox.y},
+    {x:bbox.x+bbox.w, y:bbox.y},
+    {x:bbox.x+bbox.w, y:bbox.y+bbox.h},
+    {x:bbox.x,        y:bbox.y+bbox.h},
+  ];
+}
+
+// Shift 鎖定：強制水平或垂直
+function polyShiftSnap(prev, cur){
+  if(!polyShiftLock||!prev) return cur;
+  const dx=Math.abs(cur.x-prev.x), dy=Math.abs(cur.y-prev.y);
+  if(dx>dy) return{x:cur.x, y:prev.y}; // 水平鎖定
+  return{x:prev.x, y:cur.y}; // 垂直鎖定
+}
+
+function setTool(t){
+  currentTool=t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tool-'+t)?.classList.add('active');
+  const hints={select:'點擊空間選取，拖移調整位置',rect:'拖移框選矩形空間，放開後命名',poly:'點擊新增頂點 · 靠近起點閉合 · Shift=水平/垂直鎖定 · Backspace=刪除上一點 · ESC=取消'};
+  document.getElementById('tool-hint').textContent=hints[t]||'';
+  if(!spaceDown) canvas.style.cursor=t==='select'?'default':'crosshair';
+  // 切到框選工具時清除選取，確保拉出的形狀是新增而非更新
+  if(t==='rect'||t==='poly') selectedRoom=null;
+  if(t!=='poly'){polyPoints=[];polyDrawing=false;polyCurrent=null;polyShiftLock=false;
+    const _ph=document.getElementById('poly-hint');if(_ph)_ph.style.display='none';
+    renderCanvas();
+  } else {
+    document.getElementById('tool-hint').textContent=hints.poly;
+  }
+}
+
+// ══════════════════════════════════════════════
+// Shift 矩形合併成多邊形
+// ══════════════════════════════════════════════
+function mergeRectToRoom(roomIdx,newRect){
+  const room=rooms[roomIdx];
+  // 取得現有空間的 bbox 外包框
+  let ax1,ay1,ax2,ay2;
+  if(room.type==='polygon'&&room.points){
+    ax1=Math.min(...room.points.map(p=>p.x));ay1=Math.min(...room.points.map(p=>p.y));
+    ax2=Math.max(...room.points.map(p=>p.x));ay2=Math.max(...room.points.map(p=>p.y));
+  } else if(room.bbox){
+    ax1=room.bbox.x;ay1=room.bbox.y;ax2=room.bbox.x+room.bbox.w;ay2=room.bbox.y+room.bbox.h;
+  } else return;
+
+  // 新矩形外包框
+  const bx1=newRect.x,by1=newRect.y,bx2=newRect.x+newRect.w,by2=newRect.y+newRect.h;
+
+  // 兩個矩形聯集 → L 型多邊形（軸對齊，不走斜線）
+  // 策略：計算 8 個候選頂點，用 rectilinear hull 算法
+  const pts=rectUnion(ax1,ay1,ax2,ay2,bx1,by1,bx2,by2);
+  room.type='polygon';
+  room.points=pts;
+  delete room.bbox;
+}
+
+// 兩個軸對齊矩形的聯集多邊形（L型或其他凹多邊形，邊全為水平/垂直）
+function rectUnion(ax1,ay1,ax2,ay2,bx1,by1,bx2,by2){
+  // 合併後的外包框
+  const mx1=Math.min(ax1,bx1),my1=Math.min(ay1,by1);
+  const mx2=Math.max(ax2,bx2),my2=Math.max(ay2,by2);
+
+  // 收集所有 x 和 y 的分割線
+  const xs=[...new Set([ax1,ax2,bx1,bx2])].sort((a,b)=>a-b);
+  const ys=[...new Set([ay1,ay2,by1,by2])].sort((a,b)=>a-b);
+
+  // 找所有在聯集內的網格格子
+  function inUnion(x,y){
+    const inA=x>=ax1&&x<ax2&&y>=ay1&&y<ay2;
+    const inB=x>=bx1&&x<bx2&&y>=by1&&y<by2;
+    return inA||inB;
+  }
+
+  // 建立邊界多邊形（march squares 簡化版）
+  // 用輪廓追蹤：從最左上角的格子開始，沿邊界走
+  const cells=[];
+  for(let i=0;i<xs.length-1;i++) for(let j=0;j<ys.length-1;j++){
+    if(inUnion((xs[i]+xs[i+1])/2,(ys[j]+ys[j+1])/2))
+      cells.push({x1:xs[i],y1:ys[j],x2:xs[i+1],y2:ys[j+1]});
+  }
+  if(!cells.length) return [{x:ax1,y:ay1},{x:ax2,y:ay1},{x:ax2,y:ay2},{x:ax1,y:ay2}];
+
+  // 簡化：直接回傳外包框的頂點（對大多數情況夠用）
+  // 若兩個矩形有重疊，嘗試產生 L 型頂點
+  const overlapX=Math.max(0,Math.min(ax2,bx2)-Math.max(ax1,bx1));
+  const overlapY=Math.max(0,Math.min(ay2,by2)-Math.max(ay1,by1));
+
+  if(overlapX>0&&overlapY>0){
+    // 有重疊，走外包框
+    return[{x:mx1,y:my1},{x:mx2,y:my1},{x:mx2,y:my2},{x:mx1,y:my2}];
+  }
+
+  // 無重疊或只邊接，產生 L 型
+  // 找8個候選頂點，移除在聯集內部的凹角
+  const corners=[
+    {x:ax1,y:ay1},{x:ax2,y:ay1},{x:ax2,y:ay2},{x:ax1,y:ay2},
+    {x:bx1,y:by1},{x:bx2,y:by1},{x:bx2,y:by2},{x:bx1,y:by2}
+  ];
+  // 用外包框，走 L 型路徑
+  return buildLShape(ax1,ay1,ax2,ay2,bx1,by1,bx2,by2);
+}
+
+function buildLShape(ax1,ay1,ax2,ay2,bx1,by1,bx2,by2){
+  // 收集所有 x, y 分割座標
+  const xs=[...new Set([ax1,ax2,bx1,bx2])].sort((a,b)=>a-b);
+  const ys=[...new Set([ay1,ay2,by1,by2])].sort((a,b)=>a-b);
+  const mx1=xs[0],mx2=xs[xs.length-1];
+  const my1=ys[0],my2=ys[ys.length-1];
+
+  // 判斷每個格子中心是否在聯集內
+  function cellInUnion(cx,cy){
+    return(cx>=ax1&&cx<ax2&&cy>=ay1&&cy<ay2)||
+           (cx>=bx1&&cx<bx2&&cy>=by1&&cy<by2);
+  }
+
+  // 建立邊界追蹤：用 scanline 找邊界多邊形頂點
+  // 從外包框頂點開始，順時針找所有軸對齊的邊界頂點
+  const pts=[];
+  // 所有候選頂點（網格交點）
+  const allPts=[];
+  for(const x of xs) for(const y of ys) allPts.push({x,y});
+
+  // 逆時針追蹤：從左上角出發
+  // 方向：右→下→左→上，每次轉角時插入頂點
+  // 用簡化方法：對每條外轮廓邊找起終點
+
+  // 收集所有在邊界上的邊（一側在聯集內，另一側不在）
+  const edges=[];
+  for(let i=0;i<xs.length-1;i++){
+    for(let j=0;j<ys.length;j++){
+      // 水平邊（上邊：格子在下方）
+      const cx=(xs[i]+xs[i+1])/2;
+      const cyAbove=j>0?(ys[j-1]+ys[j])/2:ys[j]-0.001;
+      const cyBelow=j<ys.length-1?(ys[j]+ys[j+1])/2:ys[j]+0.001;
+      const above=j>0?cellInUnion(cx,cyAbove):false;
+      const below=j<ys.length-1?cellInUnion(cx,cyBelow):false;
+      if(above!==below){
+        edges.push({type:'h',x1:xs[i],y1:ys[j],x2:xs[i+1],y2:ys[j],inward:below});
+      }
+    }
+  }
+  for(let j=0;j<ys.length-1;j++){
+    for(let i=0;i<xs.length;i++){
+      // 垂直邊
+      const cy=(ys[j]+ys[j+1])/2;
+      const cxLeft=i>0?(xs[i-1]+xs[i])/2:xs[i]-0.001;
+      const cxRight=i<xs.length-1?(xs[i]+xs[i+1])/2:xs[i]+0.001;
+      const left=i>0?cellInUnion(cxLeft,cy):false;
+      const right=i<xs.length-1?cellInUnion(cxRight,cy):false;
+      if(left!==right){
+        edges.push({type:'v',x1:xs[i],y1:ys[j],x2:xs[i],y2:ys[j+1],inward:right});
+      }
+    }
+  }
+
+  // 用邊追蹤建立多邊形
+  if(!edges.length) return[{x:mx1,y:my1},{x:mx2,y:my1},{x:mx2,y:my2},{x:mx1,y:my2}];
+
+  // 建立 edge map：每個端點 → 連接的邊
+  const edgeMap={};
+  function key(x,y){return x.toFixed(6)+','+y.toFixed(6);}
+  edges.forEach(e=>{
+    const k1=key(e.x1,e.y1),k2=key(e.x2,e.y2);
+    if(!edgeMap[k1]) edgeMap[k1]=[];
+    if(!edgeMap[k2]) edgeMap[k2]=[];
+    edgeMap[k1].push(e);
+    edgeMap[k2].push(e);
+  });
+
+  // 從最左上角的點開始追蹤
+  const startEdge=edges.find(e=>e.type==='h'&&e.y1===my1)||(edges[0]);
+  const polygon=[{x:startEdge.x1,y:startEdge.y1}];
+  let cur={x:startEdge.x2,y:startEdge.y2};
+  let prevEdge=startEdge;
+  let maxIter=edges.length*2+4;
+
+  while(maxIter-->0){
+    const k=key(cur.x,cur.y);
+    if(Math.abs(cur.x-polygon[0].x)<1e-9&&Math.abs(cur.y-polygon[0].y)<1e-9) break;
+    polygon.push({x:cur.x,y:cur.y});
+    const connected=(edgeMap[k]||[]).filter(e=>e!==prevEdge);
+    if(!connected.length) break;
+    const nextEdge=connected[0];
+    prevEdge=nextEdge;
+    cur={x:nextEdge.x1===cur.x&&nextEdge.y1===cur.y?nextEdge.x2:nextEdge.x1,
+         y:nextEdge.x1===cur.x&&nextEdge.y1===cur.y?nextEdge.y2:nextEdge.y1};
+  }
+
+  return polygon.length>=4?polygon:[{x:mx1,y:my1},{x:mx2,y:my1},{x:mx2,y:my2},{x:mx1,y:my2}];
+}
+
+// 找最近的牆面
+function findNearestWall(rx,ry,tol){
+  let best=null,bestDist=tol;
+  rooms.forEach((room,roomIdx)=>{
+    const b=getRoomBounds(room);if(!b)return;
+    const{minX,minY,maxX,maxY}=b;
+    const walls={
+      north:{dist:Math.abs(ry-minY),inRange:rx>=minX-tol&&rx<=maxX+tol,pos_pct:(rx-minX)/(maxX-minX)},
+      south:{dist:Math.abs(ry-maxY),inRange:rx>=minX-tol&&rx<=maxX+tol,pos_pct:(rx-minX)/(maxX-minX)},
+      west:{dist:Math.abs(rx-minX),inRange:ry>=minY-tol&&ry<=maxY+tol,pos_pct:(ry-minY)/(maxY-minY)},
+      east:{dist:Math.abs(rx-maxX),inRange:ry>=minY-tol&&ry<=maxY+tol,pos_pct:(ry-minY)/(maxY-minY)},
+    };
+    Object.entries(walls).forEach(([wall,info])=>{
+      if(info.inRange&&info.dist<bestDist){
+        bestDist=info.dist;
+        best={roomIdx,wall,position_pct:Math.round(Math.max(0,Math.min(1,info.pos_pct))*100)};
+      }
+    });
+  });
+  return best;
+}
+
+// 找點擊到的開口
+function findOpeningAtPoint(rx,ry){
+  const tol=14/canvas.width;
+  try{ for(const[roomName,walls] of Object.entries(wallData)){
+    const roomIdx=rooms.findIndex(r=>r.name===roomName);
+    if(roomIdx<0)continue;
+    const b=getRoomBounds(rooms[roomIdx]);if(!b)return null;
+    const{minX,minY,maxX,maxY}=b;
+    for(const[wall,wdata] of Object.entries(walls)){
+      (wdata.openings||[]).forEach((o,idx)=>{
+        const pct=(o.position_pct||50)/100;
+        let px,py;
+        if(wall==='north'){px=minX+(maxX-minX)*pct;py=minY;}
+        else if(wall==='south'){px=minX+(maxX-minX)*pct;py=maxY;}
+        else if(wall==='west'){px=minX;py=minY+(maxY-minY)*pct;}
+        else{px=maxX;py=minY+(maxY-minY)*pct;}
+        if(Math.hypot(rx-px,ry-py)<tol+8/canvas.width){
+          throw{roomName,wall,idx};
+        }
+      });
+    }
+  } }catch(e){if(e&&e.roomName)return e;}
+  return null;
+}
+
+// 全局開口列表
+function renderGlobalOpeningList(){
+  const list=document.getElementById('opening-list-global');
+  if(!list)return;
+  let html='';
+  let total=0;
+  Object.entries(wallData).forEach(([roomName,walls])=>{
+    const wallNames={north:'北',south:'南',east:'東',west:'西'};
+    Object.entries(walls).forEach(([wall,wdata])=>{
+      (wdata.openings||[]).forEach((o,idx)=>{
+        total++;
+        html+=`<div class="opening-row">
+          <span class="opening-icon">${o.type==='window'?'🪟':'🚪'}</span>
+          <div class="opening-info">
+            <div class="opening-name">${roomName} ${wallNames[wall]}牆</div>
+            <div class="opening-pos">${o.style} · ${o.position_pct||'?'}% · ${o.width||'?'}cm</div>
+          </div>
+        </div>`;
+      });
+    });
+  });
+  list.innerHTML=total?html:'<div style="font-size:11px;color:#bbb;padding:4px 0">尚無開口標注</div>';
+}
+
+// 全部牆面 AI 識別
+async function runAllWallsAI(){
+  if(!rooms.length){showError('請先在 Step 1 標注空間');return;}
+  const progress=document.getElementById('step2-progress');
+  progress.style.display='block';
+  const WINDOW_STYLES=['單扇推拉窗','雙扇推拉窗','固定窗','落地窗','橫拉窗','氣密窗'];
+  const DOOR_STYLES=['單開門','雙開門','推拉門','折疊門','玻璃門'];
+  let done=0;const total=rooms.length*4;
+  for(const room of rooms){
+    if(!wallData[room.name])initWallData(room.name);
+    for(const wall of ['north','south','east','west']){
+      done++;
+      progress.textContent=`識別中 ${done}/${total}：${room.name} ${({north:'北',south:'南',east:'東',west:'西'})[wall]}牆...`;
+      try{
+        const stripB64=getWallCrop(room,wall,false);
+        const wideB64=getWallCrop(room,wall,true);
+        if(!stripB64)continue;
+        const b=getRoomBounds(room);
+        const wallLen=wall==='north'||wall==='south'
+          ?Math.round((b.maxX-b.minX)*img.naturalWidth)
+          :Math.round((b.maxY-b.minY)*img.naturalHeight);
+        const result=await claudeCall([{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:stripB64}},
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:wideB64}},
+          {type:'text',text:`Image 1: narrow wall strip. Image 2: wider context. Wall: ${wall} of "${room.name}". Length ~${wallLen}px.
+Find ALL openings. position_pct=center from left (0-100). Window styles: ${WINDOW_STYLES.join('/')}. Door styles: ${DOOR_STYLES.join('/')}.
+Output ONLY JSON: {"material":"paint","height":280,"openings":[{"type":"window","style":"雙扇推拉窗","position_pct":30,"width_pct":15,"width":"120"}]}
+If none: {"material":"paint","height":280,"openings":[]}`}
+        ]}],600);
+        wallData[room.name][wall]=result;
+        await new Promise(r=>setTimeout(r,200));
+      }catch(e){console.warn(`${room.name} ${wall} 失敗`,e);}
+    }
+  }
+  progress.textContent=`✅ 完成！共識別 ${rooms.length} 個空間 × 4 面牆`;
+  renderCanvas();renderGlobalOpeningList();updateStats();
+}
+
+// ══════════════════════════════════════════════
+// Step 1 Sidebar
+// ══════════════════════════════════════════════
+function renderRoomList(){
+  const list=document.getElementById('room-list');list.innerHTML='';
+  if(!rooms.length){list.innerHTML='<div style="font-size:12px;color:#bbb;text-align:center;padding:1rem">尚無空間</div>';return;}
+  rooms.forEach((room,i)=>{
+    const div=document.createElement('div');
+    div.className='room-row'+(selectedRoom===i?' selected':'');
+    const typeOpts=ROOM_TYPES.map(t=>{const[n]=t.split('|');return`<option value="${t}"${n===room.name?'selected':''}>${n}</option>`;}).join('');
+    div.innerHTML=`
+      <div class="room-dot" style="background:${COLORS[i%COLORS.length]}"></div>
+      <div class="room-text">
+        <div class="room-name">${room.name}${room.aiEstimated?'<span class="badge badge-ai">AI</span>':''}</div>
+        <div class="room-meta">${room.name_en}${room.identified_by?' · '+room.identified_by:''}</div>
+      </div>
+      <div style="display:flex;gap:2px">
+        <button class="btn-icon" data-act="edit" data-idx="${i}" title="重新框選">✏️</button>
+        <button class="btn-icon" data-act="del" data-idx="${i}" title="刪除">🗑</button>
+      </div>`;
+    div.addEventListener('click',e=>{
+      if(e.target.closest('[data-act]'))return;
+      selectedRoom=i;renderCanvas();renderRoomList();
+    });
+    div.querySelectorAll('[data-act]').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        const idx=+btn.dataset.idx,act=btn.dataset.act;
+        if(act==='edit'){selectedRoom=idx;setTool('rect');renderCanvas();renderRoomList();}
+        if(act==='del'){if(confirm(`刪除「${rooms[idx].name}」？`)){pushUndo();rooms.splice(idx,1);if(selectedRoom===idx)selectedRoom=null;else if(selectedRoom>idx)selectedRoom--;renderCanvas();renderRoomList();updateStats();}}
+      });
+    });
+    list.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════
+// Step 2 Sidebar
+// ══════════════════════════════════════════════
+function renderStep2RoomList(){
+  const list=document.getElementById('step2-room-list');list.innerHTML='';
+  rooms.forEach((room,i)=>{
+    const key=room.name;
+    const totalOpenings=Object.values(wallData[key]||{}).reduce((s,w)=>s+(w.openings?.length||0),0);
+    const div=document.createElement('div');
+    div.className='room-row'+(selectedRoom===i?' selected':'');
+    div.innerHTML=`<div class="room-dot" style="background:${COLORS[i%COLORS.length]}"></div>
+      <div class="room-text"><div class="room-name">${room.name}</div><div class="room-meta">${totalOpenings} 個開口已標注</div></div>`;
+    div.addEventListener('click',()=>{
+      selectedRoom=i;selectedWall='north';
+      renderStep2RoomList();renderCanvas();
+      const _wc=document.getElementById('step2-wall-card');if(_wc)_wc.style.display='block';
+      updateWallCounts();renderOpeningList();
+    });
+    list.appendChild(div);
+  });
+}
+
+function selectWall(w){
+  selectedWall=w;
+  document.querySelectorAll('.wall-tab').forEach(b=>b.classList.toggle('active',b.dataset.wall===w));
+  renderCanvas();renderOpeningList();
+}
+
+function wallName(w){return{north:'北牆',south:'南牆',east:'東牆',west:'西牆'}[w]||w;}
+
+function updateWallCounts(){
+  if(selectedRoom===null)return;
+  const key=rooms[selectedRoom].name;
+  ['north','south','east','west'].forEach(w=>{
+    const count=(wallData[key]?.[w]?.openings||[]).length;
+    const tab=document.querySelector(`.wall-tab[data-wall="${w}"]`);
+    if(tab){
+      let badge=tab.querySelector('.wall-count');
+      if(count>0){if(!badge){badge=document.createElement('span');badge.className='wall-count';tab.appendChild(badge);}badge.textContent=count;}
+      else if(badge)badge.remove();
+    }
+  });
+}
+
+function renderOpeningList(){
+  const list=document.getElementById('opening-list');
+  if(selectedRoom===null){list.innerHTML='';return;}
+  const key=rooms[selectedRoom].name;
+  if(!wallData[key])initWallData(key);
+  const openings=wallData[key][selectedWall]?.openings||[];
+  list.innerHTML='';
+  if(!openings.length){list.innerHTML='<div style="font-size:11px;color:#bbb;padding:4px 0">尚無開口</div>';return;}
+  openings.forEach((o,i)=>{
+    const div=document.createElement('div');div.className='opening-row';
+    div.innerHTML=`<span class="opening-icon">${o.type==='window'?'🪟':'🚪'}</span>
+      <div class="opening-info"><div class="opening-name">${o.style}</div><div class="opening-pos">位置 ${o.position_pct||'?'}% · 寬 ${o.width||'?'}cm</div></div>
+      <button class="btn-icon" onclick="removeOpening(${i})" style="color:#EF4444">✕</button>`;
+    list.appendChild(div);
+  });
+  updateWallCounts();
+}
+
+function addOpeningManual(){
+  const sel=document.getElementById('opening-type-sel');
+  const width=document.getElementById('opening-width').value;
+  if(!sel.value)return;
+  const[type,style]=sel.value.split('|');
+  const key=rooms[selectedRoom].name;
+  if(!wallData[key])initWallData(key);
+  wallData[key][selectedWall].openings.push({type,style,position_pct:50,width:width||'90'});
+  sel.value='';document.getElementById('opening-width').value='';
+  renderOpeningList();renderCanvas();updateStats();
+}
+
+function removeOpening(idx){
+  const key=rooms[selectedRoom].name;
+  wallData[key][selectedWall].openings.splice(idx,1);
+  renderOpeningList();renderCanvas();updateStats();
+}
+
+// Opening modal
+function cancelOpening(){document.getElementById('opening-modal').classList.remove('show');pendingOpeningPos=null;}
+function confirmOpening(){
+  if(!pendingOpeningPos||selectedRoom===null){cancelOpening();return;}
+  const sel=document.getElementById('opening-modal-type');
+  const width=document.getElementById('opening-modal-width').value;
+  const[type,style]=sel.value.split('|');
+  const key=rooms[selectedRoom].name;
+  if(!wallData[key])initWallData(key);
+  wallData[key][selectedWall].openings.push({type,style,position_pct:pendingOpeningPos.position_pct,width:width||'90'});
+  cancelOpening();renderOpeningList();renderCanvas();updateStats();
+}
+
+// ══════════════════════════════════════════════
+// Step 3 Sidebar
+// ══════════════════════════════════════════════
+function renderStep3RoomList(){
+  const list=document.getElementById('step3-room-list');list.innerHTML='';
+  rooms.forEach((room,i)=>{
+    const key=room.name;const count=(furnitureData[key]||[]).length;
+    const div=document.createElement('div');
+    div.className='room-row'+(selectedRoom===i?' selected':'');
+    div.innerHTML=`<div class="room-dot" style="background:${COLORS[i%COLORS.length]}"></div>
+      <div class="room-text"><div class="room-name">${room.name}</div><div class="room-meta">${count} 件傢俱已標注</div></div>`;
+    div.addEventListener('click',()=>{selectedRoom=i;renderFurnListGlobal();renderCanvas();});
+    list.appendChild(div);
+  });
+}
+
+function renderFurniturePalette(){
+  const grid=document.getElementById('furniture-palette');grid.innerHTML='';
+  FURNITURE_LIST.forEach(f=>{
+    const btn=document.createElement('button');btn.className='furn-btn';
+    btn.innerHTML=`<div style="font-size:18px">${f.icon}</div><div>${f.name}</div>`;
+    btn.addEventListener('click',()=>{
+      if(selectedRoom===null){showError('請先選擇空間');return;}
+      placingFurniture={...f};canvas.style.cursor='crosshair';
+      const _fh=document.getElementById('ftool-hint');if(_fh)_fh.textContent='點擊放置 '+f.name;
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function renderFurnitureList(){
+  renderFurnListGlobal();
+}
+
+function rotateFurniture(idx){
+  const key=rooms[selectedRoom].name;
+  furnitureData[key][idx].rotation=((furnitureData[key][idx].rotation||0)+90)%360;
+  renderFurnListGlobal();renderCanvas();
+}
+function removeFurniture(idx){
+  const key=rooms[selectedRoom].name;
+  furnitureData[key].splice(idx,1);renderFurnListGlobal();renderCanvas();updateStats();
+}
+
+// ══════════════════════════════════════════════
+// Name modal
+// ══════════════════════════════════════════════
+document.getElementById('modal-room-type').addEventListener('change',e=>{document.getElementById('modal-custom-wrap').style.display=e.target.value==='自訂|Custom'?'block':'none';});
+function cancelShape(){document.getElementById('name-modal').classList.remove('show');pendingShape=null;}
+function addNewRoom(){
+  // 直接新增：放在畫面可見中央
+  // 計算目前視圖的中心（反算 transform）
+  const cx=(canvas.width/2-viewOffsetX)/viewScale;
+  const cy=(canvas.height/2-viewOffsetY)/viewScale;
+  const w=canvas.width*0.2/viewScale, h=canvas.height*0.15/viewScale;
+  const x=Math.max(0,Math.min(canvas.width-w,cx-w/2));
+  const y=Math.max(0,Math.min(canvas.height-h,cy-h/2));
+  pendingShape={type:'bbox',bbox:{
+    x:x/canvas.width, y:y/canvas.height,
+    w:w/canvas.width, h:h/canvas.height
+  }};
+  selectedRoom=null; // 不更新現有空間
+  document.getElementById('name-modal').classList.add('show');
+}
+
+function confirmShape(){
+  if(!pendingShape)return;
+  let name,name_en;
+  const val=document.getElementById('modal-room-type').value;
+  if(val==='自訂|Custom'){name=document.getElementById('modal-custom-zh').value.trim()||'新空間';name_en=document.getElementById('modal-custom-en').value.trim()||'New Room';}
+  else{[name,name_en]=val.split('|');}
+  // selectedRoom!==null 且在框選工具模式下 → 更新現有空間的形狀
+  if(selectedRoom!==null&&(currentTool==='rect'||currentTool==='poly')){
+    if(pendingShape.type==='bbox'){rooms[selectedRoom].bbox=pendingShape.bbox;delete rooms[selectedRoom].type;delete rooms[selectedRoom].points;}
+    else{rooms[selectedRoom].type='polygon';rooms[selectedRoom].points=pendingShape.points;delete rooms[selectedRoom].bbox;}
+    rooms[selectedRoom].name=name;rooms[selectedRoom].name_en=name_en;rooms[selectedRoom].aiEstimated=false;
+  } else {
+    // 否則一律新增
+    pushUndo();
+    const r={name,name_en,doors:0,windows:0};
+    if(pendingShape.type==='bbox')r.bbox=pendingShape.bbox;
+    else{r.type='polygon';r.points=pendingShape.points;}
+    rooms.push(r);selectedRoom=rooms.length-1;
+  }
+  document.getElementById('name-modal').classList.remove('show');
+  pendingShape=null;setTool('select');
+  renderCanvas();renderRoomList();updateStats();
+}
+
+// ══════════════════════════════════════════════
+// Stats & Export
+// ══════════════════════════════════════════════
+function updateStats(){
+  document.getElementById('stat-rooms').textContent=rooms.length;
+  const totalOpenings=Object.values(wallData).reduce((s,wd)=>s+Object.values(wd).reduce((s2,w)=>s2+(w.openings?.length||0),0),0);
+  document.getElementById('stat-openings').textContent=totalOpenings;
+  const totalFurniture=Object.values(furnitureData).reduce((s,f)=>s+f.length,0);
+  document.getElementById('stat-furniture').textContent=totalFurniture;
+}
+
+function exportData(){
+  if(!imgB64){showError('請先上傳圖片');return;}
+  const data={
+    image:imgB64,
+    image_media_type:imgMediaType,
+    rooms:rooms.map(r=>{
+      const key=r.name;
+      return{...r,walls:wallData[key]||null,furniture:furnitureData[key]||[]};
+    })
+  };
+  const jsonl=JSON.stringify(data,null,0)+'\n';
+  const blob=new Blob([jsonl],{type:'application/jsonl'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='annotation_'+Date.now()+'.jsonl';a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ══════════════════════════════════════════════
+// Loading / Error
+// ══════════════════════════════════════════════
+function showLoading(txt,sub=''){
+  const el=document.getElementById('loading');el.style.display='flex';
+  document.getElementById('loading-txt').textContent=txt;
+  document.getElementById('loading-sub').textContent=sub;
+}
+function hideLoading(){document.getElementById('loading').style.display='none';}
+function showError(msg){const eb=document.getElementById('error-bar');eb.style.background='#FEF2F2';eb.style.borderColor='#FECACA';eb.style.color='#B91C1C';eb.textContent=msg;eb.style.display='block';setTimeout(()=>eb.style.display='none',5000);}
+function showSuccess(msg){const eb=document.getElementById('error-bar');eb.style.background='#F0FDF4';eb.style.borderColor='#A7F3D0';eb.style.color='#065F46';eb.textContent=msg;eb.style.display='block';setTimeout(()=>eb.style.display='none',4000);}
+
+window.addEventListener('resize',()=>{if(img) renderCanvas();});
+renderFurniturePalette();
+loadStats();
+
+</script>
+<!-- 浮動門窗選單 -->
+<div class="floating-menu" id="floating-opening-menu">
+  <div class="floating-menu-title" id="fmenu-drag-handle" style="cursor:grab">
+    <span id="fmenu-title">新增門窗</span>
+    <button onclick="closeFloatingMenu()" style="cursor:pointer">✕</button>
+  </div>
+  <div class="fmenu-section">窗戶</div>
+  <div class="fmenu-grid">
+    <button class="fmenu-btn" data-type="window" data-style="雙扇推拉窗" data-w="120" onclick="applyOpeningFromMenu('window','雙扇推拉窗',120)" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px">
+      <svg width="28" height="22" viewBox="0 0 28 22"><line x1="2" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="2.5"/><line x1="2" y1="8" x2="26" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="2" y1="14" x2="26" y2="14" stroke="currentColor" stroke-width="1.2"/><line x1="14" y1="7" x2="14" y2="15" stroke="currentColor" stroke-width="1"/></svg>
+      <span style="font-size:10px">雙扇推拉窗</span>
+    </button>
+    <button class="fmenu-btn" data-type="window" data-style="落地窗" data-w="150" onclick="applyOpeningFromMenu('window','落地窗',150)" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px">
+      <svg width="28" height="22" viewBox="0 0 28 22"><line x1="2" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="2.5"/><rect x="4" y="3" width="20" height="16" fill="rgba(100,180,255,0.2)" stroke="currentColor" stroke-width="1.5"/><line x1="14" y1="3" x2="14" y2="19" stroke="currentColor" stroke-width="1"/></svg>
+      <span style="font-size:10px">落地窗</span>
+    </button>
+    <button class="fmenu-btn" data-type="window" data-style="固定窗" data-w="90" onclick="applyOpeningFromMenu('window','固定窗',90)" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px">
+      <svg width="28" height="22" viewBox="0 0 28 22"><line x1="2" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="2.5"/><line x1="2" y1="8" x2="26" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="2" y1="14" x2="26" y2="14" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="8" x2="6" y2="14" stroke="currentColor" stroke-width="1"/><line x1="22" y1="8" x2="22" y2="14" stroke="currentColor" stroke-width="1"/></svg>
+      <span style="font-size:10px">固定窗</span>
+    </button>
+    <button class="fmenu-btn" data-type="window" data-style="氣密窗" data-w="90" onclick="applyOpeningFromMenu('window','氣密窗',90)" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px">
+      <svg width="28" height="22" viewBox="0 0 28 22"><line x1="2" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="2.5"/><rect x="4" y="7" width="20" height="8" rx="1" fill="rgba(100,180,255,0.2)" stroke="currentColor" stroke-width="1.5"/><line x1="14" y1="7" x2="14" y2="15" stroke="currentColor" stroke-width="1"/></svg>
+      <span style="font-size:10px">氣密窗</span>
+    </button>
+  </div>
+  <div class="fmenu-section">門</div>
+  <div class="fmenu-grid">
+    <button class="fmenu-btn" data-type="door" data-style="單開門" data-w="90" onclick="applyOpeningFromMenu('door','單開門',90)" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px">
+      <svg width="28" height="22" viewBox="0 0 28 22"><line x1="2" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="2"/><path d="M26 11 A16 16 0 0 1 26 11" stroke="none"/><path d="M26,11 A14,14 0 0,0 12,11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,2"/><line x1="12" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="26" y1="6" x2="26" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+      <span style="font-size:10px">單開門</span>
+    </button>
+    <button class="fmenu-btn" data-type="door" data-style="雙開門" data-w="150" onclick="applyOpeningFromMenu('door','雙開門',150)" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px">
+      <svg width="28" height="22" viewBox="0 0 28 22"><line x1="2" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="2"/><path d="M14,11 A10,10 0 0,0 4,11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,2"/><path d="M14,11 A10,10 0 0,0 24,11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,2"/><line x1="4" y1="6" x2="4" y2="16" stroke="currentColor" stroke-width="2"/><line x1="24" y1="6" x2="24" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+      <span style="font-size:10px">雙開門</span>
+    </button>
+    <button class="fmenu-btn" data-type="door" data-style="推拉門" data-w="120" onclick="applyOpeningFromMenu('door','推拉門',120)" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px">
+      <svg width="28" height="22" viewBox="0 0 28 22"><rect x="3" y="6" width="10" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="15" y="6" width="10" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="7" y1="9" x2="11" y2="9" stroke="currentColor" stroke-width="1.2"/><line x1="17" y1="13" x2="21" y2="13" stroke="currentColor" stroke-width="1.2"/><line x1="2" y1="11" x2="5" y2="11" stroke="currentColor" stroke-width="2"/><line x1="23" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="2"/></svg>
+      <span style="font-size:10px">推拉門</span>
+    </button>
+    <button class="fmenu-btn" data-type="door" data-style="折疊門" data-w="90" onclick="applyOpeningFromMenu('door','折疊門',90)" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px">
+      <svg width="28" height="22" viewBox="0 0 28 22"><line x1="2" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="2"/><polyline points="5,11 9,6 13,11 17,6 21,11" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="5" y1="6" x2="5" y2="16" stroke="currentColor" stroke-width="2"/><line x1="21" y1="6" x2="21" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+      <span style="font-size:10px">折疊門</span>
+    </button>
+  </div>
+  <!-- 數值調整 -->
+  <div id="fmenu-value-row" style="display:none;margin-top:6px">
+    <div class="fmenu-section">寬度 (cm)</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="range" id="fmenu-width-slider" min="30" max="300" step="5" value="90"
+        style="flex:1;accent-color:#185FA5"
+        oninput="updateOpeningWidthFromSlider(this.value)">
+      <input type="number" id="fmenu-width-num" min="30" max="300" value="90"
+        style="width:52px;padding:3px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px"
+        oninput="updateOpeningWidthFromSlider(this.value)">
+      <span style="font-size:11px;color:#888">cm</span>
+    </div>
+  </div>
+  <!-- 門方向控制 -->
+  <div id="fmenu-door-controls" style="display:none;margin-top:6px">
+    <div class="fmenu-section">開合方向</div>
+    <div class="fmenu-door-actions">
+      <button id="fmenu-flip-btn" onclick="flipSelectedOpening('dir')" title="切換左開/右開">左開</button>
+      <button id="fmenu-swing-btn" onclick="flipSelectedOpening('side')" title="門往另一側開">↕ 換邊</button>
+    </div>
+  </div>
+</div>
+
+<!-- WALL DRAWING SYSTEM v2 -->
+<script>
+// ══════════════════════════════════════════════
+// 牆體資料：walls2 = [{id, x1,y1,x2,y2, openings:[{id,type,style,widthCm,t}]}]
+// t = 0~1 沿牆體的相對位置
+// ══════════════════════════════════════════════
+let walls2=[], wallTool='draw';
+let realWidthM=10; // 圖面寬度代表幾公尺（動態計算）
+let scaleMarkMode=false; // 比例尺標定模式
+let scaleMarkPoints=[]; // 已標定的點
+let scaleRefCm=90; // 選取的參考物件 cm
+
+// ── 比例尺狀態顯示（Header，各步驟皆可見）──
+function setScaleStatus(html){
+  const el=document.getElementById('scale-status');
+  if(!el) return;
+  el.innerHTML=html;
+  el.style.display=html?'block':'none';
+}
+
+// ── Scale Modal 函數 ──────────────────────
+function onScaleModalChange(val){
+  const customDiv=document.getElementById('scale-modal-custom');
+  const btn=document.getElementById('scale-modal-btn');
+  customDiv.style.display=val==='custom'?'block':'none';
+  btn.disabled=!val;
+  if(val&&val!=='custom') scaleRefCm=parseFloat(val);
+}
+
+function openScaleModal(){
+  document.getElementById('scale-modal').classList.add('show');
+}
+
+function skipScaleModal(){
+  document.getElementById('scale-modal').classList.remove('show');
+}
+
+function updateScaleHeader(){
+  const box=document.getElementById('scale-header-box');
+  const label=document.getElementById('scale-header-label');
+  if(!box||!label) return;
+  box.style.display='flex';
+  const dispM=realWidthM.toFixed(1);
+  label.textContent=`比例尺：圖寬 ${dispM}m`;
+  box.style.background='#F0FDF4';
+  box.style.borderColor='#A7F3D0';
+}
+
+function startScaleModalMark(){
+  const sel=document.getElementById('scale-modal-select');
+  if(sel.value==='custom'){
+    const v=parseFloat(document.getElementById('scale-modal-custom-val').value);
+    if(!v||v<=0){alert('請輸入有效距離');return;}
+    scaleRefCm=v;
+  } else {
+    scaleRefCm=parseFloat(sel.value)||90;
+  }
+  // 關閉 modal，進入標定模式（在目前步驟標定，不跳步）
+  document.getElementById('scale-modal').classList.remove('show');
+  scaleMarkMode=true;
+  scaleMarkPoints=[];
+  canvas.style.cursor='crosshair';
+  setScaleStatus(`<span style="color:#F59E0B;font-weight:500">● 在圖面上點擊「${sel.options[sel.selectedIndex]?.text||scaleRefCm+'cm'}」的第一個端點...</span>`);
+}
+
+function onScaleRefChange(val){
+  const customRow=document.getElementById('scale-custom-row');
+  if(!val){if(customRow)customRow.style.display='none';return;}
+  if(val==='custom'){
+    if(customRow)customRow.style.display='block';
+    scaleRefCm=parseFloat(document.getElementById('scale-custom-input')?.value)||90;
+  } else {
+    if(customRow)customRow.style.display='none';
+    scaleRefCm=parseFloat(val);
+  }
+}
+
+function startScaleMark(){
+  // 若選了 custom，先讀取自訂距離
+  const sel=document.getElementById('scale-ref-select');
+  if(sel.value==='custom'){
+    const v=parseFloat(document.getElementById('scale-custom-input').value);
+    if(!v||v<=0){document.getElementById('scale-status').textContent='請輸入有效距離';return;}
+    scaleRefCm=v;
+  }
+  scaleMarkMode=true;
+  scaleMarkPoints=[];
+  canvas.style.cursor='crosshair';
+  setScaleStatus('<span style="color:#F59E0B;font-weight:500">● 點擊第一個端點...</span>');
+}
+
+function cancelScaleMark(){
+  scaleMarkMode=false;scaleMarkPoints=[];
+  canvas.style.cursor='default';
+  setScaleStatus('');
+  renderCanvas();
+}
+
+function updateScaleM(val){
+  realWidthM=Math.max(0.1,parseFloat(val)||10);
+  renderCanvas();
+}
+
+// ── 復原系統 ──────────────────────────────────
+let undoStack=[];
+const MAX_UNDO=30;
+
+function pushUndo(){
+  undoStack.push({
+    rooms:JSON.parse(JSON.stringify(rooms)),
+    walls2:JSON.parse(JSON.stringify(walls2)),
+    furnitureData:JSON.parse(JSON.stringify(furnitureData))
+  });
+  if(undoStack.length>MAX_UNDO) undoStack.shift();
+  const btn=document.getElementById('undo-btn');
+  if(btn) btn.disabled=false;
+}
+
+function undoAction(){
+  if(!undoStack.length) return;
+  const state=undoStack.pop();
+  rooms=state.rooms;
+  walls2=state.walls2;
+  furnitureData=state.furnitureData;
+  selectedRoom=null;selectedWallId=null;selectedOpeningId=null;
+  renderCanvas();renderRoomList();renderWallList();updateStats();
+  const btn=document.getElementById('undo-btn');
+  if(btn) btn.disabled=undoStack.length===0;
+}
+let wallDrawStart=null, wallDrawCurrent=null;
+let wallDrawPoints=[]; // 連續多段線的所有點
+let wallShiftLock=false;
+let selectedWallId=null, selectedOpeningId=null;
+let draggingOpening=null;
+let resizingOpening=null;
+let draggingAnchor=null; // {wallId, endpoint:'start'|'end'} // {wallId, openingId, handle:'left'|'right'}
+let wallIdCnt=0, openingIdCnt=0;
+const SNAP_DIST=0.008; // 吸附距離（相對座標）
+
+// ── 吸附邏輯 ──────────────────────────────────
+function snapPoint(rx, ry, excludeWallId=null){
+  let best=null, bestD=SNAP_DIST;
+  walls2.forEach(w=>{
+    if(w.id===excludeWallId) return;
+    // 端點吸附
+    [{x:w.x1,y:w.y1},{x:w.x2,y:w.y2}].forEach(p=>{
+      const d=Math.hypot(rx-p.x,ry-p.y);
+      if(d<bestD){bestD=d;best={x:p.x,y:p.y,type:'endpoint',wallId:w.id};}
+    });
+    // 線段中點吸附（落在線段上）
+    const t=clamp01(((rx-w.x1)*(w.x2-w.x1)+(ry-w.y1)*(w.y2-w.y1))/((w.x2-w.x1)**2+(w.y2-w.y1)**2||1));
+    const px=w.x1+t*(w.x2-w.x1), py=w.y1+t*(w.y2-w.y1);
+    const d2=Math.hypot(rx-px,ry-py);
+    if(d2<bestD){bestD=d2;best={x:px,y:py,type:'midpoint',wallId:w.id,t};}
+  });
+  return best||{x:rx,y:ry,type:'free'};
+}
+
+// 吸附時若落在線段中間，分割該線段
+function splitWallIfNeeded(snap){
+  if(snap.type!=='midpoint') return;
+  const w=walls2.find(w=>w.id===snap.wallId);
+  if(!w||snap.t<0.02||snap.t>0.98) return;
+  // 分割成兩段
+  const mid={x:snap.x,y:snap.y};
+  const newW={id:++wallIdCnt,x1:mid.x,y1:mid.y,x2:w.x2,y2:w.y2,openings:[]};
+  // 重新分配開口
+  w.openings.forEach(o=>{
+    if(o.t>snap.t){
+      const newT=(o.t-snap.t)/(1-snap.t);
+      newW.openings.push({...o,id:++openingIdCnt,t:newT});
+    }
+  });
+  w.openings=w.openings.filter(o=>o.t<=snap.t).map(o=>({...o,t:o.t/snap.t}));
+  w.x2=mid.x; w.y2=mid.y;
+  walls2.push(newW);
+}
+
+function clamp01(v){return Math.max(0,Math.min(1,v));}
+
+// 牆體繪製的 Shift 鎖定
+function wallShiftSnapFn(prev, cur){
+  const dx=Math.abs(cur.x-prev.x), dy=Math.abs(cur.y-prev.y);
+  if(dx>dy) return{x:cur.x, y:prev.y, type:cur.type||'free'};
+  return{x:prev.x, y:cur.y, type:cur.type||'free'};
+}
+
+// ── 工具切換 ──────────────────────────────────
+function setWallTool(t){
+  wallTool=t;
+  document.querySelectorAll('.wall-tool-btn[id^="wtool-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('wtool-'+t)?.classList.add('active');
+  const hints={draw:'點起點 → 點終點完成牆體（靠近已有點會自動吸附）',select:'點選牆體 → 新增門窗 / 拖移門窗 / 調整門窗大小',delete:'點牆體刪除整條，點門窗圖示刪除開口'};
+  document.getElementById('wtool-hint').textContent=hints[t]||'';
+  if(!spaceDown) canvas.style.cursor=t==='draw'?'crosshair':'default';
+  if(t!=='draw'){wallDrawStart=null;wallDrawCurrent=null;}
+  if(t!=='select'){selectedOpeningId=null;}
+  if(t!=='draw'){wallDrawPoints=[];wallDrawStart=null;wallDrawCurrent=null;wallShiftLock=false;renderCanvas();}
+  if(t==='draw'||t==='delete'){selectedWallId=null;document.getElementById('opening-add-card').style.display='none';}
+  renderCanvas();
+}
+
+function addOpeningToWall(type,style,widthCm){
+  if(!selectedWallId) return;
+  const wall=walls2.find(w=>w.id===selectedWallId);
+  if(!wall) return;
+  pushUndo();
+  wall.openings.push({id:++openingIdCnt,type,style,widthCm:parseFloat(widthCm)||90,t:0.5,flipDir:false,swingSide:1});
+  renderWallList(); renderCanvas(); updateStats();
+}
+
+// ── Canvas 繪製 ──────────────────────────────
+const _origRenderCanvas=renderCanvas;
+renderCanvas=function(){
+  _origRenderCanvas();
+  if(currentStep===2) drawWalls2();
+  drawScaleMarkPoints(); // 任何步驟皆可顯示比例尺標定點
+};
+
+function drawScaleMarkPoints(){
+  if(!scaleMarkMode&&scaleMarkPoints.length===0) return;
+  if(!scaleMarkPoints.length) return;
+  const W=canvas.width,H=canvas.height;
+  scaleMarkPoints.forEach((p,i)=>{
+    const px=p.x*W,py=p.y*H;
+    ctx.fillStyle='#F59E0B';ctx.strokeStyle='white';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(px,py,8,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.font='bold 11px -apple-system';ctx.fillStyle='#F59E0B';ctx.textAlign='center';
+    ctx.fillText(i===0?'A':'B',px,py-12);ctx.textAlign='start';
+  });
+  if(scaleMarkPoints.length>=2){
+    const p1=scaleMarkPoints[0],p2=scaleMarkPoints[1];
+    ctx.strokeStyle='#F59E0B';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(p1.x*W,p1.y*H);ctx.lineTo(p2.x*W,p2.y*H);ctx.stroke();
+    ctx.setLineDash([]);
+    const mx2=(p1.x+p2.x)/2*W,my2=(p1.y+p2.y)/2*H;
+    ctx.font='11px -apple-system';ctx.fillStyle='#F59E0B';ctx.textAlign='center';
+    ctx.fillText(scaleRefCm+'cm',mx2,my2-8);ctx.textAlign='start';
+  }
+}
+
+function drawWalls2(){
+  const W=canvas.width,H=canvas.height;
+  // 牆體長度比例尺（假設圖寬約 10 公尺）
+  const pxPerM=W/realWidthM; // 實際比例尺（canvas寬度/圖面真實寬度m）
+  // 隨縮放縮小線條和錨點（縮放越大 → 越細）
+  const sc=Math.max(0.3, 1/viewScale); // scale compensation
+  const lineW=Math.max(0.5, 3*sc);    // 牆體線寬
+  const anchorR=Math.max(3, 9*sc);    // 錨點半徑
+  const openingLW=Math.max(0.5, 2*sc);// 門窗線寬
+
+  walls2.forEach(wall=>{
+    const x1=wall.x1*W,y1=wall.y1*H,x2=wall.x2*W,y2=wall.y2*H;
+    const isSel=wall.id===selectedWallId;
+    const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+    if(len<1) return;
+    const ux=dx/len,uy=dy/len,nx=-uy,ny=ux; // 單位向量和法向量
+
+    // 牆體線
+    ctx.strokeStyle=isSel?'#185FA5':'#333';
+    ctx.lineWidth=isSel?lineW*1.3:lineW; ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+
+    // 端點錨點
+    [{x:x1,y:y1,ep:'start'},{x:x2,y:y2,ep:'end'}].forEach(({x,y,ep})=>{
+      const isDraggingThis=draggingAnchor&&draggingAnchor.wallId===wall.id&&draggingAnchor.endpoint===ep;
+      if(isSel||isDraggingThis){
+        // 選取中的牆體：大錨點
+        ctx.fillStyle=isDraggingThis?'#EF4444':'white';
+        ctx.strokeStyle=isDraggingThis?'#EF4444':'#185FA5';
+        ctx.lineWidth=Math.max(1,2.5*sc);
+        ctx.beginPath();ctx.arc(x,y,anchorR,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.fillStyle=isDraggingThis?'white':'#185FA5';
+        ctx.beginPath();ctx.arc(x,y,Math.max(1.5,3*sc),0,Math.PI*2);ctx.fill();
+      } else {
+        // 未選取：小錨點（仍可點擊）
+        ctx.fillStyle='white';ctx.strokeStyle='#888';ctx.lineWidth=Math.max(1,1.5*sc);
+        ctx.beginPath();ctx.arc(x,y,Math.max(2,5*sc),0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.fillStyle='#888';ctx.beginPath();ctx.arc(x,y,Math.max(1,2*sc),0,Math.PI*2);ctx.fill();
+      }
+    });
+
+    // 門窗
+    wall.openings.forEach(o=>{
+      const t=clamp01(o.t??0.5);
+      const cx=x1+dx*t,cy=y1+dy*t;
+      // 門窗寬度（cm → 相對座標 → px）
+      const wM=(o.widthCm||90)/100; // 公尺
+      const wPx=Math.min(wM*pxPerM, len*0.9);
+      const isSelO=o.id===selectedOpeningId;
+      const isWin=o.type==='window';
+      const col=isWin?'#2563EB':'#D97706';
+      const colSel=isWin?'#1D4ED8':'#B45309';
+
+      // 白色遮蓋牆體（開口）
+      ctx.strokeStyle='white'; ctx.lineWidth=7;
+      ctx.beginPath();
+      ctx.moveTo(cx-ux*wPx/2,cy-uy*wPx/2);
+      ctx.lineTo(cx+ux*wPx/2,cy+uy*wPx/2);
+      ctx.stroke();
+
+      if(isWin){
+        // 窗：依樣式畫建築標準符號
+        ctx.strokeStyle=isSelO?colSel:col;
+        ctx.lineWidth=isSelO?openingLW*1.3:openingLW;
+        const wOff=3*sc; // 平行線間距
+        const endLineH=5*sc; // 端線高度
+        const style=o.style||'雙扇推拉窗';
+
+        // 所有窗型共用：兩條端線 + 牆體缺口邊框
+        [-wPx/2,wPx/2].forEach(along=>{
+          const px=cx+ux*along,py=cy+uy*along;
+          ctx.beginPath();ctx.moveTo(px-nx*endLineH,py-ny*endLineH);
+          ctx.lineTo(px+nx*endLineH,py+ny*endLineH);ctx.stroke();
+        });
+
+        if(style==='落地窗'){
+          // 落地窗：兩條垂直線（整面牆到地板）+ 淡藍填充
+          ctx.fillStyle='rgba(100,180,255,0.15)';
+          ctx.beginPath();
+          const fw=wPx, fh=endLineH*2.5;
+          ctx.moveTo(cx-ux*fw/2-nx*fh,cy-uy*fw/2-ny*fh);
+          ctx.lineTo(cx+ux*fw/2-nx*fh,cy+uy*fw/2-ny*fh);
+          ctx.lineTo(cx+ux*fw/2+nx*fh,cy+uy*fw/2+ny*fh);
+          ctx.lineTo(cx-ux*fw/2+nx*fh,cy-uy*fw/2+ny*fh);
+          ctx.closePath();ctx.fill();
+          // 邊框線
+          ctx.beginPath();ctx.moveTo(cx-ux*fw/2,cy-uy*fw/2);ctx.lineTo(cx+ux*fw/2,cy+uy*fw/2);ctx.stroke();
+          // 中分線（雙扇）
+          ctx.beginPath();ctx.moveTo(cx-nx*endLineH*1.5,cy-ny*endLineH*1.5);ctx.lineTo(cx+nx*endLineH*1.5,cy+ny*endLineH*1.5);ctx.stroke();
+
+        } else if(style==='固定窗'){
+          // 固定窗：三條平行線（實線）
+          [-wOff,0,wOff].forEach(off=>{
+            ctx.beginPath();
+            ctx.moveTo(cx-ux*wPx/2+nx*off,cy-uy*wPx/2+ny*off);
+            ctx.lineTo(cx+ux*wPx/2+nx*off,cy+uy*wPx/2+ny*off);
+            ctx.stroke();
+          });
+
+        } else if(style==='氣密窗'||style==='單扇推拉窗'){
+          // 氣密窗/單扇：三線（中間較粗）
+          [-wOff,0,wOff].forEach((off,i)=>{
+            ctx.lineWidth=i===1?(openingLW*1.5):(isSelO?openingLW*1.3:openingLW);
+            ctx.beginPath();
+            ctx.moveTo(cx-ux*wPx/2+nx*off,cy-uy*wPx/2+ny*off);
+            ctx.lineTo(cx+ux*wPx/2+nx*off,cy+uy*wPx/2+ny*off);
+            ctx.stroke();
+          });
+          ctx.lineWidth=isSelO?openingLW*1.3:openingLW;
+
+        } else if(style==='橫拉窗'){
+          // 橫拉窗：三線 + 箭頭指示方向
+          [-wOff,0,wOff].forEach(off=>{
+            ctx.beginPath();
+            ctx.moveTo(cx-ux*wPx/2+nx*off,cy-uy*wPx/2+ny*off);
+            ctx.lineTo(cx+ux*wPx/2+nx*off,cy+uy*wPx/2+ny*off);
+            ctx.stroke();
+          });
+          // 小箭頭
+          const ax=cx-ux*wPx*0.25,ay=cy-uy*wPx*0.25;
+          ctx.beginPath();
+          ctx.moveTo(ax+ux*wPx*0.15+nx*wOff,ay+uy*wPx*0.15+ny*wOff);
+          ctx.lineTo(ax+nx*wOff,ay+ny*wOff);
+          ctx.lineTo(ax+ux*wPx*0.15-nx*wOff,ay+uy*wPx*0.15-ny*wOff);
+          ctx.stroke();
+
+        } else {
+          // 雙扇推拉窗（預設）：三條平行線 + 中分線
+          [-wOff,0,wOff].forEach(off=>{
+            ctx.beginPath();
+            ctx.moveTo(cx-ux*wPx/2+nx*off,cy-uy*wPx/2+ny*off);
+            ctx.lineTo(cx+ux*wPx/2+nx*off,cy+uy*wPx/2+ny*off);
+            ctx.stroke();
+          });
+          // 中分線（表示雙扇）
+          ctx.setLineDash([2*sc,2*sc]);
+          ctx.beginPath();ctx.moveTo(cx-nx*wOff*1.2,cy-ny*wOff*1.2);ctx.lineTo(cx+nx*wOff*1.2,cy+ny*wOff*1.2);ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      } else {
+        // 門的定義：
+        //   swingSide = 1  → 門往法向量正方向開（水平牆=向上）
+        //   swingSide = -1 → 門往法向量負方向開（換邊=向下）
+        //   flipDir = false → 右開：支點在右端(ex,ey)，弧從右往swingSide方向畫
+        //   flipDir = true  → 左開：支點在左端(hx,hy)，弧從左往swingSide方向畫
+        const flipDir=o.flipDir??false;
+        const swingSide=o.swingSide??1;
+        ctx.strokeStyle=isSelO?colSel:col;ctx.lineWidth=isSelO?openingLW*1.3:openingLW;
+
+        // 左端點、右端點
+        const lx=cx-ux*wPx/2, ly=cy-uy*wPx/2; // 左端
+        const rx2=cx+ux*wPx/2, ry2=cy+uy*wPx/2; // 右端
+
+        // 門框線
+        ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(rx2,ry2);ctx.stroke();
+
+        // 支點 = 右開用右端，左開用左端
+        const pivotX=flipDir?lx:rx2;
+        const pivotY=flipDir?ly:ry2;
+
+        // 弧的起始角：從支點往另一端的方向
+        // 右開(flipDir=false)：從右端往左端方向出發 = wallAngle + π
+        // 左開(flipDir=true) ：從左端往右端方向出發 = wallAngle
+        const wallAngle=Math.atan2(uy,ux); // 左→右方向角
+        const startAngle=flipDir?wallAngle:wallAngle+Math.PI;
+
+        // 弧的終止角：轉 90° 往 swingSide 方向
+        // 法向量 nx=-uy, ny=ux 是垂直牆體向「上」的方向（swingSide=1時）
+        // 轉 +90°（逆時針）= 往法向量正方向 = swingSide=1
+        // 轉 -90°（順時針）= 往法向量負方向 = swingSide=-1
+        const arcAngle=swingSide*Math.PI/2;
+        const endAngle=startAngle-arcAngle; // 注意：canvas y軸向下，所以符號要反
+        const ccw=arcAngle>0;
+
+        ctx.beginPath();
+        ctx.arc(pivotX,pivotY,wPx,startAngle,endAngle,ccw);
+        ctx.stroke();
+
+        // 弧末端短線（門板邊緣）
+        const aex=pivotX+Math.cos(endAngle)*wPx;
+        const aey=pivotY+Math.sin(endAngle)*wPx;
+        ctx.beginPath();ctx.moveTo(pivotX,pivotY);ctx.lineTo(aex,aey);ctx.stroke();
+
+        // 支點端垂直短線
+        ctx.beginPath();ctx.moveTo(pivotX-nx*3*sc,pivotY-ny*3*sc);
+        ctx.lineTo(pivotX+nx*3*sc,pivotY+ny*3*sc);ctx.stroke();
+      }
+
+      // 選取把手（中心點）
+      if(isSelO){
+        ctx.fillStyle=col;ctx.strokeStyle='white';ctx.lineWidth=Math.max(1,2*sc);
+        ctx.beginPath();ctx.arc(cx,cy,Math.max(3,7*sc),0,Math.PI*2);ctx.fill();ctx.stroke();
+        // 左右縮放把手
+        const hOff=Math.max(8,12*sc);
+        const lx=cx-ux*wPx/2+nx*hOff,ly=cy-uy*wPx/2+ny*hOff;
+        const rx2=cx+ux*wPx/2+nx*hOff,ry2=cy+uy*wPx/2+ny*hOff;
+        [{ x:lx,y:ly,h:'left'},{x:rx2,y:ry2,h:'right'}].forEach(({x,y})=>{
+          ctx.fillStyle='white';ctx.strokeStyle=col;ctx.lineWidth=2;
+          ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();ctx.stroke();
+        });
+        // 寬度標示
+        ctx.font='10px -apple-system';ctx.fillStyle=col;ctx.textAlign='center';
+        ctx.fillText(o.widthCm+'cm',cx,cy-16);ctx.textAlign='start';
+      }
+    });
+  });
+
+  // 連續牆體繪製預覽
+  if(wallTool==='draw'&&wallDrawPoints.length>0){
+    // 已確認的臨時線段（本次連續繪製中的）
+    if(wallDrawPoints.length>1){
+      ctx.strokeStyle='rgba(24,95,165,0.4)';ctx.lineWidth=2;ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(wallDrawPoints[0].x*W,wallDrawPoints[0].y*H);
+      wallDrawPoints.forEach(p=>ctx.lineTo(p.x*W,p.y*H));
+      ctx.stroke();
+    }
+    // 預覽線（到鼠標）
+    if(wallDrawCurrent){
+      let cur=wallDrawCurrent;
+      if(wallShiftLock){const prev=wallDrawPoints[wallDrawPoints.length-1];cur=wallShiftSnapFn(prev,cur);}
+      const snap=snapPoint(cur.x,cur.y,null);
+      const sx=snap.x*W, sy=snap.y*H;
+      // Shift 軸線提示
+      if(wallShiftLock){
+        const prev=wallDrawPoints[wallDrawPoints.length-1];
+        ctx.strokeStyle='rgba(24,95,165,0.2)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
+        const dx=Math.abs(cur.x-prev.x),dy=Math.abs(cur.y-prev.y);
+        if(dx>dy){ctx.beginPath();ctx.moveTo(0,prev.y*H);ctx.lineTo(W,prev.y*H);ctx.stroke();}
+        else{ctx.beginPath();ctx.moveTo(prev.x*W,0);ctx.lineTo(prev.x*W,H);ctx.stroke();}
+        ctx.setLineDash([]);
+      }
+      ctx.strokeStyle=snap.type!=='free'?'#10B981':'#185FA5';
+      ctx.lineWidth=2;ctx.setLineDash([5,3]);
+      ctx.beginPath();
+      ctx.moveTo(wallDrawPoints[wallDrawPoints.length-1].x*W,wallDrawPoints[wallDrawPoints.length-1].y*H);
+      ctx.lineTo(sx,sy);ctx.stroke();ctx.setLineDash([]);
+      // 吸附圓圈
+      if(snap.type!=='free'){
+        ctx.strokeStyle='#10B981';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(sx,sy,9,0,Math.PI*2);ctx.stroke();
+      }
+      // 游標點
+      ctx.fillStyle='#185FA5';ctx.strokeStyle='white';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(sx,sy,5,0,Math.PI*2);ctx.fill();ctx.stroke();
+    }
+    // 起點標記
+    ctx.fillStyle='#EF4444';ctx.strokeStyle='white';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(wallDrawPoints[0].x*W,wallDrawPoints[0].y*H,7,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // 最新點標記
+    if(wallDrawPoints.length>1){
+      const last=wallDrawPoints[wallDrawPoints.length-1];
+      ctx.fillStyle='#185FA5';ctx.strokeStyle='white';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(last.x*W,last.y*H,5,0,Math.PI*2);ctx.fill();ctx.stroke();
+    }
+    // 頂點序號
+    wallDrawPoints.forEach((p,i)=>{
+      ctx.font='9px -apple-system';ctx.fillStyle='white';ctx.textAlign='center';
+      ctx.fillText(i+1,p.x*W,p.y*H+3);ctx.textAlign='start';
+    });
+  }
+}
+
+// ── Mouse Events ──────────────────────────────
+canvas.addEventListener('mousedown',function(e){
+  if(currentStep!==2 && !scaleMarkMode) return;
+  const{mx,my}=getPos(e);
+  const rx=mx/canvas.width,ry=my/canvas.height;
+
+  // 比例尺標定模式（任何步驟皆可）
+  if(scaleMarkMode){
+    const rx=mx/canvas.width, ry=my/canvas.height;
+    scaleMarkPoints.push({x:rx,y:ry});
+    if(scaleMarkPoints.length===1){
+      setScaleStatus('<span style="color:#F59E0B;font-weight:500">● 點擊第二個端點...</span>');
+      renderCanvas();
+    } else if(scaleMarkPoints.length>=2){
+      // 計算兩點距離（canvas 像素）
+      const p1=scaleMarkPoints[0],p2=scaleMarkPoints[1];
+      const dx=(p2.x-p1.x)*canvas.width;
+      const dy=(p2.y-p1.y)*canvas.height;
+      const distPx=Math.sqrt(dx*dx+dy*dy);
+      // distPx 對應 scaleRefCm → canvas.width 對應多少 cm
+      const totalCm=(canvas.width/distPx)*scaleRefCm;
+      realWidthM=totalCm/100;
+      scaleMarkMode=false;scaleMarkPoints=[];
+      canvas.style.cursor='default';
+      const dispM=realWidthM.toFixed(2);
+      const dispCm=Math.round(totalCm);
+      updateScaleHeader();
+      setScaleStatus('');
+      // 更新 modal preview（若還開著）
+      const preview=document.getElementById('scale-modal-preview');
+      if(preview){
+        preview.style.display='block';
+        preview.textContent=`✅ 比例尺已設定：圖面寬 ≈ ${dispM}m，參考距離 ${scaleRefCm}cm`;
+      }
+      renderCanvas();
+    }
+    return;
+  }
+
+  if(wallTool==='draw'){
+    let snap=snapPoint(rx,ry);
+    // Shift 鎖定
+    if(wallShiftLock&&wallDrawPoints.length>0){
+      const prev=wallDrawPoints[wallDrawPoints.length-1];
+      snap=wallShiftSnapFn(prev,snap);
+    }
+    if(wallDrawPoints.length===0){
+      // 開始第一個點
+      wallDrawStart={x:snap.x,y:snap.y};
+      wallDrawPoints=[{x:snap.x,y:snap.y}];
+      wallDrawCurrent={x:snap.x,y:snap.y};
+      renderCanvas();
+    } else {
+      const prev=wallDrawPoints[wallDrawPoints.length-1];
+      const ddx=snap.x-prev.x, ddy=snap.y-prev.y;
+      if(Math.sqrt(ddx*ddx+ddy*ddy)>0.005){
+        // 確認此線段
+        splitWallIfNeeded(snap);
+        pushUndo();
+        walls2.push({id:++wallIdCnt,x1:prev.x,y1:prev.y,x2:snap.x,y2:snap.y,openings:[]});
+        wallDrawPoints.push({x:snap.x,y:snap.y});
+        renderWallList();updateStats();
+        renderCanvas();
+      }
+    }
+    return;
+  }
+
+  if(wallTool==='select'){
+    // 0. 錨點拖移（最優先，不需先選取）
+    const aHit=findAnchorAtPoint(rx,ry);
+    if(aHit){
+      draggingAnchor=aHit;
+      selectedWallId=aHit.wallId;
+      selectedOpeningId=null;
+      renderWallList();
+      return;
+    }
+    // 1. 縮放把手
+    const rHit=findResizeHandle(rx,ry);
+    if(rHit){resizingOpening=rHit;return;}
+    // 2. 點擊/拖移開口 → 顯示編輯選單
+    const oHit=findOpeningAtPoint2(rx,ry);
+    if(oHit){
+      selectedWallId=oHit.wallId;selectedOpeningId=oHit.openingId;
+      draggingOpening=oHit;
+      renderCanvas();renderWallList();
+      // 計算門窗螢幕位置顯示浮動選單
+      const w=walls2.find(w2=>w2.id===oHit.wallId);
+      const o=w?.openings.find(op=>op.id===oHit.openingId);
+      if(w&&o){
+        const cx=(w.x1+(w.x2-w.x1)*o.t)*canvas.width;
+        const cy=(w.y1+(w.y2-w.y1)*o.t)*canvas.height;
+        const ocxScr=cx*viewScale+viewOffsetX;
+        const ocyScr=cy*viewScale+viewOffsetY;
+        const rect=canvas.getBoundingClientRect();
+        const screenX=rect.left+ocxScr*(rect.width/canvas.width);
+        const screenY=rect.top+ocyScr*(rect.height/canvas.height);
+        showFloatingMenu(screenX,screenY,oHit.wallId,oHit.openingId);
+      }
+      return;
+    }
+    // 3. 選取牆體（直接點擊）→ 顯示浮動選單
+    const wHit=findWallAtPoint(rx,ry);
+    if(wHit!==null){
+      selectedWallId=wHit;selectedOpeningId=null;
+      renderCanvas();renderWallList();
+      // 顯示浮動新增選單（在牆體中點附近）
+      const w=walls2.find(w2=>w2.id===wHit);
+      if(w){
+        const midCx=(w.x1+w.x2)/2*canvas.width;
+        const midCy=(w.y1+w.y2)/2*canvas.height;
+        const midScrX=midCx*viewScale+viewOffsetX;
+        const midScrY=midCy*viewScale+viewOffsetY;
+        const rect=canvas.getBoundingClientRect();
+        const screenX=rect.left+midScrX*(rect.width/canvas.width);
+        const screenY=rect.top+midScrY*(rect.height/canvas.height);
+        showFloatingMenu(screenX,screenY,wHit,null);
+      }
+    } else {
+      // 點擊空白 → 取消選取，關閉選單
+      if(selectedWallId!==null){
+        selectedWallId=null;selectedOpeningId=null;
+        closeFloatingMenu();
+        renderCanvas();renderWallList();
+      }
+    }
+    return;
+  }
+
+  if(wallTool==='delete'){
+    const oHit=findOpeningAtPoint2(rx,ry);
+    if(oHit){
+      const w=walls2.find(w=>w.id===oHit.wallId);
+      if(w){pushUndo();w.openings=w.openings.filter(o=>o.id!==oHit.openingId);}
+      renderCanvas();renderWallList();updateStats();return;
+    }
+    const wHit=findWallAtPoint(rx,ry);
+    if(wHit!==null){
+      pushUndo();walls2=walls2.filter(w=>w.id!==wHit);
+      if(selectedWallId===wHit){selectedWallId=null;document.getElementById('opening-add-card').style.display='none';}
+      renderCanvas();renderWallList();updateStats();
+    }
+  }
+},true);
+
+canvas.addEventListener('mousemove',function(e){
+  const{mx,my}=getPos(e);
+  const rx=mx/canvas.width,ry=my/canvas.height;
+
+  // Step 3 cursor hint（即使 idle 也要更新游標）
+  if(currentStep===3&&furnTool==='select'&&!furnDragging&&!furnResizing){
+    const rh=getFurnResizeHandle(rx,ry);
+    if(rh){
+      canvas.style.cursor=rh.handle==='rotate'?'crosshair':'nwse-resize';
+    } else if(getFurnAtPoint(rx,ry)){
+      canvas.style.cursor='move';
+    } else {
+      canvas.style.cursor='default';
+    }
+    return;
+  }
+  if(currentStep!==2&&!furnDragging&&!furnResizing) return;
+
+  // cursor hint
+  if(wallTool==='select'){
+    const nearAnchor=findAnchorAtPoint(rx,ry);
+    canvas.style.cursor=nearAnchor?'move':draggingOpening?'grabbing':'default';
+  }
+  if(wallTool==='draw'&&wallDrawPoints.length>0){
+    let cur={x:rx,y:ry};
+    if(wallShiftLock&&wallDrawPoints.length>0){
+      const prev=wallDrawPoints[wallDrawPoints.length-1];
+      cur=wallShiftSnapFn(prev,cur);
+    }
+    wallDrawCurrent=cur;renderCanvas();return;
+  }
+
+  if(resizingOpening){
+    const wall=walls2.find(w=>w.id===resizingOpening.wallId);
+    const o=wall?.openings.find(op=>op.id===resizingOpening.openingId);
+    if(!wall||!o) return;
+    const dx=wall.x2-wall.x1,dy=wall.y2-wall.y1,len=Math.sqrt(dx*dx+dy*dy);
+    const W=canvas.width,H=canvas.height;
+    const pxPerM=W/realWidthM;
+    const t=clamp01(((rx-wall.x1)*dx+(ry-wall.y1)*dy)/(len*len||1));
+    const cx=wall.x1+dx*t,cy=wall.y1+dy*t; // 暫忽略，直接用鼠標算距離
+    // 算出目前開口中心
+    const wPx=Math.min((o.widthCm||90)/100*pxPerM,(Math.sqrt(dx*dx+dy*dy)*W)*0.9);
+    const ocx=wall.x1*W+dx*W*o.t,ocy=wall.y1*H+dy*H*o.t;
+    // 鼠標到開口中心的距離 × 2 = 新寬度
+    const distPx=Math.hypot(rx*W-ocx,ry*H-ocy)*2;
+    const newW=Math.max(30,Math.min(300,distPx/pxPerM*100));
+    o.widthCm=Math.round(newW);
+    renderCanvas();renderWallList();return;
+  }
+
+  if(draggingAnchor){
+    const wall=walls2.find(w=>w.id===draggingAnchor.wallId);
+    if(!wall){draggingAnchor=null;return;}
+    // Shift 鎖定水平/垂直
+    let nx=rx,ny=ry;
+    if(wallShiftLock){
+      const fixed=draggingAnchor.endpoint==='start'?{x:wall.x2,y:wall.y2}:{x:wall.x1,y:wall.y1};
+      const ddx=Math.abs(rx-fixed.x),ddy=Math.abs(ry-fixed.y);
+      if(ddx>ddy){ny=fixed.y;}else{nx=fixed.x;}
+    }
+    // 吸附到已有端點
+    const snap=snapPoint(nx,ny,wall.id);
+    const newX=snap.x, newY=snap.y;
+    // 找出所有與此端點相連的其他牆體，一起移動
+    const oldX=draggingAnchor.endpoint==='start'?wall.x1:wall.x2;
+    const oldY=draggingAnchor.endpoint==='start'?wall.y1:wall.y2;
+    walls2.forEach(w=>{
+      if(w.id===wall.id) return;
+      // 若其他牆體的某個端點與被拖動端點重合 → 跟著移動
+      const EPS=2/canvas.width/viewScale;
+      if(Math.hypot(w.x1-oldX,w.y1-oldY)<EPS){w.x1=newX;w.y1=newY;}
+      if(Math.hypot(w.x2-oldX,w.y2-oldY)<EPS){w.x2=newX;w.y2=newY;}
+    });
+    if(draggingAnchor.endpoint==='start'){wall.x1=newX;wall.y1=newY;}
+    else{wall.x2=newX;wall.y2=newY;}
+    renderCanvas();
+    return;
+  }
+  // Step 3: 拖移傢俱
+  if(furnDragging){
+    const {roomName,furnId,startRx,startRy,origBbox}=furnDragging;
+    const f=(furnitureData[roomName]||[]).find(f=>f.id===furnId);
+    if(f&&f.bbox){
+      const dx=rx-startRx, dy=ry-startRy;
+      f.bbox={...origBbox,x:Math.max(0,origBbox.x+dx),y:Math.max(0,origBbox.y+dy)};
+      renderCanvas();
+    }
+    return;
+  }
+  // Step 3: resize / rotate 傢俱
+  if(furnResizing){
+    const {roomName,furnId,handle,origBbox,startX,startY,origRot}=furnResizing;
+    const f=(furnitureData[roomName]||[]).find(f=>f.id===furnId);
+    if(f&&f.bbox){
+      if(handle==='rotate'){
+        // 像素空間計算角度，避免非正方形 canvas 的畸變
+        const cxPx=(f.bbox.x+f.bbox.w/2)*canvas.width;
+        const cyPx=(f.bbox.y+f.bbox.h/2)*canvas.height;
+        const mxPx=rx*canvas.width, myPx=ry*canvas.height;
+        let angle=Math.atan2(myPx-cyPx,mxPx-cxPx)*180/Math.PI+90;
+        if(shiftDown){
+          angle=Math.round(angle/45)*45;
+        }
+        f.rotation=((Math.round(angle)+360)%360);
+        updateFurnEditPanel(f);
+      } else {
+        // 旋轉感知縮放：固定對角點，滑鼠投影到局部座標軸計算新尺寸
+        const mxPx=rx*canvas.width, myPx=ry*canvas.height;
+        const {x,y,w,h}=origBbox;
+        const rad=(f.rotation||0)*Math.PI/180;
+        const cos=Math.cos(rad), sin=Math.sin(rad);
+        const cxPx=(x+w/2)*canvas.width, cyPx=(y+h/2)*canvas.height;
+        const hw=w*canvas.width/2, hh=h*canvas.height/2;
+        // 對角點（anchor）在局部空間的偏移量
+        const anchorMap={tl:[hw,hh],tr:[-hw,hh],bl:[hw,-hh],br:[-hw,-hh]};
+        const [aLx,aLy]=anchorMap[handle]||[hw,hh];
+        // anchor 世界座標
+        const ax=cxPx+aLx*cos-aLy*sin, ay=cyPx+aLx*sin+aLy*cos;
+        // 新中心 = anchor 與滑鼠的中點
+        const newCxPx=(ax+mxPx)/2, newCyPx=(ay+myPx)/2;
+        // 向量從 anchor 到滑鼠，投影到局部 x/y 軸
+        const vecX=mxPx-ax, vecY=myPx-ay;
+        const localDx=vecX*cos+vecY*sin;
+        const localDy=-vecX*sin+vecY*cos;
+        const newHW=Math.abs(localDx)/2, newHH=Math.abs(localDy)/2;
+        if(newHW>5&&newHH>5){
+          const nw=newHW*2/canvas.width, nh=newHH*2/canvas.height;
+          const nx=newCxPx/canvas.width-nw/2, ny=newCyPx/canvas.height-nh/2;
+          f.bbox={x:Math.max(0,nx),y:Math.max(0,ny),w:nw,h:nh};
+        }
+      }
+      renderCanvas();
+    }
+    return;
+  }
+
+  if(draggingOpening){
+    const wall=walls2.find(w=>w.id===draggingOpening.wallId);
+    if(!wall) return;
+    const dx=wall.x2-wall.x1,dy=wall.y2-wall.y1;
+    const len2=(dx*dx+dy*dy||1);
+    const len=Math.sqrt(len2);
+    const o=wall.openings.find(op=>op.id===draggingOpening.openingId);
+    if(!o) return;
+    let t=((rx-wall.x1)*dx+(ry-wall.y1)*dy)/len2;
+    // 限制門窗不超出牆體兩端（考慮門窗寬度）
+    const pxPerM=canvas.width/realWidthM;
+    const halfT=((o.widthCm||90)/100*pxPerM)/(len*canvas.width)/2;
+    t=Math.max(halfT, Math.min(1-halfT, t));
+    o.t=t;
+    renderCanvas();
+  }
+},true);
+
+canvas.addEventListener('mouseup',function(e){
+  if(currentStep!==2) return;
+  if(draggingAnchor||draggingOpening||resizingOpening) pushUndo();
+  // 縮放門窗後同步浮動選單數值
+  if(resizingOpening&&floatingMenuOpeningId!==null){
+    const wall=walls2.find(w=>w.id===floatingMenuWallId);
+    const o=wall?.openings.find(op=>op.id===floatingMenuOpeningId);
+    if(o){
+      document.getElementById('fmenu-width-slider').value=o.widthCm;
+      document.getElementById('fmenu-width-num').value=o.widthCm;
+    }
+  }
+  draggingAnchor=null;draggingOpening=null;resizingOpening=null;
+},true);
+
+// ── 找縮放把手 ──────────────────────────────
+function findResizeHandle(rx,ry){
+  if(!selectedOpeningId||!selectedWallId) return null;
+  const wall=walls2.find(w=>w.id===selectedWallId);
+  const o=wall?.openings.find(op=>op.id===selectedOpeningId);
+  if(!wall||!o) return null;
+  const W=canvas.width,H=canvas.height,pxPerM=W/realWidthM;
+  const dx=wall.x2-wall.x1,dy=wall.y2-wall.y1,len=Math.sqrt(dx*dx+dy*dy);
+  const ux=dx/len,uy=dy/len,nx=-uy,ny=ux;
+  const wPx=Math.min((o.widthCm||90)/100*pxPerM,len*W*0.9);
+  const cx=wall.x1*W+dx*W*o.t,cy=wall.y1*H+dy*H*o.t;
+  const handleOff=Math.max(8,12/viewScale);
+  const lx=(cx-ux*wPx/2+nx*handleOff)/W,ly=(cy-uy*wPx/2+ny*handleOff)/H;
+  const r2x=(cx+ux*wPx/2+nx*handleOff)/W,r2y=(cy+uy*wPx/2+ny*handleOff)/H;
+  const tol=10/W;
+  if(Math.hypot(rx-lx,ry-ly)<tol) return{wallId:selectedWallId,openingId:selectedOpeningId,handle:'left'};
+  if(Math.hypot(rx-r2x,ry-r2y)<tol) return{wallId:selectedWallId,openingId:selectedOpeningId,handle:'right'};
+  return null;
+}
+
+// ── 點擊判斷 ──────────────────────────────
+function distPointToSegment(rx,ry,wall){
+  const dx=wall.x2-wall.x1,dy=wall.y2-wall.y1,len2=(dx*dx+dy*dy||1);
+  const t=clamp01(((rx-wall.x1)*dx+(ry-wall.y1)*dy)/len2);
+  return Math.hypot(rx-(wall.x1+t*dx),ry-(wall.y1+t*dy));
+}
+
+function findAnchorAtPoint(rx,ry){
+  const tol=(14/viewScale)/canvas.width; // 端點命中容忍範圍（縮放補償）
+  // 優先找選取中的牆體
+  const ordered=[...walls2].sort((a,b)=>(b.id===selectedWallId?1:0)-(a.id===selectedWallId?1:0));
+  for(const wall of ordered){
+    if(Math.hypot(rx-wall.x1,ry-wall.y1)<tol) return{wallId:wall.id,endpoint:'start'};
+    if(Math.hypot(rx-wall.x2,ry-wall.y2)<tol) return{wallId:wall.id,endpoint:'end'};
+  }
+  return null;
+}
+
+function findWallAtPoint(rx,ry){
+  // 縮放越大 → tol 越小（px 不變但相對座標縮小）
+  const tol=(10/viewScale)/canvas.width;
+  for(const wall of [...walls2].reverse()){
+    if(distPointToSegment(rx,ry,wall)<tol) return wall.id;
+  }
+  return null;
+}
+
+function findOpeningAtPoint2(rx,ry){
+  const tol=(12/viewScale)/canvas.width;
+  for(const wall of walls2){
+    const dx=wall.x2-wall.x1,dy=wall.y2-wall.y1;
+    for(const o of wall.openings){
+      const t=clamp01(o.t??0.5);
+      const cx=wall.x1+dx*t,cy=wall.y1+dy*t;
+      if(Math.hypot(rx-cx,ry-cy)<tol) return{wallId:wall.id,openingId:o.id};
+    }
+  }
+  return null;
+}
+
+// ── 浮動門窗選單 ──────────────────────────────
+let floatingMenuWallId=null;
+let floatingMenuOpeningId=null;
+
+// 拖移標題列
+(function(){
+  let isDragging=false,dragStartX=0,dragStartY=0,menuStartL=0,menuStartT=0;
+  document.addEventListener('mousedown',e=>{
+    const handle=document.getElementById('fmenu-drag-handle');
+    if(!handle||!handle.contains(e.target)) return;
+    if(e.target.tagName==='BUTTON') return; // 不攔截關閉按鈕
+    isDragging=true;
+    const menu=document.getElementById('floating-opening-menu');
+    dragStartX=e.clientX; dragStartY=e.clientY;
+    menuStartL=parseInt(menu.style.left)||0;
+    menuStartT=parseInt(menu.style.top)||0;
+    handle.style.cursor='grabbing';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!isDragging) return;
+    const menu=document.getElementById('floating-opening-menu');
+    menu.style.left=(menuStartL+e.clientX-dragStartX)+'px';
+    menu.style.top=(menuStartT+e.clientY-dragStartY)+'px';
+  });
+  document.addEventListener('mouseup',()=>{
+    if(isDragging){isDragging=false;const h=document.getElementById('fmenu-drag-handle');if(h)h.style.cursor='grab';}
+  });
+})();
+
+function updateOpeningWidthFromSlider(val){
+  val=Math.max(30,Math.min(300,+val));
+  document.getElementById('fmenu-width-slider').value=val;
+  document.getElementById('fmenu-width-num').value=val;
+  if(floatingMenuWallId===null) return;
+  const wall=walls2.find(w=>w.id===floatingMenuWallId);
+  if(!wall) return;
+  if(floatingMenuOpeningId!==null){
+    const o=wall.openings.find(op=>op.id===floatingMenuOpeningId);
+    if(o){o.widthCm=val;renderCanvas();}
+  }
+}
+
+function updateDoorIconsInMenu(o){
+  const flipBtn=document.getElementById('fmenu-flip-btn');
+  const swingBtn=document.getElementById('fmenu-swing-btn');
+  if(!flipBtn||!swingBtn||!o) return;
+  // 翻轉圖示：顯示目前狀態
+  // flipDir false=右開（預設，支點在右）true=左開（支點在左）
+  flipBtn.textContent=o.flipDir?'左開':'右開';
+  flipBtn.style.background=o.flipDir?'#EBF4FF':'';
+  flipBtn.style.borderColor=o.flipDir?'#185FA5':'';
+  flipBtn.style.color=o.flipDir?'#185FA5':'';
+  // 換邊圖示
+  swingBtn.textContent=(o.swingSide??1)<0?'↑ 已換邊':'↕ 換邊';
+  swingBtn.style.background=(o.swingSide??1)<0?'#EBF4FF':'';
+  swingBtn.style.borderColor=(o.swingSide??1)<0?'#185FA5':'';
+}
+
+function showFloatingMenu(screenX, screenY, wallId, openingId=null){
+  floatingMenuWallId=wallId;
+  floatingMenuOpeningId=openingId;
+  const menu=document.getElementById('floating-opening-menu');
+  const title=document.getElementById('fmenu-title');
+  const doorCtrl=document.getElementById('fmenu-door-controls');
+
+  // 更新標題和門方向控制
+  const valRow=document.getElementById('fmenu-value-row');
+  // 寬度輸入列永遠顯示
+  valRow.style.display='block';
+  if(openingId!==null){
+    const wall=walls2.find(w=>w.id===wallId);
+    const o=wall?.openings.find(op=>op.id===openingId);
+    title.textContent=o?`修改：${o.style}`:'編輯門窗';
+    menu.querySelectorAll('.fmenu-btn').forEach(b=>b.classList.remove('active-opening'));
+    if(o){
+      menu.querySelectorAll('.fmenu-btn').forEach(b=>{
+        if(b.dataset.style===o.style) b.classList.add('active-opening');
+      });
+      document.getElementById('fmenu-width-slider').value=o.widthCm||90;
+      document.getElementById('fmenu-width-num').value=o.widthCm||90;
+      updateDoorIconsInMenu(o);
+    }
+    doorCtrl.style.display=o?.type==='door'?'block':'none';
+  } else {
+    title.textContent='新增門窗';
+    menu.querySelectorAll('.fmenu-btn').forEach(b=>b.classList.remove('active-opening'));
+    doorCtrl.style.display='none';
+    // 新增時保留上次輸入的寬度，不重設
+  }
+
+  // 定位選單（避免超出視窗）
+  menu.style.display='block';
+  const mw=menu.offsetWidth||210, mh=menu.offsetHeight||280;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  let left=screenX+12, top=screenY-20;
+  if(left+mw>vw-10) left=screenX-mw-12;
+  if(top+mh>vh-10) top=vh-mh-10;
+  if(top<10) top=10;
+  menu.style.left=left+'px';
+  menu.style.top=top+'px';
+}
+
+function closeFloatingMenu(){
+  document.getElementById('floating-opening-menu').style.display='none';
+  floatingMenuWallId=null;
+  floatingMenuOpeningId=null;
+  // 清除選取的開口
+  if(selectedOpeningId) {selectedOpeningId=null;renderCanvas();renderWallList();}
+}
+
+function applyOpeningFromMenu(type, style, widthCm){
+  if(!floatingMenuWallId) return;
+  const wall=walls2.find(w=>w.id===floatingMenuWallId);
+  if(!wall) return;
+  // 優先使用使用者在輸入框輸入的寬度
+  const inputVal=parseFloat(document.getElementById('fmenu-width-num')?.value);
+  const finalW=(!isNaN(inputVal)&&inputVal>=30)?inputVal:(parseFloat(widthCm)||90);
+  pushUndo();
+
+  if(floatingMenuOpeningId!==null){
+    // 編輯模式：修改現有開口的樣式
+    const o=wall.openings.find(op=>op.id===floatingMenuOpeningId);
+    if(o){
+      o.type=type; o.style=style; o.widthCm=finalW;
+      if(type==='window'){delete o.flipDir;delete o.swingSide;}
+      else{o.flipDir=o.flipDir??false;o.swingSide=o.swingSide??1;}
+    }
+    document.getElementById('fmenu-title').textContent=`修改：${style}`;
+    document.getElementById('floating-opening-menu').querySelectorAll('.fmenu-btn').forEach(b=>b.classList.remove('active-opening'));
+    document.getElementById('floating-opening-menu').querySelectorAll('.fmenu-btn').forEach(b=>{
+      if(b.dataset.style===style) b.classList.add('active-opening');
+    });
+    document.getElementById('fmenu-door-controls').style.display=type==='door'?'block':'none';
+  } else {
+    // 新增模式
+    const newId=++openingIdCnt;
+    wall.openings.push({id:newId,type,style,widthCm:finalW,t:0.5,
+      flipDir:false,swingSide:1});
+    floatingMenuOpeningId=newId;
+    selectedOpeningId=newId;
+    document.getElementById('fmenu-title').textContent=`修改：${style}`;
+    document.getElementById('fmenu-door-controls').style.display=type==='door'?'block':'none';
+    document.getElementById('fmenu-width-slider').value=finalW;
+    document.getElementById('fmenu-width-num').value=finalW;
+    const newO=wall.openings.find(op=>op.id===newId);
+    if(newO) updateDoorIconsInMenu(newO);
+  }
+  renderCanvas();renderWallList();updateStats();
+}
+
+function flipSelectedOpening(action){
+  if(!floatingMenuWallId||floatingMenuOpeningId===null) return;
+  const wall=walls2.find(w=>w.id===floatingMenuWallId);
+  const o=wall?.openings.find(op=>op.id===floatingMenuOpeningId);
+  if(!o) return;
+  pushUndo();
+  if(action==='dir') o.flipDir=!o.flipDir;
+  else o.swingSide=(o.swingSide??1)*-1;
+  updateDoorIconsInMenu(o);
+  renderCanvas();renderWallList();
+}
+
+// 點擊空白處關閉選單
+document.addEventListener('mousedown',e=>{
+  const menu=document.getElementById('floating-opening-menu');
+  if(menu.style.display==='block'&&!menu.contains(e.target)&&e.target!==canvas){
+    closeFloatingMenu();
+  }
+},true);
+
+function showOpeningAddCard(wallId){
+  const wall=walls2.find(w=>w.id===wallId);if(!wall) return;
+  document.getElementById('opening-add-card').style.display='block';
+  const len=Math.round(Math.sqrt(Math.pow((wall.x2-wall.x1)*(img?.naturalWidth||800),2)+Math.pow((wall.y2-wall.y1)*(img?.naturalHeight||600),2)));
+  document.getElementById('selected-wall-name').textContent='牆體 #'+wallId+' ≈ '+len+'px';
+}
+
+// ── 牆體列表 ──────────────────────────────
+function renderWallList(){
+  const list=document.getElementById('wall-list');
+  if(!walls2.length){list.innerHTML='<div style="font-size:11px;color:#bbb;text-align:center;padding:8px">尚無牆體</div>';return;}
+  list.innerHTML='';
+  walls2.forEach(wall=>{
+    const isSel=wall.id===selectedWallId;
+    const div=document.createElement('div');
+    div.className='wall-row'+(isSel?' selected-wall':'');
+    const wins=wall.openings.filter(o=>o.type==='window').length;
+    const doors=wall.openings.filter(o=>o.type==='door').length;
+    div.innerHTML=`<div class="wall-color" style="background:${isSel?'#185FA5':'#555'}"></div>
+      <div class="wall-info"><div class="wall-name-s">牆體 #${wall.id}</div><div class="wall-meta-s">${wall.openings.length?'🪟'+wins+' 🚪'+doors:'無開口'}</div></div>
+      <button class="btn-icon" data-wid="${wall.id}" style="color:#EF4444">✕</button>`;
+    div.querySelector('button').addEventListener('click',ev=>{
+      ev.stopPropagation();
+      const wid=+ev.target.dataset.wid;
+      walls2=walls2.filter(w=>w.id!==wid);
+      if(selectedWallId===wid){selectedWallId=null;document.getElementById('opening-add-card').style.display='none';}
+      renderCanvas();renderWallList();updateStats();
+    });
+    div.addEventListener('click',ev=>{
+      if(ev.target.tagName==='BUTTON') return;
+      selectedWallId=wall.id;selectedOpeningId=null;
+      showOpeningAddCard(wall.id);renderCanvas();renderWallList();setWallTool('select');
+    });
+    if(isSel) wall.openings.forEach(o=>{
+      const od=document.createElement('div');
+      od.className='opening-on-wall'+(o.id===selectedOpeningId?' selected-opening':'');
+      od.innerHTML=`<span>${o.type==='window'?'🪟':'🚪'}</span><span style="flex:1">${o.style} <b>${o.widthCm}cm</b></span><button class="btn-icon" style="color:#EF4444;font-size:11px" data-oid="${o.id}" data-wid="${wall.id}">✕</button>`;
+      od.querySelectorAll('[data-act]').forEach(btn=>{
+        btn.addEventListener('click',ev=>{
+          ev.stopPropagation();
+          const act=ev.target.dataset.act;
+          const w2=walls2.find(w=>w.id===+ev.target.dataset.wid);
+          if(!w2) return;
+          const op=w2.openings.find(op=>op.id===+ev.target.dataset.oid);
+          if(!op) return;
+          if(act==='flip'){pushUndo();op.flipDir=!op.flipDir;}
+          else if(act==='swing'){pushUndo();op.swingSide=(op.swingSide??1)*-1;}
+          else if(act==='del'){pushUndo();w2.openings=w2.openings.filter(o2=>o2.id!==+ev.target.dataset.oid);}
+          renderCanvas();renderWallList();updateStats();
+        });
+      });
+      od.addEventListener('click',ev=>{if(ev.target.tagName==='BUTTON') return;selectedOpeningId=o.id;renderCanvas();renderWallList();});
+      div.appendChild(od);
+    });
+    list.appendChild(div);
+  });
+}
+
+// ── Stats / Save 整合 ──────────────────────
+const _origUpdateStats=updateStats;
+updateStats=function(){
+  _origUpdateStats();
+  document.getElementById('stat-openings').textContent=walls2.reduce((s,w)=>s+w.openings.length,0);
+};
+
+const _origSave=saveAnnotation;
+saveAnnotation=async function(){
+  if(!imgB64){showError('請先上傳圖片');return;}
+  const saveBtn=document.getElementById('save-db-btn');
+  saveBtn.disabled=true;saveBtn.textContent='儲存中...';
+  try{
+    const{data:imgRecord,error:imgErr}=await sb.from('images').insert({
+      file_name:'annotation_'+Date.now()+'.jpg',media_type:imgMediaType,
+      width:img?.naturalWidth||0,height:img?.naturalHeight||0,source:'annotation_platform'
+    }).select().single();
+    if(imgErr) throw imgErr;
+    const totalO=walls2.reduce((s,w)=>s+w.openings.length,0);
+    const totalF=Object.values(furnitureData).reduce((s,f)=>s+f.length,0);
+    const{error:annErr}=await sb.from('annotations').insert({
+      image_id:imgRecord.id,image_b64:imgB64,
+      rooms:rooms,walls:walls2,furniture:furnitureData,
+      summary:{room_count:rooms.length,wall_count:walls2.length,opening_count:totalO,furniture_count:totalF},
+      source:'annotation_platform',quality:'verified'
+    });
+    if(annErr) throw annErr;
+    showSuccess('✅ 已儲存到資料庫！（'+imgRecord.id.slice(0,8)+'...）');
+    loadStats();
+  }catch(e){showError('儲存失敗：'+e.message);}
+  finally{saveBtn.disabled=false;saveBtn.textContent='💾 儲存標注到資料庫';}
+};
+
+const _origGoStep=goStep;
+goStep=function(n){
+  _origGoStep(n);
+  if(n===2){setWallTool('draw');renderWallList();}
+};
+
+// ── AI 識別全部牆面 ──────────────────────────
+async function runAllWallsAI(){
+  if(!rooms.length){showError('請先在 Step 1 標注空間');return;}
+  const progress=document.getElementById('step2-progress');
+  progress.style.display='block';
+  let done=0;const total=rooms.length*4;
+  for(const room of rooms){
+    const b=getRoomBounds(room);if(!b) continue;
+    const{minX,minY,maxX,maxY}=b;
+    const wallLines={north:{x1:minX,y1:minY,x2:maxX,y2:minY},south:{x1:minX,y1:maxY,x2:maxX,y2:maxY},west:{x1:minX,y1:minY,x2:minX,y2:maxY},east:{x1:maxX,y1:minY,x2:maxX,y2:maxY}};
+    for(const[wall,line] of Object.entries(wallLines)){
+      done++;
+      progress.textContent=`識別中 ${done}/${total}：${room.name} ${{north:'北',south:'南',east:'東',west:'西'}[wall]}牆...`;
+      try{
+        const s1=getWallCrop(room,wall,false),s2=getWallCrop(room,wall,true);
+        if(!s1) continue;
+        const wLen=wall==='north'||wall==='south'?Math.round((maxX-minX)*(img?.naturalWidth||800)):Math.round((maxY-minY)*(img?.naturalHeight||600));
+        const result=await claudeCall([{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:s1}},
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:s2}},
+          {type:'text',text:`Wall strip of "${room.name}" ${wall} wall (~${wLen}px). Find openings. position_pct=center 0-100 from left. width_cm=opening width in cm. Output ONLY JSON: {"openings":[{"type":"window","style":"雙扇推拉窗","position_pct":30,"width_cm":120}]} or {"openings":[]}`}
+        ]}],500);
+        let ew=walls2.find(w=>Math.abs(w.x1-line.x1)<0.01&&Math.abs(w.y1-line.y1)<0.01&&Math.abs(w.x2-line.x2)<0.01&&Math.abs(w.y2-line.y2)<0.01);
+        if(!ew){ew={id:++wallIdCnt,...line,openings:[]};walls2.push(ew);}
+        (result.openings||[]).forEach(o=>{
+          ew.openings.push({id:++openingIdCnt,type:o.type,style:o.style,widthCm:o.width_cm||90,t:(o.position_pct||50)/100});
+        });
+        await new Promise(r=>setTimeout(r,200));
+      }catch(e){console.warn(room.name,wall,'失敗',e);}
+    }
+  }
+  pushUndo();
+  progress.textContent=`✅ 完成！${walls2.reduce((s,w)=>s+w.openings.length,0)} 個開口`;
+  renderCanvas();renderWallList();updateStats();
+}
+</script>
+</body>
+</html>
