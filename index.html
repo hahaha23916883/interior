@@ -589,21 +589,29 @@ async function saveAnnotation(){
 }
 
 async function loadStats(){
+  const readyEl=document.getElementById('db-ready-hint');
+  readyEl.textContent='載入中...';readyEl.style.color='#888';
   try{
-    const[{count:annCount},{count:sesCount}]=await Promise.all([
+    const[annRes,sesRes]=await Promise.all([
       sb.from('annotations').select('*',{count:'exact',head:true}),
       sb.from('user_sessions').select('*',{count:'exact',head:true})
     ]);
-    const total=(annCount||0)+(sesCount||0);
-    document.getElementById('db-ann-count').textContent=annCount||0;
-    document.getElementById('db-ses-count').textContent=sesCount||0;
+    if(annRes.error) throw annRes.error;
+    const annCount=annRes.count||0;
+    const sesCount=sesRes.error?0:(sesRes.count||0);
+    const total=annCount+sesCount;
+    document.getElementById('db-ann-count').textContent=annCount;
+    document.getElementById('db-ses-count').textContent=sesCount;
     document.getElementById('db-total-count').textContent=total;
-    // Fine-tune 建議
-    const readyEl=document.getElementById('db-ready-hint');
-    if(total>=50) readyEl.textContent='✅ 可以開始 Fine-tune！';
-    else readyEl.textContent=`還需要 ${50-total} 筆達到 Fine-tune 門檻（50筆）`;
-    readyEl.style.color=total>=50?'#10B981':'#888';
-  }catch(e){console.warn('載入統計失敗',e);}
+    if(total>=50){readyEl.textContent='✅ 可以開始 Fine-tune！';readyEl.style.color='#10B981';}
+    else{readyEl.textContent=`還需要 ${50-total} 筆達到 Fine-tune 門檻（50筆）`;readyEl.style.color='#888';}
+  }catch(e){
+    console.warn('載入統計失敗',e);
+    document.getElementById('db-ann-count').textContent='?';
+    document.getElementById('db-ses-count').textContent='?';
+    document.getElementById('db-total-count').textContent='?';
+    readyEl.textContent='⚠️ 無法連線，請重新整理';readyEl.style.color='#EF4444';
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -2637,7 +2645,7 @@ function renderStep3RoomList(){
 }
 
 function renderFurniturePalette(){
-  const grid=document.getElementById('furniture-palette');grid.innerHTML='';
+  const grid=document.getElementById('furniture-palette');if(!grid)return;grid.innerHTML='';
   FURNITURE_LIST.forEach(f=>{
     const btn=document.createElement('button');btn.className='furn-btn';
     btn.innerHTML=`<div style="font-size:18px">${f.icon}</div><div>${f.name}</div>`;
