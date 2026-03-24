@@ -908,17 +908,16 @@ function renderCanvas(){
   // Draw image at its natural size (transform handles scaling)
   ctx.drawImage(img,0,0,IW,IH);
 
-  // Draw rooms (filled polygons)
+  // Draw rooms (filled polygons) — ctx space = image pixels (IW×IH)
   rooms.forEach((room,i)=>{
     if(!room.polygon||room.polygon.length<3)return;
     ctx.beginPath();
     room.polygon.forEach((p,j)=>{
-      const px=p.x*W,py=p.y*H;
+      const px=p.x*IW,py=p.y*IH;
       j===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
     });
     ctx.closePath();
     const isSelected=i===selectedRoomIdx;
-    // fill with room color, semi-transparent
     const hex=room.color;
     ctx.fillStyle=hex+'33';
     ctx.fill();
@@ -927,8 +926,8 @@ function renderCanvas(){
     ctx.stroke();
 
     // Room label
-    const cx=room.polygon.reduce((s,p)=>s+p.x,0)/room.polygon.length*W;
-    const cy=room.polygon.reduce((s,p)=>s+p.y,0)/room.polygon.length*H;
+    const cx=room.polygon.reduce((s,p)=>s+p.x,0)/room.polygon.length*IW;
+    const cy=room.polygon.reduce((s,p)=>s+p.y,0)/room.polygon.length*IH;
     ctx.fillStyle='rgba(0,0,0,0.7)';
     ctx.font=`bold ${13/viewScale}px sans-serif`;
     ctx.textAlign='center';
@@ -936,10 +935,10 @@ function renderCanvas(){
     ctx.fillText(room.name,cx,cy);
   });
 
-  // Draw segments
+  // Draw segments — use IW/IH for normalized→image-pixel conversion
   segments.forEach(seg=>{
-    const sx=seg.start.x*W,sy=seg.start.y*H;
-    const ex=seg.end.x*W,ey=seg.end.y*H;
+    const sx=seg.start.x*IW,sy=seg.start.y*IH;
+    const ex=seg.end.x*IW,ey=seg.end.y*IH;
     const isSelected=seg.id===selectedSegId;
     ctx.beginPath();
     ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);
@@ -961,7 +960,7 @@ function renderCanvas(){
       const angle=Math.atan2(ey-sy,ex-sx);
       seg.openings.forEach(op=>{
         const t=op.position/100;
-        const wFrac=(op.width/(img.naturalWidth))*W; // rough width in canvas px
+        const wFrac=op.width; // op.width in cm ≈ image pixels (1:1 rough estimate)
         const opX=sx+Math.cos(angle)*t*len;
         const opY=sy+Math.sin(angle)*t*len;
         const hw=Math.min(wFrac,len*0.4)/2;
@@ -971,7 +970,6 @@ function renderCanvas(){
         ctx.strokeStyle=op.type==='door'?'#F59E0B':'#3B82F6';
         ctx.lineWidth=4/viewScale;
         ctx.stroke();
-        // small label
         ctx.fillStyle=op.type==='door'?'#F59E0B':'#3B82F6';
         ctx.font=`${9/viewScale}px sans-serif`;
         ctx.textAlign='center';
@@ -983,7 +981,7 @@ function renderCanvas(){
     // Endpoint dots
     [seg.start,seg.end].forEach(p=>{
       ctx.beginPath();
-      ctx.arc(p.x*W,p.y*H,isSelected?4/viewScale:3/viewScale,0,Math.PI*2);
+      ctx.arc(p.x*IW,p.y*IH,isSelected?4/viewScale:3/viewScale,0,Math.PI*2);
       ctx.fillStyle=isSelected?'#185FA5':'#555';
       ctx.fill();
     });
@@ -992,16 +990,15 @@ function renderCanvas(){
   // Draw wall-in-progress
   if((currentTool==='wall'||currentTool==='virtual')&&drawStart&&drawCurrent){
     ctx.beginPath();
-    ctx.moveTo(drawStart.x*W,drawStart.y*H);
-    ctx.lineTo(drawCurrent.x*W,drawCurrent.y*H);
+    ctx.moveTo(drawStart.x*IW,drawStart.y*IH);
+    ctx.lineTo(drawCurrent.x*IW,drawCurrent.y*IH);
     if(currentTool==='wall'){
       ctx.strokeStyle='#185FA5';ctx.lineWidth=2/viewScale;ctx.setLineDash([]);
     } else {
       ctx.strokeStyle='#8B5CF6';ctx.lineWidth=1.5/viewScale;ctx.setLineDash([8/viewScale,4/viewScale]);
     }
     ctx.stroke();ctx.setLineDash([]);
-    // start dot
-    ctx.beginPath();ctx.arc(drawStart.x*W,drawStart.y*H,4/viewScale,0,Math.PI*2);
+    ctx.beginPath();ctx.arc(drawStart.x*IW,drawStart.y*IH,4/viewScale,0,Math.PI*2);
     ctx.fillStyle='#185FA5';ctx.fill();
   }
 
@@ -1009,13 +1006,13 @@ function renderCanvas(){
   if(currentTool==='room-poly'&&polyPoints.length>0){
     ctx.beginPath();
     polyPoints.forEach((p,j)=>{
-      j===0?ctx.moveTo(p.x*W,p.y*H):ctx.lineTo(p.x*W,p.y*H);
+      j===0?ctx.moveTo(p.x*IW,p.y*IH):ctx.lineTo(p.x*IW,p.y*IH);
     });
-    if(polyCurrent) ctx.lineTo(polyCurrent.x*W,polyCurrent.y*H);
+    if(polyCurrent) ctx.lineTo(polyCurrent.x*IW,polyCurrent.y*IH);
     ctx.strokeStyle='#10B981';ctx.lineWidth=2/viewScale;
     ctx.setLineDash([6/viewScale,3/viewScale]);ctx.stroke();ctx.setLineDash([]);
     polyPoints.forEach((p,j)=>{
-      ctx.beginPath();ctx.arc(p.x*W,p.y*H,3.5/viewScale,0,Math.PI*2);
+      ctx.beginPath();ctx.arc(p.x*IW,p.y*IH,3.5/viewScale,0,Math.PI*2);
       ctx.fillStyle=j===0?'#10B981':'#059669';ctx.fill();
     });
     // close snap indicator
@@ -1024,7 +1021,7 @@ function renderCanvas(){
       const screenFirst=imgToScreen(fp.x,fp.y);
       const screenCur=imgToScreen(polyCurrent.x,polyCurrent.y);
       if(Math.hypot(screenFirst.x-screenCur.x,screenFirst.y-screenCur.y)<SNAP_DIST*1.5){
-        ctx.beginPath();ctx.arc(fp.x*W,fp.y*H,8/viewScale,0,Math.PI*2);
+        ctx.beginPath();ctx.arc(fp.x*IW,fp.y*IH,8/viewScale,0,Math.PI*2);
         ctx.strokeStyle='#10B981';ctx.lineWidth=2/viewScale;ctx.stroke();
       }
     }
@@ -1033,8 +1030,8 @@ function renderCanvas(){
   // Draw furniture
   rooms.forEach((room,ri)=>{
     room.furniture.forEach((f,fi)=>{
-      const cx=f.x*W,cy=f.y*H;
-      const fw=f.width*W,fh=f.height*H;
+      const cx=f.x*IW,cy=f.y*IH;
+      const fw=f.width*IW,fh=f.height*IH;
       const isSelFurn=selectedFurnKey&&selectedFurnKey.roomIdx===ri&&selectedFurnKey.furnIdx===fi;
       ctx.save();
       ctx.translate(cx,cy);
