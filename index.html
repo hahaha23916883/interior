@@ -7,41 +7,43 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;color:#1a1a1a;min-height:100vh}
-.app{max-width:1400px;margin:0 auto;padding:1.2rem}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;color:#1a1a1a;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.app{display:flex;flex-direction:column;flex:1;min-height:0;padding:10px 12px 8px}
 
 /* Header */
-.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.header h1{font-size:17px;font-weight:600;color:#1a1a1a}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0}
+.header h1{font-size:16px;font-weight:600;color:#1a1a1a}
 .header-right{display:flex;gap:8px;align-items:center}
 
 /* Steps */
-.steps{display:flex;margin-bottom:1rem;border:1px solid #ddd;border-radius:10px;overflow:hidden;background:white}
-.step{flex:1;padding:11px 14px;display:flex;align-items:center;gap:8px;border-right:1px solid #e5e5e3;opacity:.4;cursor:default;transition:all .15s}
+.steps{display:flex;margin-bottom:8px;border:1px solid #ddd;border-radius:10px;overflow:hidden;background:white;flex-shrink:0}
+.step{flex:1;padding:9px 12px;display:flex;align-items:center;gap:8px;border-right:1px solid #e5e5e3;opacity:.4;cursor:default;transition:all .15s}
 .step:last-child{border-right:none}
 .step.active{opacity:1;background:#EBF4FF;cursor:default}
 .step.done{opacity:.85;background:#F0FDF4;cursor:pointer}
-.step-num{width:24px;height:24px;border-radius:50%;background:#e5e5e3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;color:#888}
+.step-num{width:22px;height:22px;border-radius:50%;background:#e5e5e3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;color:#888}
 .step.active .step-num{background:#185FA5;color:white}
 .step.done .step-num{background:#10B981;color:white}
 .step-title{font-size:13px;font-weight:500}
 .step-sub{font-size:10px;color:#aaa;margin-top:1px}
 
-/* Layout */
-.main{display:grid;grid-template-columns:1fr 300px;gap:1rem;align-items:start}
+/* Layout — canvas fills remaining height */
+.main{display:grid;grid-template-columns:1fr 272px;gap:10px;flex:1;min-height:0;align-items:start}
 
-/* Canvas area */
-.canvas-wrap{background:white;border:1px solid #ddd;border-radius:12px;overflow:hidden;position:relative;user-select:none;-webkit-user-select:none}
-.toolbar{display:flex;gap:5px;padding:8px 10px;background:#fafafa;border-bottom:1px solid #eee;flex-wrap:wrap;align-items:center;min-height:44px}
-.tool-btn{padding:4px 11px;border-radius:6px;border:1.5px solid #ddd;font-size:12px;font-weight:500;cursor:pointer;background:white;color:#555;transition:all .12s;white-space:nowrap}
+/* Canvas area fills all available vertical space */
+.canvas-wrap{background:white;border:1px solid #ddd;border-radius:12px;overflow:hidden;position:relative;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;height:calc(100vh - 130px)}
+.toolbar{display:flex;gap:5px;padding:7px 10px;background:#fafafa;border-bottom:1px solid #eee;flex-wrap:wrap;align-items:center;min-height:40px;flex-shrink:0}
+.tool-btn{padding:4px 10px;border-radius:6px;border:1.5px solid #ddd;font-size:12px;font-weight:500;cursor:pointer;background:white;color:#555;transition:all .12s;white-space:nowrap}
 .tool-btn:hover{border-color:#185FA5;color:#185FA5}
 .tool-btn.active{background:#185FA5;color:white;border-color:#185FA5}
 .tool-btn:disabled{opacity:.35;cursor:not-allowed}
 .tool-sep{width:1px;height:18px;background:#e5e5e3;flex-shrink:0;margin:0 2px}
 .tool-hint{font-size:11px;color:#aaa;margin-left:4px;flex:1}
-#canvas{display:block;width:100%;cursor:crosshair}
-.upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:520px;cursor:pointer;color:#bbb;border:2px dashed #ddd;border-radius:0 0 12px 12px;background:#fafafa;transition:all .2s}
-.upload-zone:hover{border-color:#185FA5;color:#185FA5;background:#EBF4FF}
+#canvas{display:block;cursor:crosshair;position:absolute;inset:0;width:100%;height:100%}
+.canvas-body{flex:1;position:relative;overflow:hidden;min-height:0}
+.upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;cursor:pointer;color:#bbb;border:none;background:#fafafa;transition:all .2s}
+.upload-zone:hover{color:#185FA5;background:#EBF4FF}
 .upload-zone p{font-size:14px;margin-top:8px}
 .upload-zone small{font-size:12px;margin-top:4px;color:#ccc}
 #file-input{display:none}
@@ -53,7 +55,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 .canvas-hint{position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,0.42);color:white;font-size:10px;padding:3px 8px;border-radius:5px;pointer-events:none;z-index:10;line-height:1.6;display:none}
 
 /* Sidebar */
-.sidebar{display:flex;flex-direction:column;gap:8px}
+.sidebar{display:flex;flex-direction:column;gap:8px;height:calc(100vh - 130px);overflow-y:auto;overflow-x:hidden}
 .card{background:white;border:1px solid #ddd;border-radius:12px;padding:12px}
 .card-title{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
 
@@ -194,6 +196,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
       <span class="tool-hint" id="hint-3">選擇右側傢俱後點擊畫布放置</span>
     </div>
 
+    <!-- Canvas body (fills remaining height) -->
+    <div class="canvas-body">
     <!-- Upload zone -->
     <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
       <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V4m0 0L8 8m4-4l4 4"/></svg>
@@ -203,7 +207,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
     <input type="file" id="file-input" accept="image/*">
 
     <!-- Canvas -->
-    <canvas id="canvas" style="display:none"></canvas>
+    <canvas id="canvas" style="display:none;width:100%;height:100%;object-fit:contain"></canvas>
 
     <!-- Zoom bar -->
     <div class="zoom-bar" id="zoom-bar" style="display:none">
@@ -214,7 +218,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
       <button onclick="resetView()" style="font-size:10px;color:#aaa">重設</button>
     </div>
     <div class="canvas-hint" id="canvas-hint">Space 拖移 · 滾輪縮放</div>
-  </div>
+    </div><!-- /canvas-body -->
+  </div><!-- /canvas-wrap -->
 
   <!-- Sidebar -->
   <div class="sidebar">
@@ -449,11 +454,12 @@ const ctx=canvas.getContext('2d');
 // Image-normalized (0-1) ↔ canvas pixel ↔ screen pixel
 
 function imgToCanvas(x,y){
-  // normalized → canvas pixel
-  return {x:x*canvas.width, y:y*canvas.height};
+  // normalized (0-1) → image pixel space (used with ctx transform)
+  return {x:x*(img?img.naturalWidth:canvas.width), y:y*(img?img.naturalHeight:canvas.height)};
 }
 function canvasToImg(cx,cy){
-  return {x:cx/canvas.width, y:cy/canvas.height};
+  // image pixel space → normalized (0-1)
+  return {x:cx/(img?img.naturalWidth:canvas.width), y:cy/(img?img.naturalHeight:canvas.height)};
 }
 function screenToCanvas(sx,sy){
   return {x:(sx-viewOffsetX)/viewScale, y:(sy-viewOffsetY)/viewScale};
@@ -498,14 +504,17 @@ function applyShiftLock(start,end){
 // ═══════════════════════════════════════════
 function resetView(){
   if(!img)return;
-  const cw=canvas.parentElement.clientWidth||800;
-  const nat=img.naturalWidth/img.naturalHeight;
-  const ch=cw/nat;
-  canvas.width=img.naturalWidth;
-  canvas.height=img.naturalHeight;
-  canvas.style.height=ch+'px';
-  viewScale=cw/img.naturalWidth;
-  viewOffsetX=0; viewOffsetY=0;
+  const body=document.querySelector('.canvas-body');
+  const cw=body?body.clientWidth:800;
+  const ch=body?body.clientHeight:600;
+  // canvas internal size = container display size (1:1 CSS pixels, no double-scaling)
+  canvas.width=cw;
+  canvas.height=ch;
+  const scaleW=cw/img.naturalWidth;
+  const scaleH=ch/img.naturalHeight;
+  viewScale=Math.min(scaleW,scaleH)*0.95; // 95% to leave a small margin
+  viewOffsetX=(cw-img.naturalWidth*viewScale)/2;
+  viewOffsetY=(ch-img.naturalHeight*viewScale)/2;
   document.getElementById('zoom-slider').value=viewScale;
   document.getElementById('zoom-label').textContent=Math.round(viewScale*100)+'%';
   renderCanvas();
@@ -536,7 +545,7 @@ function loadImage(file){
     image.onload=()=>{
       img=image;
       document.getElementById('upload-zone').style.display='none';
-      canvas.style.display='block';
+      canvas.style.display='block';canvas.style.position='absolute';canvas.style.inset='0';
       document.getElementById('zoom-bar').style.display='flex';
       document.getElementById('canvas-hint').style.display='block';
       resetView();
@@ -889,14 +898,15 @@ function placeFurn(imgX,imgY){
 function renderCanvas(){
   if(!img)return;
   const W=canvas.width,H=canvas.height;
+  const IW=img.naturalWidth,IH=img.naturalHeight;
   ctx.clearRect(0,0,W,H);
 
   ctx.save();
   ctx.translate(viewOffsetX,viewOffsetY);
   ctx.scale(viewScale,viewScale);
 
-  // Draw image
-  ctx.drawImage(img,0,0,W,H);
+  // Draw image at its natural size (transform handles scaling)
+  ctx.drawImage(img,0,0,IW,IH);
 
   // Draw rooms (filled polygons)
   rooms.forEach((room,i)=>{
@@ -1054,15 +1064,14 @@ canvas.addEventListener('mouseup',onMouseUp);
 canvas.addEventListener('dblclick',onDblClick);
 canvas.addEventListener('wheel',onWheel,{passive:false});
 
+// canvas.width == container CSS width, so no ratio correction needed
 function getImgPos(e){
   const r=canvas.getBoundingClientRect();
-  const sx=(e.clientX-r.left)*(canvas.width/r.width);
-  const sy=(e.clientY-r.top)*(canvas.height/r.height);
-  return screenToImg(sx,sy);
+  return screenToImg(e.clientX-r.left, e.clientY-r.top);
 }
 function getScreenPos(e){
   const r=canvas.getBoundingClientRect();
-  return {x:(e.clientX-r.left)*(canvas.width/r.width),y:(e.clientY-r.top)*(canvas.height/r.height)};
+  return {x:e.clientX-r.left, y:e.clientY-r.top};
 }
 
 function onMouseDown(e){
@@ -1314,7 +1323,7 @@ async function loadAnnotationForEdit(id){
       image.onload=()=>{
         img=image;
         document.getElementById('upload-zone').style.display='none';
-        canvas.style.display='block';
+        canvas.style.display='block';canvas.style.position='absolute';canvas.style.inset='0';
         document.getElementById('zoom-bar').style.display='flex';
         document.getElementById('canvas-hint').style.display='block';
         // restore data
