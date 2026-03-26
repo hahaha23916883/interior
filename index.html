@@ -140,7 +140,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 <div class="header">
   <h1>🏠 平面圖標注平台 v2</h1>
   <div class="header-right">
-    <input type="text" id="api-key" placeholder="Anthropic API Key（選填）" style="padding:5px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px;width:230px;color:#555">
     <a href="/admin.html" target="_blank" class="btn btn-secondary btn-sm">📋 管理資料</a>
   </div>
 </div>
@@ -152,14 +151,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 <div class="steps">
   <div class="step active" id="step-1" onclick="tryGoStep(1)">
     <div class="step-num">1</div>
-    <div><div class="step-title">牆體 &amp; 開口</div><div class="step-sub">畫牆、虛擬邊界、門窗</div></div>
+    <div><div class="step-title">比例尺</div><div class="step-sub">設定圖面比例</div></div>
   </div>
   <div class="step" id="step-2" onclick="tryGoStep(2)">
     <div class="step-num">2</div>
-    <div><div class="step-title">空間定義</div><div class="step-sub">圈出每個空間範圍</div></div>
+    <div><div class="step-title">牆體 &amp; 開口</div><div class="step-sub">畫牆、虛擬邊界、門窗</div></div>
   </div>
   <div class="step" id="step-3" onclick="tryGoStep(3)">
     <div class="step-num">3</div>
+    <div><div class="step-title">空間定義</div><div class="step-sub">圈出每個空間範圍</div></div>
+  </div>
+  <div class="step" id="step-4" onclick="tryGoStep(4)">
+    <div class="step-num">4</div>
     <div><div class="step-title">傢俱擺放</div><div class="step-sub">放置傢俱完成標注</div></div>
   </div>
 </div>
@@ -169,31 +172,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 
   <!-- Canvas -->
   <div class="canvas-wrap">
-    <!-- Step 1 toolbar -->
+    <!-- Step 1 toolbar (Scale) -->
     <div class="toolbar" id="toolbar-1">
-      <button class="tool-btn active" id="t1-wall" onclick="setTool('wall')">🧱 實牆</button>
-      <button class="tool-btn" id="t1-virtual" onclick="setTool('virtual')">- - 虛擬邊界</button>
-      <div class="tool-sep"></div>
-      <button class="tool-btn" id="t1-select" onclick="setTool('select1')">↖ 選取</button>
-      <button class="tool-btn" id="t1-delete" onclick="deleteSelected()">🗑 刪除</button>
-      <div class="tool-sep"></div>
-      <button class="tool-btn" id="t1-opening" onclick="openAddOpening()" disabled>＋ 加開口</button>
-      <span class="tool-hint" id="hint-1">點擊起點 → 點擊終點完成牆段；Shift 鎖定 45°</span>
+      <button class="tool-btn active" id="t1-scale" onclick="setTool('scale-line')">📏 畫比例線</button>
+      <span class="tool-hint" id="hint-1">點選圖面上兩個已知距離的端點</span>
     </div>
-    <!-- Step 2 toolbar -->
+    <!-- Step 2 toolbar (Walls) -->
     <div class="toolbar" id="toolbar-2" style="display:none">
-      <button class="tool-btn active" id="t2-poly" onclick="setTool('room-poly')">✏️ 畫空間多邊形</button>
+      <button class="tool-btn active" id="t2-wall" onclick="setTool('wall')">🧱 實牆</button>
+      <button class="tool-btn" id="t2-virtual" onclick="setTool('virtual')">- - 虛擬邊界</button>
       <div class="tool-sep"></div>
-      <button class="tool-btn" id="t2-select" onclick="setTool('select2')">↖ 選取空間</button>
-      <button class="tool-btn" id="t2-delete" onclick="deleteSelected()">🗑 刪除空間</button>
-      <span class="tool-hint" id="hint-2">點擊定錨點；靠近起點閉合；雙擊結束</span>
+      <button class="tool-btn" id="t2-select" onclick="setTool('select1')">↖ 選取</button>
+      <button class="tool-btn" id="t2-delete" onclick="deleteSelected()">🗑 刪除</button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" id="t2-opening" onclick="openAddOpening()" disabled>＋ 加開口</button>
+      <span class="tool-hint" id="hint-2">點擊起點 → 點擊終點完成牆段；Shift 鎖定 45°</span>
     </div>
-    <!-- Step 3 toolbar -->
+    <!-- Step 3 toolbar (Rooms) -->
     <div class="toolbar" id="toolbar-3" style="display:none">
-      <button class="tool-btn active" id="t3-place" onclick="setTool('furn-place')">＋ 放置</button>
-      <button class="tool-btn" id="t3-select" onclick="setTool('select3')">↖ 選取</button>
-      <button class="tool-btn" id="t3-delete" onclick="deleteSelected()">🗑 刪除</button>
-      <span class="tool-hint" id="hint-3">選擇右側傢俱後點擊畫布放置</span>
+      <button class="tool-btn active" id="t3-click" onclick="setTool('room-click')">🖱 點選空間</button>
+      <button class="tool-btn" id="t3-poly" onclick="setTool('room-poly')">✏️ 手動畫</button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" id="t3-select" onclick="setTool('select2')">↖ 選取空間</button>
+      <button class="tool-btn" id="t3-delete" onclick="deleteSelected()">🗑 刪除空間</button>
+      <div class="tool-sep"></div>
+      <button class="btn btn-secondary btn-sm" onclick="runAIRoomDetect()" id="btn-ai-detect" style="font-size:11px;padding:4px 10px">🤖 AI 辨識空間</button>
+      <span class="tool-hint" id="hint-3">點選封閉空間內部自動偵測範圍；或手動畫多邊形</span>
+    </div>
+    <!-- Step 4 toolbar (Furniture) -->
+    <div class="toolbar" id="toolbar-4" style="display:none">
+      <button class="tool-btn active" id="t4-place" onclick="setTool('furn-place')">＋ 放置</button>
+      <button class="tool-btn" id="t4-select" onclick="setTool('select3')">↖ 選取</button>
+      <button class="tool-btn" id="t4-delete" onclick="deleteSelected()">🗑 刪除</button>
+      <button class="btn btn-secondary btn-sm" onclick="runAIFurnDetect()" id="btn-ai-furn" style="font-size:11px;padding:4px 10px">🤖 AI 辨識傢俱</button>
+      <span class="tool-hint" id="hint-4">拖曳矩形放置傢俱；Shift+滾輪旋轉</span>
     </div>
 
     <!-- Canvas body (fills remaining height) -->
@@ -207,7 +219,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
     <input type="file" id="file-input" accept="image/*">
 
     <!-- Canvas -->
-    <canvas id="canvas" style="display:none;width:100%;height:100%;object-fit:contain"></canvas>
+    <canvas id="canvas" style="display:none;width:100%;height:100%;object-fit:contain;touch-action:none"></canvas>
 
     <!-- Zoom bar -->
     <div class="zoom-bar" id="zoom-bar" style="display:none">
@@ -224,8 +236,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
   <!-- Sidebar -->
   <div class="sidebar">
 
-    <!-- Step 1 sidebar -->
+    <!-- Step 1 sidebar (Scale) -->
     <div id="sidebar-1">
+      <div class="card">
+        <div class="card-title">📏 設置比例尺</div>
+        <div style="font-size:11px;color:#777;margin-bottom:8px;line-height:1.6">①選擇已知尺寸的物品 → ②點圖面上該物品兩端點</div>
+        <div id="scale-obj-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px"></div>
+        <div id="scale-obj-selected" style="display:none;background:#EBF4FF;border:1px solid #93C5FD;border-radius:6px;padding:8px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;color:#185FA5;margin-bottom:5px" id="scale-obj-name"></div>
+          <div id="scale-dim-btns" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+        </div>
+        <!-- Free-input scale -->
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <div style="flex:1;height:1px;background:#e5e7eb"></div>
+          <span style="font-size:10px;color:#aaa;white-space:nowrap">或自由輸入長度</span>
+          <div style="flex:1;height:1px;background:#e5e7eb"></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center">
+          <input id="custom-scale-input" type="number" min="1" max="99999" placeholder="長度 (cm)"
+            style="flex:1;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;
+                   outline:none;min-width:0" onkeydown="if(event.key==='Enter')applyCustomScaleDim()"/>
+          <button onclick="applyCustomScaleDim()"
+            style="padding:5px 10px;background:#185FA5;color:#fff;border:none;border-radius:6px;
+                   font-size:12px;cursor:pointer;white-space:nowrap">標出長度</button>
+        </div>
+        <div id="scale-status" style="font-size:11px;color:#888;min-height:18px;margin-bottom:4px"></div>
+        <div id="scale-result" style="display:none;font-size:11px;background:#f0f9f0;border:1px solid #10B981;border-radius:6px;padding:7px;margin-bottom:8px">
+          <div id="scale-result-text" style="color:#065F46"></div>
+        </div>
+        <button class="btn btn-sm" id="btn-reset-scale" onclick="resetScale()" style="margin-bottom:6px;display:none;width:100%;background:#f3f4f6;color:#555;border:1px solid #ddd">↩ 重設比例尺</button>
+        <button class="btn btn-primary btn-sm btn-block" onclick="tryGoStep(2)" id="btn-to-step2-from-scale" disabled>Step 2：畫牆體 →</button>
+      </div>
+    </div>
+
+    <!-- Step 2 sidebar (Walls) -->
+    <div id="sidebar-2" style="display:none">
       <div class="card">
         <div class="card-title">牆段列表 <button class="btn-icon" onclick="clearAllSegments()" title="清除全部">✕</button></div>
         <div id="seg-list" style="max-height:260px;overflow-y:auto">
@@ -237,28 +282,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
             <div id="opening-list" style="margin-bottom:6px"></div>
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm btn-block" style="margin-top:8px" onclick="tryGoStep(2)" id="btn-to-step2">Step 2：定義空間 →</button>
+        <button class="btn btn-secondary btn-sm btn-block" style="margin-top:8px" onclick="tryGoStep(3)" id="btn-to-step3">Step 3：定義空間 →</button>
       </div>
     </div>
 
-    <!-- Step 2 sidebar -->
-    <div id="sidebar-2" style="display:none">
-      <div class="card">
-        <div class="card-title">空間列表 <button class="btn-icon" onclick="clearAllRooms()" title="清除全部">✕</button></div>
-        <div id="room-list" style="max-height:260px;overflow-y:auto">
-          <div style="color:#ccc;font-size:12px;text-align:center;padding:20px 0">尚未定義空間</div>
-        </div>
-        <button class="btn btn-secondary btn-sm btn-block" style="margin-top:8px" onclick="tryGoStep(3)">Step 3：傢俱擺放 →</button>
-      </div>
-    </div>
-
-    <!-- Step 3 sidebar -->
+    <!-- Step 3 sidebar (Rooms) -->
     <div id="sidebar-3" style="display:none">
       <div class="card">
-        <div class="card-title">選擇空間</div>
-        <div id="room-list-3" style="max-height:140px;overflow-y:auto;margin-bottom:8px"></div>
-        <div class="card-title" style="margin-top:4px">傢俱選擇</div>
-        <div class="furn-grid" id="furn-palette"></div>
+        <div class="card-title">空間列表 <button class="btn-icon" onclick="clearAllRooms()" title="清除全部">✕</button></div>
+        <div style="font-size:11px;color:#777;margin-bottom:6px;line-height:1.5">點擊色塊命名空間；點擊「重新偵測」重新掃描。</div>
+        <button class="btn btn-sm btn-block" onclick="autoDetectAllRooms()" style="margin-bottom:8px;background:#EBF4FF;color:#185FA5;border:1px solid #93C5FD;font-size:11px">🔍 重新偵測空間</button>
+        <div id="room-list" style="max-height:220px;overflow-y:auto">
+          <div style="color:#ccc;font-size:12px;text-align:center;padding:20px 0">尚未定義空間</div>
+        </div>
+        <button class="btn btn-secondary btn-sm btn-block" style="margin-top:8px" onclick="tryGoStep(4)">Step 4：傢俱擺放 →</button>
+      </div>
+    </div>
+
+    <!-- Step 4 sidebar (Furniture) -->
+    <div id="sidebar-4" style="display:none">
+      <div class="card">
+        <div class="card-title">空間列表</div>
+        <div id="room-list-3" style="max-height:200px;overflow-y:auto;margin-bottom:8px"></div>
+        <div style="font-size:11px;color:#aaa;line-height:1.6">在畫布上拖曳矩形放置傢俱，鬆開後選擇類型。<br>選取傢俱後 Shift+滾輪 可旋轉。</div>
       </div>
     </div>
 
@@ -327,6 +373,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
   </div>
 </div>
 
+<!-- Scale modal removed – scale is now auto-computed from selected reference object -->
+
 <!-- Opening modal -->
 <div class="modal-bg" id="opening-modal">
   <div class="modal">
@@ -362,6 +410,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
       <label>高度（cm）</label>
       <input type="number" id="op-height" min="10" max="400" value="210">
     </div>
+    <div class="form-row" id="op-door-row">
+      <label>開門方向</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <select id="op-swing" style="flex:1">
+          <option value="right">向右開（順時針）</option>
+          <option value="left">向左開（逆時針）</option>
+        </select>
+        <select id="op-hinge" style="flex:1">
+          <option value="start">鉸鏈在起點</option>
+          <option value="end">鉸鏈在終點</option>
+        </select>
+      </div>
+    </div>
     <div class="modal-btns">
       <button class="btn btn-secondary" onclick="closeOpeningModal()">取消</button>
       <button class="btn btn-danger btn-sm" id="op-delete-btn" onclick="deleteOpening()" style="display:none">刪除</button>
@@ -370,10 +431,79 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
   </div>
 </div>
 
+<!-- Opening floating popup (single-click edit) -->
+<div id="op-popup" style="position:fixed;display:none;z-index:3000;background:#fff;border-radius:12px;
+  box-shadow:0 6px 28px rgba(0,0,0,.22);padding:14px 16px;width:230px;font-size:13px;color:#333;
+  user-select:none">
+  <!-- Type toggle -->
+  <div style="display:flex;gap:6px;margin-bottom:10px">
+    <button id="opp-btn-door" onclick="setOpPopupType('door')"
+      style="flex:1;padding:6px 4px;border-radius:7px;border:2px solid #ddd;cursor:pointer;background:#fff;font-size:13px;font-weight:600;transition:all .1s">門</button>
+    <button id="opp-btn-window" onclick="setOpPopupType('window')"
+      style="flex:1;padding:6px 4px;border-radius:7px;border:2px solid #ddd;cursor:pointer;background:#fff;font-size:13px;font-weight:600;transition:all .1s">窗</button>
+  </div>
+  <!-- Style -->
+  <div style="margin-bottom:8px">
+    <label style="font-size:11px;color:#888;display:block;margin-bottom:3px">樣式</label>
+    <select id="opp-style" oninput="applyOpPopup()"
+      style="width:100%;padding:5px 6px;border-radius:6px;border:1px solid #ddd;font-size:12px;box-sizing:border-box"></select>
+  </div>
+  <!-- Width -->
+  <div style="margin-bottom:8px">
+    <label id="opp-width-label" style="font-size:11px;color:#888;display:block;margin-bottom:3px">寬度（cm）</label>
+    <input id="opp-width" type="number" min="1" max="99999" step="0.1" oninput="applyOpPopup()"
+      style="width:100%;padding:5px 6px;border-radius:6px;border:1px solid #ddd;font-size:12px;box-sizing:border-box">
+  </div>
+  <!-- Door direction (shown only for doors) -->
+  <div id="opp-door-rows" style="margin-bottom:10px">
+    <label style="font-size:11px;color:#888;display:block;margin-bottom:3px">開門方向</label>
+    <div style="display:flex;gap:6px">
+      <select id="opp-swing" oninput="applyOpPopup()"
+        style="flex:1;padding:5px 4px;border-radius:6px;border:1px solid #ddd;font-size:11px">
+        <option value="right">向右開</option>
+        <option value="left">向左開</option>
+      </select>
+      <select id="opp-hinge" oninput="applyOpPopup()"
+        style="flex:1;padding:5px 4px;border-radius:6px;border:1px solid #ddd;font-size:11px">
+        <option value="start">鉸鏈起點</option>
+        <option value="end">鉸鏈終點</option>
+      </select>
+    </div>
+  </div>
+  <!-- Actions -->
+  <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f0f0f0;padding-top:10px">
+    <button onclick="deleteOpeningFromPopup()"
+      style="padding:5px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer;font-size:12px">🗑 刪除</button>
+    <button onclick="hideOpPopup()"
+      style="padding:5px 12px;background:#f3f4f6;border:none;border-radius:6px;cursor:pointer;font-size:12px">關閉</button>
+  </div>
+</div>
+
+<!-- Furniture type selection modal -->
+<div class="modal-bg" id="furn-type-modal">
+  <div class="modal" style="max-width:480px">
+    <h3>選擇傢俱類型</h3>
+    <div id="furn-type-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:300px;overflow-y:auto;margin-bottom:12px"></div>
+    <div class="form-row">
+      <label>方向（頭部朝向）</label>
+      <select id="furn-head-dir">
+        <option value="0">上（↑）</option>
+        <option value="1">右（→）</option>
+        <option value="2">下（↓）</option>
+        <option value="3">左（←）</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeFurnTypeModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════
 // SUPABASE
 // ═══════════════════════════════════════════
+const ANTHROPIC_API_KEY='';
 const SUPABASE_URL='https://duiycimttbzozdaoxzrh.supabase.co';
 const SUPABASE_KEY='sb_publishable_PJptx3XXIU7fm7efyb2wEw_LspsF8qz';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
@@ -408,7 +538,7 @@ const FURNITURE_LIST=[
   {id:'plant',name:'植栽',icon:'🌿',w:40,h:40},
   {id:'other',name:'其他',icon:'📦',w:60,h:60},
 ];
-const SNAP_DIST=12; // px screen distance for snapping
+const SNAP_DIST=18; // px screen distance for snapping
 
 // ═══════════════════════════════════════════
 // STATE
@@ -416,7 +546,7 @@ const SNAP_DIST=12; // px screen distance for snapping
 let img=null,imgB64=null,imgMediaType='image/jpeg';
 let editingId=null;
 let currentStep=1;
-let currentTool='wall';
+let currentTool='scale-line';
 
 // View state
 let viewScale=1,viewOffsetX=0,viewOffsetY=0;
@@ -429,6 +559,10 @@ let segments=[]; // [{id,type:'wall'|'virtual',start:{x,y},end:{x,y},openings:[]
 let rooms=[];    // [{id,name,type,color,polygon:[{x,y}],segmentIds:[],furniture:[]}]
 let idCnt=1;
 
+// Undo stack — snapshots of {segments, rooms}
+const MAX_UNDO=60;
+let undoStack=[];
+
 // Drawing state
 let drawStart=null,drawCurrent=null;       // Step 1: wall drawing
 let polyPoints=[],polyDrawing=false,polyCurrent=null; // Step 2: room polygon
@@ -437,13 +571,105 @@ let selectedRoomIdx=null;                  // selected room index
 let placingFurnType=null;                  // furniture being placed
 let selectedFurnKey=null;                  // {roomIdx, furnIdx}
 let draggingFurn=null;                     // {roomIdx,furnIdx,ox,oy}
+let resizingFurn=null;                     // {roomIdx,furnIdx,corner:'TL'|'TR'|'BR'|'BL'}
+let rotatingFurn=null;                     // {roomIdx,furnIdx,startAngle,origRotation}
+let selectedOpeningKey=null;               // {segId, opIdx}
+let draggingOpening=null;                  // {segId, opIdx} – drag along wall
+let openingClickCandidate=null;            // {segId,opIdx,sx,sy} – detect click vs drag
+let resizingOpening=null;                  // {segId,opIdx,handle:'start'|'end'} – drag handle to resize
+let draggingEndpoint=null;                 // {updates:[{segId,which}], origImg:{x,y}} – drag endpoint
+let snapHoverPt=null;                      // {x,y} img-norm – nearest snappable point while drawing
 
 // Opening modal state
 let openingModalSegId=null;
 let openingModalOpIdx=null; // null = new
+let opPopupKey=null; // {segId,opIdx} – floating popup state
 
 // Room modal pending polygon
 let pendingRoomPolygon=null;
+let pendingRoomFillCanvas=null;   // fill bitmap from flood fill (guaranteed correct)
+let pendingRoomCentroid=null;     // centroid for accurate label placement
+let editingRoomIdx=null;          // null=new room, number=rename existing
+let wallGapHints=null; // {dangling:[{x,y}], nearMiss:[[p1,p2]]} – shown when space not enclosed
+let wallBitmapCache=null; // {wallPx:Uint8Array,RES:512} — rebuilt when entering Step 3
+let hoverFillCanvas=null; // offscreen canvas (bitmap) for hover fill — avoids polygon artifacts
+let hoverFillRafId=null;  // pending rAF id
+let hoverFillCell={tx:-1,ty:-1}; // last computed grid cell (throttle)
+
+// Furniture drag-to-place state
+let furnDragStart=null;  // {x,y} normalized – drag-place start
+let furnDragCurrent=null; // {x,y} normalized – drag-place current pos
+let pendingFurnRect=null; // {x,y,w,h} normalized – confirmed rect before type select
+
+// Scale reference objects (known real-world sizes)
+const SCALE_REFS=[
+  // 門
+  {id:'door_main',   name:'大門（單扇）',   dims:[{label:'寬 90cm',cm:90},{label:'寬 100cm',cm:100}]},
+  {id:'door_room',   name:'室內門',        dims:[{label:'寬 80cm',cm:80},{label:'寬 90cm',cm:90}]},
+  {id:'door_double', name:'雙開門',        dims:[{label:'寬 160cm',cm:160},{label:'寬 180cm',cm:180}]},
+  {id:'door_slide',  name:'推拉門',        dims:[{label:'寬 180cm',cm:180},{label:'寬 240cm',cm:240}]},
+  {id:'door_bath',   name:'浴室門',        dims:[{label:'寬 70cm',cm:70},{label:'寬 80cm',cm:80}]},
+  {id:'door_balcony',name:'落地窗/陽台門', dims:[{label:'寬 200cm',cm:200},{label:'寬 240cm',cm:240}]},
+  // 窗
+  {id:'window_std',  name:'標準窗',        dims:[{label:'寬 90cm',cm:90},{label:'寬 120cm',cm:120},{label:'寬 150cm',cm:150}]},
+  {id:'window_small',name:'小窗',          dims:[{label:'寬 60cm',cm:60},{label:'寬 75cm',cm:75}]},
+  // 床
+  {id:'bed_king',    name:'King Size床',   dims:[{label:'長 200cm',cm:200},{label:'寬 180cm',cm:180}]},
+  {id:'bed_double',  name:'雙人床（標準）', dims:[{label:'長 200cm',cm:200},{label:'寬 150cm',cm:150}]},
+  {id:'bed_single',  name:'單人床',        dims:[{label:'長 200cm',cm:200},{label:'寬 90cm',cm:90}]},
+  {id:'bed_bunk',    name:'上下鋪',        dims:[{label:'長 190cm',cm:190},{label:'寬 90cm',cm:90}]},
+  // 衛浴
+  {id:'toilet',      name:'馬桶',          dims:[{label:'長 70cm',cm:70},{label:'長 75cm',cm:75},{label:'寬 40cm',cm:40}]},
+  {id:'bathtub_std', name:'浴缸（標準）',  dims:[{label:'長 150cm',cm:150},{label:'長 160cm',cm:160}]},
+  {id:'bathtub_lg',  name:'浴缸（大）',    dims:[{label:'長 170cm',cm:170},{label:'長 180cm',cm:180}]},
+  {id:'shower',      name:'淋浴間',        dims:[{label:'寬 90cm',cm:90},{label:'寬 100cm',cm:100}]},
+  {id:'sink_bath',   name:'洗手台',        dims:[{label:'寬 60cm',cm:60},{label:'寬 80cm',cm:80}]},
+  // 廚房
+  {id:'fridge',      name:'冰箱',          dims:[{label:'寬 60cm',cm:60},{label:'寬 70cm',cm:70},{label:'寬 80cm',cm:80}]},
+  {id:'washer',      name:'洗衣機',        dims:[{label:'寬 60cm',cm:60}]},
+  {id:'dishwasher',  name:'洗碗機',        dims:[{label:'寬 60cm',cm:60}]},
+  {id:'oven',        name:'烤箱/微波爐',   dims:[{label:'寬 60cm',cm:60}]},
+  {id:'sink_kitchen',name:'流理台',        dims:[{label:'寬 60cm',cm:60},{label:'寬 80cm',cm:80},{label:'寬 120cm',cm:120}]},
+  // 客廳/餐廳
+  {id:'sofa_2',      name:'雙人沙發',      dims:[{label:'長 150cm',cm:150},{label:'長 160cm',cm:160}]},
+  {id:'sofa_3',      name:'三人沙發',      dims:[{label:'長 200cm',cm:200},{label:'長 220cm',cm:220}]},
+  {id:'table_dining4',name:'餐桌（4人）', dims:[{label:'長 120cm',cm:120},{label:'寬 80cm',cm:80}]},
+  {id:'table_dining6',name:'餐桌（6人）', dims:[{label:'長 160cm',cm:160},{label:'寬 90cm',cm:90}]},
+  {id:'tv_stand',    name:'電視牆/矮櫃',   dims:[{label:'寬 150cm',cm:150},{label:'寬 180cm',cm:180}]},
+  // 書房/辦公
+  {id:'desk',        name:'書桌',          dims:[{label:'長 120cm',cm:120},{label:'長 140cm',cm:140},{label:'長 160cm',cm:160}]},
+  // 交通/停車
+  {id:'parking_std', name:'停車位（標準）', dims:[{label:'長 550cm',cm:550},{label:'寬 250cm',cm:250}]},
+  {id:'parking_lg',  name:'停車位（大）',   dims:[{label:'長 600cm',cm:600},{label:'寬 270cm',cm:270}]},
+  // 建築
+  {id:'stair_step',  name:'樓梯踏板深',    dims:[{label:'28cm',cm:28},{label:'30cm',cm:30}]},
+  {id:'stair_width', name:'樓梯梯段寬',    dims:[{label:'90cm',cm:90},{label:'100cm',cm:100},{label:'120cm',cm:120}]},
+  {id:'wall_thick',  name:'牆厚',          dims:[{label:'15cm',cm:15},{label:'20cm',cm:20},{label:'25cm',cm:25}]},
+  {id:'column',      name:'柱子（邊長）',   dims:[{label:'30cm',cm:30},{label:'40cm',cm:40},{label:'50cm',cm:50}]},
+];
+const SCALE_GROUPS=[
+  {label:'門',    ids:['door_main','door_room','door_double','door_slide','door_bath','door_balcony']},
+  {label:'窗',    ids:['window_std','window_small']},
+  {label:'床',    ids:['bed_king','bed_double','bed_single','bed_bunk']},
+  {label:'衛浴',  ids:['toilet','bathtub_std','bathtub_lg','shower','sink_bath']},
+  {label:'廚房',  ids:['fridge','washer','dishwasher','oven','sink_kitchen']},
+  {label:'客餐廳',ids:['sofa_2','sofa_3','table_dining4','table_dining6','tv_stand']},
+  {label:'書辦',  ids:['desk']},
+  {label:'停車',  ids:['parking_std','parking_lg']},
+  {label:'建築',  ids:['stair_step','stair_width','wall_thick','column']},
+];
+
+// Scale state
+let scaleSet=false;
+let scaleP1=null, scaleP2=null;   // {x,y} normalized
+let scaleRealCm=0;                // cm of chosen dim
+let pxPerCm=1;
+let scaleTool_phase=0;            // 0=no obj selected, 1=obj+dim chosen waiting p1, 2=p1 set waiting p2
+let scaleRefObject=null;          // selected SCALE_REFS entry
+let scaleRefDim=null;             // selected dim {label,cm}
+
+// AI room suggestions
+let aiRoomSuggestions=[];
 
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
@@ -476,17 +702,39 @@ function imgToScreen(x,y){
   return canvasToScreen(c.x,c.y);
 }
 
-function snapToSegEndpoints(sx,sy){
-  // returns snapped screen coordinate if near any segment endpoint
+function snapToSegEndpoints(sx,sy,excludeSegIds=[]){
+  const excSet=new Set(excludeSegIds);
+  // Priority 1: snap to endpoint (within SNAP_DIST) — skip excluded segments
   let best=null,bestD=SNAP_DIST;
   segments.forEach(seg=>{
+    if(excSet.has(seg.id)) return;
     [{x:seg.start.x,y:seg.start.y},{x:seg.end.x,y:seg.end.y}].forEach(p=>{
       const s=imgToScreen(p.x,p.y);
       const d=Math.hypot(sx-s.x,sy-s.y);
       if(d<bestD){bestD=d;best=p;}
     });
   });
-  if(best) return {img:best, snapped:true};
+  if(best) return {img:best, snapped:true, snapType:'endpoint'};
+
+  // Priority 2: snap to closest point on any segment (within SNAP_DIST) — skip excluded segments
+  let bestSeg=null,bestSegD=SNAP_DIST;
+  segments.forEach(seg=>{
+    if(excSet.has(seg.id)) return;
+    const IW=img?img.naturalWidth:canvas.width,IH=img?img.naturalHeight:canvas.height;
+    const ax=seg.start.x*IW,ay=seg.start.y*IH;
+    const bx=seg.end.x*IW,  by=seg.end.y*IH;
+    const len2=(bx-ax)**2+(by-ay)**2;
+    if(len2<1) return;
+    // Project mouse (in image-pixel space) onto segment
+    const mx=screenToImg(sx,sy), mxi=mx.x*IW, myi=mx.y*IH;
+    const t=Math.max(0,Math.min(1,((mxi-ax)*(bx-ax)+(myi-ay)*(by-ay))/len2));
+    const px=ax+t*(bx-ax), py=ay+t*(by-ay);
+    const sp=imgToScreen(px/IW,py/IH);
+    const d=Math.hypot(sx-sp.x,sy-sp.y);
+    if(d<bestSegD){bestSegD=d;bestSeg={x:px/IW,y:py/IH};}
+  });
+  if(bestSeg) return {img:bestSeg, snapped:true, snapType:'segment'};
+
   return {img:screenToImg(sx,sy), snapped:false};
 }
 
@@ -549,6 +797,7 @@ function loadImage(file){
       document.getElementById('zoom-bar').style.display='flex';
       document.getElementById('canvas-hint').style.display='block';
       resetView();
+      renderScaleObjGrid();
       loadStats();
     };
     image.src=e.target.result;
@@ -561,30 +810,37 @@ function loadImage(file){
 // ═══════════════════════════════════════════
 function tryGoStep(n){
   if(!img){showError('請先上傳平面圖');return;}
-  if(n>1&&segments.length===0){showError('請先在 Step 1 畫出至少一條牆段或虛擬邊界');return;}
-  if(n>2&&rooms.length===0){showError('請先在 Step 2 定義至少一個空間');return;}
+  if(n>1&&!scaleSet){showError('請先在 Step 1 設定比例尺');return;}
+  if(n>2&&segments.length===0){showError('請先在 Step 2 畫出至少一條牆段或虛擬邊界');return;}
+  if(n>3&&rooms.length===0){showError('請先在 Step 3 定義至少一個空間');return;}
   // can go back freely, go forward only if prerequisites met
   if(n>=currentStep||n<currentStep) goStep(n);
 }
 function goStep(n){
   currentStep=n;
-  [1,2,3].forEach(i=>{
+  [1,2,3,4].forEach(i=>{
     const el=document.getElementById('step-'+i);
-    el.className='step'+(i===n?' active':i<n?' done':'');
+    if(el) el.className='step'+(i===n?' active':i<n?' done':'');
   });
   document.getElementById('sidebar-1').style.display=n===1?'block':'none';
   document.getElementById('sidebar-2').style.display=n===2?'block':'none';
   document.getElementById('sidebar-3').style.display=n===3?'block':'none';
+  document.getElementById('sidebar-4').style.display=n===4?'block':'none';
   document.getElementById('toolbar-1').style.display=n===1?'flex':'none';
   document.getElementById('toolbar-2').style.display=n===2?'flex':'none';
   document.getElementById('toolbar-3').style.display=n===3?'flex':'none';
+  document.getElementById('toolbar-4').style.display=n===4?'flex':'none';
   // reset drawing state on step change
   drawStart=null;drawCurrent=null;
   polyPoints=[];polyDrawing=false;polyCurrent=null;
   placingFurnType=null;selectedFurnKey=null;
-  if(n===1){setTool('wall');renderSegList();}
-  if(n===2){setTool('room-poly');renderRoomList();renderRoomList3();}
-  if(n===3){setTool('select3');renderRoomList3();renderFurnPalette();}
+  wallGapHints=null;
+  // Rebuild wall bitmap cache when entering Step 3
+  wallBitmapCache=null;hoverFillCanvas=null;hoverFillCell={tx:-1,ty:-1};
+  if(n===1){setTool('scale-line');}
+  if(n===2){setTool('wall');renderSegList();}
+  if(n===3){setTool('room-click');renderRoomList();renderRoomList3();}
+  if(n===4){setTool('select3');renderRoomList3();renderFurnPalette();}
   updateStats();renderCanvas();
 }
 
@@ -595,15 +851,20 @@ function setTool(t){
   currentTool=t;
   // clear active on all tool buttons
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-  const map={'wall':'t1-wall','virtual':'t1-virtual','select1':'t1-select',
-             'room-poly':'t2-poly','select2':'t2-select',
-             'furn-place':'t3-place','select3':'t3-select'};
+  const map={
+    'scale-line':'t1-scale',
+    'wall':'t2-wall','virtual':'t2-virtual','select1':'t2-select',
+    'room-click':'t3-click','room-poly':'t3-poly','select2':'t3-select',
+    'furn-place':'t4-place','select3':'t4-select'
+  };
   if(map[t]) document.getElementById(map[t])?.classList.add('active');
   // update hint
   const hints={
+    'scale-line':'點選圖面上兩個已知距離的端點',
     'wall':'點擊起點 → 點擊終點完成牆段；Shift 鎖定 45°；Esc 取消',
     'virtual':'點擊起點 → 點擊終點完成虛擬邊界（非實體牆）；Esc 取消',
     'select1':'點擊選取牆段；Delete 刪除；點擊所選牆段上的「＋加開口」新增門窗',
+    'room-click':'點選封閉空間內部自動偵測範圍',
     'room-poly':'點擊定錨點；靠近起點閉合；雙擊立即閉合；Esc 取消',
     'select2':'點擊選取空間；Delete 刪除',
     'furn-place':'選擇右側傢俱後點擊畫布放置',
@@ -611,10 +872,11 @@ function setTool(t){
   };
   const hintEl=document.getElementById('hint-'+currentStep);
   if(hintEl) hintEl.textContent=hints[t]||'';
-  if(!spaceDown) canvas.style.cursor=(t==='wall'||t==='virtual'||t==='room-poly'||t==='furn-place')?'crosshair':'default';
+  if(!spaceDown) canvas.style.cursor=(t==='wall'||t==='virtual'||t==='room-poly'||t==='room-click'||t==='furn-place'||t==='scale-line')?'crosshair':'default';
   // reset partial drawing
   if(t!=='wall'&&t!=='virtual'){drawStart=null;drawCurrent=null;}
   if(t!=='room-poly'){polyPoints=[];polyDrawing=false;polyCurrent=null;}
+  if(t!=='scale-line'){scaleTool_phase=0;}
   renderCanvas();
 }
 
@@ -623,7 +885,46 @@ function setTool(t){
 // ═══════════════════════════════════════════
 function newId(){return 'id_'+(idCnt++);}
 
+// ═══════════════════════════════════════════
+// OPENING UNIT HELPER
+// ═══════════════════════════════════════════
+// op.width is stored in "double-pixel" units: gapPx = op.width * 0.5 image pixels.
+// This heuristic is scale-independent so rendering is always stable.
+// When a real scale is calibrated, the POPUP converts for display only (see showOpPopup).
+function opGapPx(op, len){
+  return Math.max(op.width * 0.5, 20);
+}
+// Drag-resize stores in the same double-pixel unit: op.width = gapPx * 2.
+function gapPxToWidth(gapPx){
+  return gapPx * 2;
+}
+
+// ═══════════════════════════════════════════
+// UNDO
+// ═══════════════════════════════════════════
+function pushUndo(){
+  undoStack.push(JSON.parse(JSON.stringify({segments,rooms})));
+  if(undoStack.length>MAX_UNDO) undoStack.shift();
+}
+function performUndo(){
+  if(!undoStack.length){showError('已無可回復的步驟');return;}
+  const state=undoStack.pop();
+  segments=state.segments;
+  rooms=state.rooms;
+  // Clear dangling interaction state
+  selectedSegId=null; selectedRoomIdx=null; selectedFurnKey=null;
+  draggingFurn=null; resizingFurn=null; rotatingFurn=null;
+  draggingEndpoint=null; draggingOpening=null; resizingOpening=null;
+  openingClickCandidate=null;
+  hideOpPopup();
+  wallBitmapCache=null; // wall geometry may have changed
+  renderSegList(); updateOpeningEditor();
+  renderRoomList(); renderRoomList3();
+  updateStats(); renderCanvas();
+}
+
 function addSegment(type,start,end){
+  pushUndo();
   const seg={id:newId(),type,start,end,openings:[]};
   segments.push(seg);
   selectedSegId=seg.id;
@@ -634,18 +935,19 @@ function addSegment(type,start,end){
 }
 
 function deleteSelected(){
-  if(currentStep===1&&selectedSegId){
+  pushUndo();
+  if(currentStep===2&&selectedSegId){
     segments=segments.filter(s=>s.id!==selectedSegId);
     // remove from rooms that reference it
     rooms.forEach(r=>{r.segmentIds=r.segmentIds.filter(id=>id!==selectedSegId);});
     selectedSegId=null;
     renderSegList();
     updateOpeningEditor();
-  } else if(currentStep===2&&selectedRoomIdx!==null){
+  } else if(currentStep===3&&selectedRoomIdx!==null){
     rooms.splice(selectedRoomIdx,1);
     selectedRoomIdx=null;
     renderRoomList();renderRoomList3();
-  } else if(currentStep===3&&selectedFurnKey){
+  } else if(currentStep===4&&selectedFurnKey){
     const {roomIdx,furnIdx}=selectedFurnKey;
     if(rooms[roomIdx]) rooms[roomIdx].furniture.splice(furnIdx,1);
     selectedFurnKey=null;
@@ -691,7 +993,7 @@ function deleteSegmentById(id){
 // ═══════════════════════════════════════════
 function updateOpeningEditor(){
   const el=document.getElementById('opening-editor');
-  const addBtn=document.getElementById('t1-opening');
+  const addBtn=document.getElementById('t2-opening');
   const seg=getSegById(selectedSegId);
   if(!seg||seg.type==='virtual'){
     el.style.display='none';
@@ -712,6 +1014,11 @@ function updateOpeningEditor(){
     </div>`).join('');
 }
 
+function _setDoorWindowRows(type){
+  const isDoor=type==='door';
+  document.getElementById('op-sill-row').style.display=isDoor?'none':'block';
+  document.getElementById('op-door-row').style.display=isDoor?'block':'none';
+}
 function openAddOpening(){
   const seg=getSegById(selectedSegId);
   if(!seg){showError('請先選取一個牆段');return;}
@@ -724,8 +1031,10 @@ function openAddOpening(){
   document.getElementById('op-width').value=90;
   document.getElementById('op-height').value=210;
   document.getElementById('op-sill').value=90;
+  document.getElementById('op-swing').value='right';
+  document.getElementById('op-hinge').value='start';
   document.getElementById('op-delete-btn').style.display='none';
-  document.getElementById('op-sill-row').style.display='none';
+  _setDoorWindowRows('door');
   document.getElementById('opening-modal').classList.add('open');
 }
 function openEditOpening(segId,opIdx){
@@ -739,25 +1048,35 @@ function openEditOpening(segId,opIdx){
   document.getElementById('op-width').value=op.width;
   document.getElementById('op-height').value=op.height||210;
   document.getElementById('op-sill').value=op.sill||90;
+  document.getElementById('op-swing').value=op.swingSide||'right';
+  document.getElementById('op-hinge').value=op.flipHinge?'end':'start';
   document.getElementById('op-delete-btn').style.display='inline-block';
-  document.getElementById('op-sill-row').style.display=op.type==='window'?'block':'none';
+  _setDoorWindowRows(op.type);
   document.getElementById('opening-modal').classList.add('open');
 }
+// Also expose as openEditOpeningModal for click-on-canvas
+function openEditOpeningModal(segId,opIdx){ openEditOpening(segId,opIdx); }
 document.getElementById('op-type').addEventListener('change',function(){
-  document.getElementById('op-sill-row').style.display=this.value==='window'?'block':'none';
-  document.getElementById('op-height').value=this.value==='window'?120:210;
-  document.getElementById('op-style').value=this.value==='window'?'雙扇推拉窗':'單開門';
+  const isDoor=this.value==='door';
+  document.getElementById('op-sill-row').style.display=isDoor?'none':'block';
+  document.getElementById('op-door-row').style.display=isDoor?'block':'none';
+  document.getElementById('op-height').value=isDoor?210:120;
+  document.getElementById('op-style').value=isDoor?'單開門':'雙扇推拉窗';
 });
 function confirmOpening(){
+  pushUndo();
   const seg=getSegById(openingModalSegId);if(!seg)return;
+  const type=document.getElementById('op-type').value;
   const op={
     id:openingModalOpIdx===null?newId():seg.openings[openingModalOpIdx].id,
-    type:document.getElementById('op-type').value,
+    type,
     style:document.getElementById('op-style').value,
     position:parseFloat(document.getElementById('op-pos').value),
     width:parseFloat(document.getElementById('op-width').value),
     height:parseFloat(document.getElementById('op-height').value),
     sill:parseFloat(document.getElementById('op-sill').value),
+    swingSide:document.getElementById('op-swing').value,
+    flipHinge:document.getElementById('op-hinge').value==='end',
   };
   if(openingModalOpIdx===null) seg.openings.push(op);
   else seg.openings[openingModalOpIdx]=op;
@@ -766,15 +1085,110 @@ function confirmOpening(){
 }
 function deleteOpening(){
   const seg=getSegById(openingModalSegId);if(!seg||openingModalOpIdx===null)return;
+  pushUndo();
   seg.openings.splice(openingModalOpIdx,1);
   closeOpeningModal();updateOpeningEditor();renderCanvas();
 }
 function deleteOpeningAt(segId,idx){
   const seg=getSegById(segId);if(!seg)return;
+  pushUndo();
   seg.openings.splice(idx,1);
   updateOpeningEditor();renderCanvas();
 }
 function closeOpeningModal(){document.getElementById('opening-modal').classList.remove('open');}
+
+// ── Opening floating popup ──────────────────────────────────────────
+const DOOR_STYLES=['單開門','雙開門','推拉門','折疊門','玻璃門'];
+const WIN_STYLES=['單扇推拉窗','雙扇推拉窗','固定窗','落地窗','氣密窗'];
+function _opPopupStyleOptions(isDoor,cur){
+  return (isDoor?DOOR_STYLES:WIN_STYLES).map(s=>`<option${s===cur?' selected':''}>${s}</option>`).join('');
+}
+function _opPopupHighlightType(isDoor){
+  const bd=document.getElementById('opp-btn-door');
+  const bw=document.getElementById('opp-btn-window');
+  if(!bd||!bw)return;
+  bd.style.borderColor=isDoor?'#185FA5':'#ddd';
+  bd.style.background=isDoor?'#EFF6FF':'#fff';
+  bd.style.color=isDoor?'#185FA5':'#555';
+  bw.style.borderColor=!isDoor?'#185FA5':'#ddd';
+  bw.style.background=!isDoor?'#EFF6FF':'#fff';
+  bw.style.color=!isDoor?'#185FA5':'#555';
+}
+function showOpPopup(segId,opIdx,clientX,clientY){
+  const seg=getSegById(segId);
+  const op=seg?.openings[opIdx];if(!op)return;
+  opPopupKey={segId,opIdx};
+  const isDoor=op.type==='door';
+  _opPopupHighlightType(isDoor);
+  document.getElementById('opp-style').innerHTML=_opPopupStyleOptions(isDoor,op.style||(isDoor?'單開門':'雙扇推拉窗'));
+  // Show real cm when scale is calibrated; otherwise show raw internal value
+  const gapPxDisp=op.width*0.5;
+  const displayW=scaleSet&&pxPerCm>0 ? (Math.round(gapPxDisp/pxPerCm*10)/10).toFixed(1) : op.width;
+  document.getElementById('opp-width').value=displayW;
+  document.getElementById('opp-width-label').textContent=scaleSet&&pxPerCm>0?'寬度（cm）':'寬度（內部值）';
+  document.getElementById('opp-swing').value=op.swingSide||'right';
+  document.getElementById('opp-hinge').value=op.flipHinge?'end':'start';
+  document.getElementById('opp-door-rows').style.display=isDoor?'block':'none';
+  const popup=document.getElementById('op-popup');
+  // Position: try right of click, adjust if off-screen
+  const pw=240,ph=260;
+  let px=clientX+12, py=clientY-20;
+  if(px+pw>window.innerWidth-8) px=clientX-pw-12;
+  if(py+ph>window.innerHeight-8) py=window.innerHeight-ph-8;
+  if(py<8) py=8;
+  popup.style.left=px+'px';popup.style.top=py+'px';popup.style.display='block';
+}
+function hideOpPopup(){
+  document.getElementById('op-popup').style.display='none';
+  opPopupKey=null;
+}
+function setOpPopupType(type){
+  if(!opPopupKey)return;
+  const seg=getSegById(opPopupKey.segId);
+  const op=seg?.openings[opPopupKey.opIdx];if(!op)return;
+  pushUndo();
+  op.type=type;
+  op.style=type==='door'?'單開門':'雙扇推拉窗';
+  const isDoor=type==='door';
+  _opPopupHighlightType(isDoor);
+  document.getElementById('opp-style').innerHTML=_opPopupStyleOptions(isDoor,op.style);
+  document.getElementById('opp-door-rows').style.display=isDoor?'block':'none';
+  renderCanvas();
+}
+function applyOpPopup(){
+  if(!opPopupKey)return;
+  const seg=getSegById(opPopupKey.segId);
+  const op=seg?.openings[opPopupKey.opIdx];if(!op)return;
+  op.style=document.getElementById('opp-style').value;
+  const w=parseFloat(document.getElementById('opp-width').value);
+  if(w>0&&w<=99999){
+    // User always types cm. Convert to internal double-pixel unit:
+    //   internal = (cm * pxPerCm) * 2  when scale is set
+    //   internal = w                   when not (raw legacy mode)
+    if(scaleSet&&pxPerCm>0){
+      op.width=Math.max(2, w*pxPerCm*2); // gapPx=w*pxPerCm, internal=gapPx*2
+    } else {
+      if(w>=10) op.width=w;
+    }
+  }
+  op.swingSide=document.getElementById('opp-swing').value;
+  op.flipHinge=document.getElementById('opp-hinge').value==='end';
+  renderCanvas();
+}
+function deleteOpeningFromPopup(){
+  if(!opPopupKey)return;
+  const seg=getSegById(opPopupKey.segId);if(!seg)return;
+  pushUndo();
+  seg.openings.splice(opPopupKey.opIdx,1);
+  hideOpPopup();
+  updateOpeningEditor();renderCanvas();
+}
+// Close popup when clicking outside
+document.addEventListener('mousedown',e=>{
+  if(!opPopupKey)return;
+  const popup=document.getElementById('op-popup');
+  if(popup&&!popup.contains(e.target)) hideOpPopup();
+},{capture:true});
 
 // ═══════════════════════════════════════════
 // ROOM OPERATIONS
@@ -790,22 +1204,36 @@ function addRoom(polygon){
 }
 function cancelRoom(){
   pendingRoomPolygon=null;
+  pendingRoomFillCanvas=null;
+  pendingRoomCentroid=null;
+  editingRoomIdx=null;
   document.getElementById('room-modal').classList.remove('open');
   polyPoints=[];polyDrawing=false;polyCurrent=null;
   renderCanvas();
 }
 function confirmRoom(){
-  if(!pendingRoomPolygon)return;
   const type=document.getElementById('room-type-sel').value;
   const customName=document.getElementById('room-name-input').value.trim();
   const name=customName||type;
-  const color=COLORS[rooms.length%COLORS.length];
-  // find wall segments that are close to any edge of the polygon
-  const segIds=findLinkedSegments(pendingRoomPolygon);
-  const room={id:newId(),name,type,color,polygon:pendingRoomPolygon,segmentIds:segIds,furniture:[]};
-  rooms.push(room);
-  selectedRoomIdx=rooms.length-1;
-  pendingRoomPolygon=null;
+  if(editingRoomIdx!==null){
+    // Rename existing room
+    rooms[editingRoomIdx].name=name;
+    rooms[editingRoomIdx].type=type;
+    rooms[editingRoomIdx].autoDetected=false;
+    selectedRoomIdx=editingRoomIdx;
+    editingRoomIdx=null;
+  } else {
+    if(!pendingRoomPolygon)return;
+    pushUndo();
+    const color=COLORS[rooms.length%COLORS.length];
+    const segIds=findLinkedSegments(pendingRoomPolygon);
+    const room={id:newId(),name,type,color,polygon:pendingRoomPolygon,fillCanvas:pendingRoomFillCanvas,centroid:pendingRoomCentroid??null,segmentIds:segIds,furniture:[]};
+    rooms.push(room);
+    selectedRoomIdx=rooms.length-1;
+    pendingRoomPolygon=null;
+    pendingRoomFillCanvas=null;
+    pendingRoomCentroid=null;
+  }
   document.getElementById('room-modal').classList.remove('open');
   renderRoomList();renderRoomList3();updateStats();renderCanvas();
 }
@@ -867,28 +1295,60 @@ function deleteRoom(i){rooms.splice(i,1);if(selectedRoomIdx===i)selectedRoomIdx=
 // FURNITURE
 // ═══════════════════════════════════════════
 function renderFurnPalette(){
-  const grid=document.getElementById('furn-palette');
-  grid.innerHTML=FURNITURE_LIST.map(f=>`
-    <button class="furn-btn${placingFurnType===f.id?' placing':''}" onclick="startPlaceFurn('${f.id}')">
-      <div style="font-size:16px">${f.icon}</div>
-      <div>${f.name}</div>
-    </button>`).join('');
+  // No-op: palette replaced by drag-to-place workflow
 }
 function startPlaceFurn(id){
   if(selectedRoomIdx===null){showError('請先選擇空間');return;}
   placingFurnType=id;
   setTool('furn-place');
-  renderFurnPalette();
 }
 function placeFurn(imgX,imgY){
+  // Legacy: kept for backward compat but not used in new drag-to-place flow
   if(!placingFurnType||selectedRoomIdx===null)return;
   const room=rooms[selectedRoomIdx];
   const def=FURNITURE_LIST.find(f=>f.id===placingFurnType);
   if(!def)return;
-  // convert cm to normalized (assume 1px=1cm for now, scale by image size)
-  const nw=def.w/img.naturalWidth*0.8; // rough normalization
+  const nw=def.w/img.naturalWidth*0.8;
   const nh=def.h/img.naturalHeight*0.8;
-  room.furniture.push({id:newId(),type:def.id,name:def.name,icon:def.icon,x:imgX,y:imgY,width:nw,height:nh,rotation:0});
+  room.furniture.push({id:newId(),type:def.id,name:def.name,icon:def.icon,x:imgX,y:imgY,width:nw,height:nh,rotation:0,headDir:0});
+  updateStats();renderCanvas();renderRoomList();renderRoomList3();
+}
+
+function openFurnTypeModal(rect){
+  pendingFurnRect=rect;
+  const grid=document.getElementById('furn-type-grid');
+  if(grid) grid.innerHTML=FURNITURE_LIST.map(f=>`
+    <button onclick="confirmFurnType('${f.id}')"
+      style="padding:8px 4px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:11px;text-align:center;color:#444;transition:all .1s">
+      ${f.name}
+    </button>`).join('');
+  document.getElementById('furn-head-dir').value='0';
+  document.getElementById('furn-type-modal').classList.add('open');
+}
+function closeFurnTypeModal(){
+  document.getElementById('furn-type-modal').classList.remove('open');
+  furnDragStart=null;furnDragCurrent=null;pendingFurnRect=null;
+  renderCanvas();
+}
+function confirmFurnType(typeId){
+  const def=FURNITURE_LIST.find(f=>f.id===typeId);
+  if(!def||!pendingFurnRect) return;
+  const headDir=parseInt(document.getElementById('furn-head-dir').value)||0;
+  // Find the room that contains the center of the rect
+  const centerX=pendingFurnRect.x+pendingFurnRect.w/2;
+  const centerY=pendingFurnRect.y+pendingFurnRect.h/2;
+  let targetRoom=rooms[0]; // default to first room
+  rooms.forEach(r=>{if(pointInPolygon({x:centerX,y:centerY},r.polygon)) targetRoom=r;});
+  if(!targetRoom){closeFurnTypeModal();showError('請先定義空間再放置傢俱');return;}
+  pushUndo();
+  targetRoom.furniture.push({
+    id:newId(),type:def.id,name:def.name,icon:def.icon,
+    x:centerX,y:centerY,
+    width:pendingFurnRect.w,height:pendingFurnRect.h,
+    rotation:0,headDir
+  });
+  document.getElementById('furn-type-modal').classList.remove('open');
+  furnDragStart=null;furnDragCurrent=null;pendingFurnRect=null;
   updateStats();renderCanvas();renderRoomList();renderRoomList3();
 }
 
@@ -908,74 +1368,214 @@ function renderCanvas(){
   // Draw image at its natural size (transform handles scaling)
   ctx.drawImage(img,0,0,IW,IH);
 
-  // Draw rooms (filled polygons) — ctx space = image pixels (IW×IH)
+  // Draw scale grid
+  if(scaleSet&&pxPerCm>0){
+    const GRID_CM=50; // one grid cell = 50 cm
+    const gridPx=GRID_CM*pxPerCm; // image pixels per grid cell
+    // Draw minor lines every 50cm
+    ctx.strokeStyle='rgba(160,160,160,0.18)';
+    ctx.lineWidth=0.5/viewScale;
+    ctx.setLineDash([]);
+    for(let x=0;x<IW;x+=gridPx){
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,IH); ctx.stroke();
+    }
+    for(let y=0;y<IH;y+=gridPx){
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(IW,y); ctx.stroke();
+    }
+    // Thicker lines every 200cm
+    const majorPx=200*pxPerCm;
+    ctx.strokeStyle='rgba(140,140,140,0.28)';
+    ctx.lineWidth=1/viewScale;
+    for(let x=0;x<IW;x+=majorPx){
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,IH); ctx.stroke();
+    }
+    for(let y=0;y<IH;y+=majorPx){
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(IW,y); ctx.stroke();
+    }
+  }
+
+  // Draw rooms — use fillCanvas bitmap when available (guaranteed full coverage),
+  // else fall back to polygon path fill
   rooms.forEach((room,i)=>{
     if(!room.polygon||room.polygon.length<3)return;
+    const isSelected=i===selectedRoomIdx;
+    const isAuto=!!room.autoDetected;
+    const hex=room.color;
+
+    // Polygon fill — snapped to wall geometry, always accurate
     ctx.beginPath();
     room.polygon.forEach((p,j)=>{
-      const px=p.x*IW,py=p.y*IH;
-      j===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      j===0?ctx.moveTo(p.x*IW,p.y*IH):ctx.lineTo(p.x*IW,p.y*IH);
     });
     ctx.closePath();
-    const isSelected=i===selectedRoomIdx;
-    const hex=room.color;
-    ctx.fillStyle=hex+'33';
+    const roomOpacity=currentStep===4?'1a':(isSelected?'88':'66');
+    ctx.fillStyle=isAuto?hex+'44':hex+roomOpacity;
     ctx.fill();
-    ctx.strokeStyle=isSelected?hex:hex+'88';
-    ctx.lineWidth=isSelected?2.5/viewScale:1.5/viewScale;
-    ctx.stroke();
 
-    // Room label
-    const cx=room.polygon.reduce((s,p)=>s+p.x,0)/room.polygon.length*IW;
-    const cy=room.polygon.reduce((s,p)=>s+p.y,0)/room.polygon.length*IH;
-    ctx.fillStyle='rgba(0,0,0,0.7)';
+    // No border stroke — walls are drawn on top anyway; selection gets subtle highlight
+    if(isSelected){
+      ctx.beginPath();
+      room.polygon.forEach((p,j)=>{j===0?ctx.moveTo(p.x*IW,p.y*IH):ctx.lineTo(p.x*IW,p.y*IH);});
+      ctx.closePath();
+      ctx.strokeStyle=hex+'cc';
+      ctx.lineWidth=3/viewScale;
+      ctx.setLineDash([]);
+      ctx.stroke();
+    }
+
+    // Room label pill — use cached centroid if available, else polygon average
+    const cx=(room.centroid?.x??room.polygon.reduce((s,p)=>s+p.x,0)/room.polygon.length)*IW;
+    const cy=(room.centroid?.y??room.polygon.reduce((s,p)=>s+p.y,0)/room.polygon.length)*IH;
+    const label=isAuto?'點擊命名':room.name;
     ctx.font=`bold ${13/viewScale}px sans-serif`;
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    ctx.fillText(room.name,cx,cy);
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    const tw=ctx.measureText(label).width;
+    const pad=4/viewScale,rh=16/viewScale;
+    ctx.fillStyle=isAuto?hex+'99':hex+'cc';
+    ctx.beginPath();
+    ctx.roundRect?ctx.roundRect(cx-tw/2-pad,cy-rh/2,tw+pad*2,rh,4/viewScale)
+                 :ctx.rect(cx-tw/2-pad,cy-rh/2,tw+pad*2,rh);
+    ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.fillText(label,cx,cy);
   });
+
+  // Hover fill preview — direct bitmap render, guaranteed full coverage
+  if(hoverFillCanvas&&currentStep===3){
+    ctx.drawImage(hoverFillCanvas,0,0,IW,IH);
+  }
+
+  // Draw wall gap hints (shown when detectRoomPolygon fails)
+  if(wallGapHints&&currentStep===3){
+    // 1. Highlight problem segments in red (segments with dangling endpoints)
+    if(wallGapHints.gapSegIds?.size>0){
+      segments.forEach(seg=>{
+        if(!wallGapHints.gapSegIds.has(seg.id)) return;
+        const sx2=seg.start.x*IW,sy2=seg.start.y*IH;
+        const ex2=seg.end.x*IW,ey2=seg.end.y*IH;
+        ctx.beginPath();ctx.moveTo(sx2,sy2);ctx.lineTo(ex2,ey2);
+        ctx.strokeStyle='rgba(239,68,68,0.75)';
+        ctx.lineWidth=5/viewScale;
+        ctx.setLineDash([]);ctx.stroke();
+      });
+    }
+
+    // 2. Near-miss gap connectors: show the gap to fill with dashed red + label
+    wallGapHints.nearMiss.forEach(([p1,p2])=>{
+      const x1=p1.x*IW,y1=p1.y*IH,x2=p2.x*IW,y2=p2.y*IH;
+      // Gap fill suggestion line
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+      ctx.strokeStyle='#EF4444';ctx.lineWidth=2/viewScale;
+      ctx.setLineDash([5/viewScale,3/viewScale]);ctx.stroke();ctx.setLineDash([]);
+      // Endpoint circles
+      [p1,p2].forEach(p=>{
+        ctx.beginPath();ctx.arc(p.x*IW,p.y*IH,7/viewScale,0,Math.PI*2);
+        ctx.fillStyle='rgba(239,68,68,0.2)';ctx.fill();
+        ctx.strokeStyle='#EF4444';ctx.lineWidth=2/viewScale;ctx.stroke();
+      });
+      // Distance label
+      const gapCm=scaleSet?Math.round(Math.hypot(p2.x-p1.x,p2.y-p1.y)*IW/pxPerCm):null;
+      const label=`⚠ 缺口${gapCm?` ${gapCm}cm`:''}`;
+      const mx=(p1.x+p2.x)/2*IW, my=(p1.y+p2.y)/2*IH;
+      ctx.font=`bold ${11/viewScale}px sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      const tw=ctx.measureText(label).width+8/viewScale;
+      ctx.fillStyle='rgba(239,68,68,0.9)';
+      ctx.beginPath();
+      ctx.roundRect?ctx.roundRect(mx-tw/2,my-9/viewScale,tw,18/viewScale,4/viewScale)
+                   :ctx.rect(mx-tw/2,my-9/viewScale,tw,18/viewScale);
+      ctx.fill();
+      ctx.fillStyle='#fff';ctx.fillText(label,mx,my);
+    });
+
+    // 3. Lone dangling endpoints (no nearby pair): orange X marker
+    const pairedPts=new Set(wallGapHints.nearMiss.flatMap(([a,b])=>[`${a.x},${a.y}`,`${b.x},${b.y}`]));
+    wallGapHints.dangling.forEach(p=>{
+      if(pairedPts.has(`${p.x},${p.y}`)) return; // already shown above
+      const px2=p.x*IW,py2=p.y*IH,r=7/viewScale;
+      ctx.beginPath();ctx.arc(px2,py2,r,0,Math.PI*2);
+      ctx.fillStyle='rgba(249,115,22,0.15)';ctx.fill();
+      ctx.strokeStyle='#F97316';ctx.lineWidth=2/viewScale;ctx.stroke();
+      // X cross
+      ctx.beginPath();
+      ctx.moveTo(px2-r*0.6,py2-r*0.6);ctx.lineTo(px2+r*0.6,py2+r*0.6);
+      ctx.moveTo(px2+r*0.6,py2-r*0.6);ctx.lineTo(px2-r*0.6,py2+r*0.6);
+      ctx.strokeStyle='#F97316';ctx.lineWidth=1.5/viewScale;ctx.stroke();
+    });
+  }
 
   // Draw segments — use IW/IH for normalized→image-pixel conversion
   segments.forEach(seg=>{
     const sx=seg.start.x*IW,sy=seg.start.y*IH;
     const ex=seg.end.x*IW,ey=seg.end.y*IH;
     const isSelected=seg.id===selectedSegId;
-    ctx.beginPath();
-    ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);
+    const len=Math.hypot(ex-sx,ey-sy);
+    const angle=Math.atan2(ey-sy,ex-sx);
+    const cos=Math.cos(angle),sin=Math.sin(angle);
+
     if(seg.type==='wall'){
-      ctx.strokeStyle=isSelected?'#185FA5':'#333';
+      // Compute gap intervals for each opening (in px along the wall)
+      const gaps=seg.openings.map((op,opIdx)=>{
+        const t=op.position/100;
+        const gapPx=opGapPx(op,len);
+        const center=t*len;
+        const isSelOp=selectedOpeningKey&&selectedOpeningKey.segId===seg.id&&selectedOpeningKey.opIdx===opIdx;
+        return{start:Math.max(0,center-gapPx/2),end:Math.min(len,center+gapPx/2),op,opIdx,isSelOp};
+      }).sort((a,b)=>a.start-b.start);
+
+      // Draw wall as segments around gaps
+      ctx.strokeStyle=isSelected?'#1a6fe8':'#cc3300';
       ctx.lineWidth=isSelected?4/viewScale:3/viewScale;
       ctx.setLineDash([]);
+      let drawn=0;
+      gaps.forEach(g=>{
+        if(g.start>drawn){
+          ctx.beginPath();
+          ctx.moveTo(sx+cos*drawn,sy+sin*drawn);
+          ctx.lineTo(sx+cos*g.start,sy+sin*g.start);
+          ctx.stroke();
+        }
+        drawn=g.end;
+      });
+      if(drawn<len){
+        ctx.beginPath();
+        ctx.moveTo(sx+cos*drawn,sy+sin*drawn);
+        ctx.lineTo(ex,ey);
+        ctx.stroke();
+      }
+
+      // Draw opening symbols + resize handles
+      gaps.forEach(g=>{
+        const gapPx=g.end-g.start;
+        const gx1=sx+cos*g.start, gy1=sy+sin*g.start;
+        const gx2=sx+cos*g.end,   gy2=sy+sin*g.end;
+        if(g.op.type==='door'){
+          drawDoorSymbol(ctx,gx1,gy1,gapPx,angle,g.op,g.isSelOp);
+        } else {
+          drawWindowSymbol(ctx,gx1,gy1,gapPx,angle,g.op,g.isSelOp);
+        }
+        // Endpoint drag handles — always visible, larger for easier grabbing
+        const isResizing=resizingOpening&&resizingOpening.segId===seg.id&&resizingOpening.opIdx===g.opIdx;
+        const hs=isResizing?7/viewScale:g.isSelOp?6/viewScale:4.5/viewScale;
+        const hc=g.isSelOp?'#185FA5':'#888';
+        ctx.setLineDash([]);
+        // Start handle
+        const startActive=isResizing&&resizingOpening.handle==='start';
+        ctx.fillStyle=startActive?'#e74c3c':hc;
+        ctx.strokeStyle='#fff';ctx.lineWidth=1.5/viewScale;
+        ctx.beginPath();ctx.arc(gx1,gy1,hs,0,Math.PI*2);ctx.fill();ctx.stroke();
+        // End handle
+        const endActive=isResizing&&resizingOpening.handle==='end';
+        ctx.fillStyle=endActive?'#e74c3c':hc;
+        ctx.beginPath();ctx.arc(gx2,gy2,hs,0,Math.PI*2);ctx.fill();ctx.stroke();
+      });
     } else {
+      // Virtual divider — dashed
+      ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);
       ctx.strokeStyle=isSelected?'#8B5CF6':'#9CA3AF';
       ctx.lineWidth=isSelected?2/viewScale:1.5/viewScale;
       ctx.setLineDash([8/viewScale,4/viewScale]);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Draw openings on walls
-    if(seg.type==='wall'){
-      const len=Math.hypot(ex-sx,ey-sy);
-      const angle=Math.atan2(ey-sy,ex-sx);
-      seg.openings.forEach(op=>{
-        const t=op.position/100;
-        const wFrac=op.width; // op.width in cm ≈ image pixels (1:1 rough estimate)
-        const opX=sx+Math.cos(angle)*t*len;
-        const opY=sy+Math.sin(angle)*t*len;
-        const hw=Math.min(wFrac,len*0.4)/2;
-        ctx.beginPath();
-        ctx.moveTo(opX-Math.cos(angle)*hw,opY-Math.sin(angle)*hw);
-        ctx.lineTo(opX+Math.cos(angle)*hw,opY+Math.sin(angle)*hw);
-        ctx.strokeStyle=op.type==='door'?'#F59E0B':'#3B82F6';
-        ctx.lineWidth=4/viewScale;
-        ctx.stroke();
-        ctx.fillStyle=op.type==='door'?'#F59E0B':'#3B82F6';
-        ctx.font=`${9/viewScale}px sans-serif`;
-        ctx.textAlign='center';
-        ctx.textBaseline='bottom';
-        ctx.fillText(op.type==='door'?'門':'窗',opX,opY-4/viewScale);
-      });
+      ctx.stroke();ctx.setLineDash([]);
     }
 
     // Endpoint dots
@@ -986,6 +1586,92 @@ function renderCanvas(){
       ctx.fill();
     });
   });
+
+  function drawDoorSymbol(ctx,gapX1,gapY1,gapPx,angle,op,isSelOp){
+    // side: +1 = swing right of wall direction (perpAngle = angle+π/2)
+    //       -1 = swing left  (perpAngle = angle-π/2)
+    const side=(op.swingSide==='left')?-1:1;
+    const flip=!!op.flipHinge;       // hinge at gap END instead of START
+    const cos=Math.cos(angle),sin=Math.sin(angle);
+    // Hinge position
+    const hx=flip?gapX1+cos*gapPx:gapX1;
+    const hy=flip?gapY1+sin*gapPx:gapY1;
+    // Door leaf: from hinge, perpendicular to wall
+    const perpAngle=angle+side*Math.PI/2;
+    const pcos=Math.cos(perpAngle),psin=Math.sin(perpAngle);
+    const tipX=hx+pcos*gapPx, tipY=hy+psin*gapPx;
+    // Arc end angle: door opens flat against wall, towards the other end of gap
+    //   no flip → opens towards angle direction
+    //   flip    → opens towards angle+π direction
+    const arcEnd=flip?angle+Math.PI:angle;
+    // Anticlockwise flag (canvas y-down):
+    //   no flip, side+1: from perpAngle(=angle+π/2) to angle, CCW (anticlockwise=true)
+    //   no flip, side-1: from perpAngle(=angle-π/2) to angle, CW  (anticlockwise=false)
+    //   flip inverts both side and direction together → same formula works
+    const ccw=flip?(side<0):(side>0);
+    const color=isSelOp?'#D97706':'#F59E0B';
+    // Door leaf line
+    ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(tipX,tipY);
+    ctx.strokeStyle=color;ctx.lineWidth=(isSelOp?2:1.5)/viewScale;ctx.setLineDash([]);ctx.stroke();
+    // Quarter-arc (swing path, dashed)
+    ctx.beginPath();ctx.arc(hx,hy,gapPx,perpAngle,arcEnd,ccw);
+    ctx.strokeStyle=color;ctx.lineWidth=1/viewScale;
+    ctx.setLineDash([4/viewScale,2/viewScale]);ctx.stroke();ctx.setLineDash([]);
+    // Hinge dot
+    ctx.beginPath();ctx.arc(hx,hy,2.5/viewScale,0,Math.PI*2);
+    ctx.fillStyle=color;ctx.fill();
+  }
+
+  function drawWindowSymbol(ctx,x1,y1,gapPx,angle,op,isSelOp){
+    const cos=Math.cos(angle),sin=Math.sin(angle);
+    const perp=angle+Math.PI/2;
+    const pcos=Math.cos(perp),psin=Math.sin(perp);
+    const frameD=5/viewScale; // half-depth of window symbol
+    const color=isSelOp?'#2563EB':'#3B82F6';
+    // Cap lines at each end of gap
+    [0,gapPx].forEach(d=>{
+      const mx=x1+cos*d, my=y1+sin*d;
+      ctx.beginPath();
+      ctx.moveTo(mx-pcos*frameD*1.2,my-psin*frameD*1.2);
+      ctx.lineTo(mx+pcos*frameD*1.2,my+psin*frameD*1.2);
+      ctx.strokeStyle=color;ctx.lineWidth=1.5/viewScale;ctx.setLineDash([]);ctx.stroke();
+    });
+    // Two parallel glass lines along the gap
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.moveTo(x1+pcos*frameD*side,y1+psin*frameD*side);
+      ctx.lineTo(x1+cos*gapPx+pcos*frameD*side,y1+sin*gapPx+psin*frameD*side);
+      ctx.strokeStyle=color;ctx.lineWidth=1.5/viewScale;ctx.setLineDash([]);ctx.stroke();
+    });
+    // Center divider(s)
+    const divs=gapPx>60/viewScale?[1/2]:[1/2];
+    divs.forEach(t=>{
+      const mx=x1+cos*gapPx*t, my=y1+sin*gapPx*t;
+      ctx.beginPath();
+      ctx.moveTo(mx-pcos*frameD,my-psin*frameD);
+      ctx.lineTo(mx+pcos*frameD,my+psin*frameD);
+      ctx.strokeStyle=color;ctx.lineWidth=1/viewScale;ctx.setLineDash([]);ctx.stroke();
+    });
+  }
+
+  // Draw endpoint handles in select1 mode
+  if(currentTool==='select1'){
+    const seen=new Set();
+    segments.forEach(seg=>{
+      [{x:seg.start.x,y:seg.start.y},{x:seg.end.x,y:seg.end.y}].forEach(p=>{
+        const key=`${p.x.toFixed(5)},${p.y.toFixed(5)}`;
+        if(seen.has(key))return; seen.add(key);
+        const isDragging=draggingEndpoint&&draggingEndpoint.updates.some(u=>{
+          const s2=getSegById(u.segId); return s2&&Math.hypot(s2[u.which].x-p.x,s2[u.which].y-p.y)<0.0005;
+        });
+        ctx.beginPath();ctx.arc(p.x*IW,p.y*IH,isDragging?6/viewScale:4/viewScale,0,Math.PI*2);
+        ctx.fillStyle=isDragging?'#e74c3c':'#fff';
+        ctx.strokeStyle=isDragging?'#c0392b':'#cc3300';
+        ctx.lineWidth=1.5/viewScale;
+        ctx.fill();ctx.stroke();
+      });
+    });
+  }
 
   // Draw wall-in-progress
   if((currentTool==='wall'||currentTool==='virtual')&&drawStart&&drawCurrent){
@@ -998,8 +1684,23 @@ function renderCanvas(){
       ctx.strokeStyle='#8B5CF6';ctx.lineWidth=1.5/viewScale;ctx.setLineDash([8/viewScale,4/viewScale]);
     }
     ctx.stroke();ctx.setLineDash([]);
+    // Start-point anchor
     ctx.beginPath();ctx.arc(drawStart.x*IW,drawStart.y*IH,4/viewScale,0,Math.PI*2);
     ctx.fillStyle='#185FA5';ctx.fill();
+  }
+  // Snap indicator — show during wall drawing AND endpoint dragging
+  if(snapHoverPt){
+    const IW=img.naturalWidth,IH=img.naturalHeight;
+    const hx=snapHoverPt.x*IW,hy=snapHoverPt.y*IH;
+    ctx.strokeStyle='#e74c3c';ctx.lineWidth=2/viewScale;ctx.setLineDash([]);
+    if(snapHoverPt.snapType==='segment'){
+      // Square = snapping to mid-segment point (T-junction)
+      const r=6/viewScale;
+      ctx.strokeRect(hx-r,hy-r,r*2,r*2);
+    } else {
+      // Circle = snapping to endpoint
+      ctx.beginPath();ctx.arc(hx,hy,8/viewScale,0,Math.PI*2);ctx.stroke();
+    }
   }
 
   // Draw room polygon in progress
@@ -1036,18 +1737,86 @@ function renderCanvas(){
       ctx.save();
       ctx.translate(cx,cy);
       ctx.rotate((f.rotation||0)*Math.PI/180);
+      // Main rect
       ctx.fillStyle=room.color+'44';
       ctx.strokeStyle=isSelFurn?room.color:'#666';
       ctx.lineWidth=(isSelFurn?2:1)/viewScale;
       ctx.fillRect(-fw/2,-fh/2,fw,fh);
       ctx.strokeRect(-fw/2,-fh/2,fw,fh);
-      ctx.font=`${Math.min(fw,fh)*0.5}px sans-serif`;
+      // Head direction stripe (shows orientation)
+      const headDir=f.headDir||0; // 0=top,1=right,2=bottom,3=left
+      const stripeW=Math.min(fw,fh)*0.18;
+      ctx.fillStyle='rgba(0,0,0,0.25)';
+      if(headDir===0) ctx.fillRect(-fw/2,-fh/2,fw,stripeW);           // top stripe
+      else if(headDir===1) ctx.fillRect(fw/2-stripeW,-fh/2,stripeW,fh); // right stripe
+      else if(headDir===2) ctx.fillRect(-fw/2,fh/2-stripeW,fw,stripeW); // bottom stripe
+      else ctx.fillRect(-fw/2,-fh/2,stripeW,fh);                       // left stripe
+      // Text label (name only, no icon)
+      const labelPx=Math.max(9/viewScale,Math.min(14/viewScale,Math.min(fw,fh)*0.28));
+      ctx.font=`bold ${labelPx}px sans-serif`;
       ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillStyle='rgba(0,0,0,0.7)';
-      ctx.fillText(f.icon,0,0);
+      ctx.fillStyle='rgba(0,0,0,0.82)';
+      ctx.fillText(f.name||f.type,0,0);
+      // Draw handles if selected
+      if(isSelFurn){
+        const HS=6/viewScale;         // half-size of corner handle square
+        const ROT_OFF=18/viewScale;   // rotate handle distance above top edge
+        const rhy=-fh/2-ROT_OFF;
+        // Connector line: top edge → rotate circle
+        ctx.beginPath();ctx.moveTo(0,-fh/2);ctx.lineTo(0,rhy);
+        ctx.strokeStyle=room.color+'cc';ctx.lineWidth=1/viewScale;ctx.stroke();
+        // Corner resize handles
+        [[-fw/2,-fh/2],[fw/2,-fh/2],[fw/2,fh/2],[-fw/2,fh/2]].forEach(([hx,hy])=>{
+          ctx.fillStyle='#fff';ctx.strokeStyle=room.color;ctx.lineWidth=1.5/viewScale;
+          ctx.fillRect(hx-HS,hy-HS,HS*2,HS*2);ctx.strokeRect(hx-HS,hy-HS,HS*2,HS*2);
+        });
+        // Rotate handle circle
+        ctx.beginPath();ctx.arc(0,rhy,HS,0,Math.PI*2);
+        ctx.fillStyle='#fff';ctx.fill();
+        ctx.strokeStyle=room.color;ctx.lineWidth=1.5/viewScale;ctx.stroke();
+      }
       ctx.restore();
     });
   });
+
+  // Draw furniture drag rectangle preview
+  if(currentTool==='furn-place'&&furnDragStart&&furnDragCurrent){
+    const rx=Math.min(furnDragStart.x,furnDragCurrent.x)*IW;
+    const ry=Math.min(furnDragStart.y,furnDragCurrent.y)*IH;
+    const rw=Math.abs(furnDragCurrent.x-furnDragStart.x)*IW;
+    const rh=Math.abs(furnDragCurrent.y-furnDragStart.y)*IH;
+    ctx.strokeStyle='#10B981';ctx.lineWidth=2/viewScale;ctx.setLineDash([6/viewScale,3/viewScale]);
+    ctx.strokeRect(rx,ry,rw,rh);
+    ctx.fillStyle='rgba(16,185,129,0.08)';ctx.fillRect(rx,ry,rw,rh);
+    ctx.setLineDash([]);
+  }
+
+  // Draw scale reference line — Step 1 only
+  if(scaleP1 && currentStep===1){
+    const p1s={x:scaleP1.x*IW, y:scaleP1.y*IH};
+    const p2s=scaleP2?{x:scaleP2.x*IW,y:scaleP2.y*IH}:(drawCurrent&&currentTool==='scale-line'&&scaleTool_phase===2)?{x:drawCurrent.x*IW,y:drawCurrent.y*IH}:null;
+    ctx.strokeStyle='#F59E0B'; ctx.lineWidth=2/viewScale; ctx.setLineDash([6/viewScale,3/viewScale]);
+    if(p2s){
+      ctx.beginPath(); ctx.moveTo(p1s.x,p1s.y); ctx.lineTo(p2s.x,p2s.y); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(p1s.x,p1s.y,5/viewScale,0,Math.PI*2);
+    ctx.fillStyle='#F59E0B'; ctx.fill();
+    if(scaleSet&&p2s){
+      ctx.beginPath(); ctx.arc(p2s.x,p2s.y,5/viewScale,0,Math.PI*2);
+      ctx.fillStyle='#F59E0B'; ctx.fill();
+      // Label (format: avoid floating-point noise like "210.000001")
+      const cmLabel=Number.isInteger(scaleRealCm)?scaleRealCm:(Math.round(scaleRealCm*10)/10);
+      const mx=(p1s.x+p2s.x)/2, my=(p1s.y+p2s.y)/2;
+      // White backing for readability
+      ctx.font=`bold ${12/viewScale}px sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=3/viewScale;
+      ctx.strokeText(`${cmLabel} cm`, mx, my-4/viewScale);
+      ctx.fillStyle='#92400E';
+      ctx.fillText(`${cmLabel} cm`, mx, my-4/viewScale);
+    }
+  }
 
   ctx.restore();
 }
@@ -1056,6 +1825,7 @@ function renderCanvas(){
 // MOUSE / KEYBOARD EVENTS
 // ═══════════════════════════════════════════
 canvas.addEventListener('mousedown',onMouseDown);
+renderScaleObjGrid();
 canvas.addEventListener('mousemove',onMouseMove);
 canvas.addEventListener('mouseup',onMouseUp);
 canvas.addEventListener('dblclick',onDblClick);
@@ -1085,6 +1855,19 @@ function onMouseDown(e){
   const snapped=snapToSegEndpoints(sp.x,sp.y);
   let ip=snapped.img;
 
+  if(currentTool==='scale-line'){
+    if(!scaleRefDim){showError('請先選擇參考物品及尺寸');return;}
+    if(scaleTool_phase===1){
+      scaleP1=ip; scaleTool_phase=2;
+      document.getElementById('scale-status').textContent='已點選第一點，請點選第二點';
+      renderCanvas();
+    } else if(scaleTool_phase===2){
+      scaleP2=ip;
+      _applyScale(scaleP1,scaleP2,scaleRefDim.cm);
+    }
+    return;
+  }
+
   if(currentTool==='wall'||currentTool==='virtual'){
     if(!drawStart){
       drawStart=ip;
@@ -1093,7 +1876,9 @@ function onMouseDown(e){
       let end=ip;
       if(shiftDown) end=applyShiftLock(drawStart,end);
       addSegment(currentTool,{...drawStart},{...end});
-      drawStart=null;drawCurrent=null;
+      // Chain: immediately start next segment from this end
+      drawStart={...end};
+      drawCurrent={...end};
       renderCanvas();
     }
   } else if(currentTool==='room-poly'){
@@ -1112,14 +1897,123 @@ function onMouseDown(e){
       polyPoints.push(ip);
     }
     renderCanvas();
+  } else if(currentTool==='room-click'){
+    wallGapHints=null;
+    // First check if click hit an existing room → rename it
+    const hitIdx=rooms.findIndex(r=>r.polygon&&r.polygon.length>=3&&isPointInPolygon(ip.x,ip.y,r.polygon));
+    if(hitIdx>=0){
+      editingRoomIdx=hitIdx;
+      selectedRoomIdx=hitIdx;
+      openRoomModal();
+      renderCanvas();
+      return;
+    }
+    // Otherwise detect a new enclosed region
+    const detected=detectRoomPolygon(ip.x,ip.y);
+    const poly=detected?.polygon;
+    if(!detected||!poly||poly.length<4){
+      wallGapHints=findWallGaps();
+      const hint=wallGapHints.nearMiss.length
+        ?`找到 ${wallGapHints.nearMiss.length} 個近似缺口（紅色）、${wallGapHints.dangling.length} 個懸空端點（橘色），請回 Step 2 補齊牆段`
+        :wallGapHints.dangling.length
+          ?`找到 ${wallGapHints.dangling.length} 個懸空端點（橘色），請回 Step 2 將牆段接合`
+          :'此位置未形成封閉空間，請確認牆段已完全閉合';
+      showError(hint);
+      renderCanvas();
+      return;
+    }
+    wallGapHints=null;
+    editingRoomIdx=null;
+    pendingRoomPolygon=poly;
+    pendingRoomFillCanvas=detected.fillCanvas;   // store bitmap for later
+    pendingRoomCentroid=detected.centroid??null; // store centroid for label
+    openRoomModal();
+    renderCanvas();
   } else if(currentTool==='select1'){
-    // find clicked segment
-    let hit=null;
+    // Priority: 0) endpoint  1) resize handle  2) center (move/click)  3) wall segment
+    // --- Check endpoint hit ---
+    let epHit=null;
+    const EP_HIT=12;
     segments.forEach(seg=>{
-      const d=distToSegment(ip,seg.start,seg.end);
-      if(d<0.01) hit=seg.id;
+      [{which:'start',p:seg.start},{which:'end',p:seg.end}].forEach(({which,p})=>{
+        const s=imgToScreen(p.x,p.y);
+        if(Math.hypot(sp.x-s.x,sp.y-s.y)<EP_HIT) epHit={segId:seg.id,which,imgPos:{...p}};
+      });
     });
-    selectedSegId=hit;
+    if(epHit){
+      // Collect all segment endpoints that share the same position (connected walls)
+      const EPS=0.0005;
+      const ox=epHit.imgPos.x,oy=epHit.imgPos.y;
+      const updates=[];
+      segments.forEach(seg=>{
+        if(Math.hypot(seg.start.x-ox,seg.start.y-oy)<EPS) updates.push({segId:seg.id,which:'start'});
+        if(Math.hypot(seg.end.x-ox,seg.end.y-oy)<EPS) updates.push({segId:seg.id,which:'end'});
+      });
+      pushUndo();
+      draggingEndpoint={updates,origImg:{x:ox,y:oy}};
+      selectedSegId=epHit.segId;
+      renderCanvas();
+      return;
+    }
+    const ENDPOINT_HIT=20; // screen-px radius to trigger endpoint-only drag
+    let opHit=null; // {segId,opIdx,dragMode:'endpoint'|'body', handle?,fixedDist?}
+    segments.forEach(seg=>{
+      if(seg.type!=='wall') return;
+      const IW=img.naturalWidth,IH=img.naturalHeight;
+      const sx=seg.start.x*IW,sy=seg.start.y*IH;
+      const ex=seg.end.x*IW,ey=seg.end.y*IH;
+      const len=Math.hypot(ex-sx,ey-sy);
+      const cos=(ex-sx)/len,sin=(ey-sy)/len;
+      seg.openings.forEach((op,opIdx)=>{
+        if(opHit) return;
+        const gapPx=opGapPx(op,len);
+        const centerDist=(op.position/100)*len;
+        // Use SAME clamping as rendering so hit zones match visual handles exactly
+        const gStart=Math.max(0,centerDist-gapPx/2);
+        const gEnd=Math.min(len,centerDist+gapPx/2);
+        const gx1=sx+cos*gStart, gy1=sy+sin*gStart;
+        const gx2=sx+cos*gEnd,   gy2=sy+sin*gEnd;
+        const s1=imgToScreen(gx1/IW,gy1/IH);
+        const s2=imgToScreen(gx2/IW,gy2/IH);
+        const sc=imgToScreen((gx1+gx2)/(2*IW),(gy1+gy2)/(2*IH));
+        const d1=Math.hypot(sp.x-s1.x,sp.y-s1.y);
+        const d2=Math.hypot(sp.x-s2.x,sp.y-s2.y);
+        const inZone=Math.hypot(sp.x-sc.x,sp.y-sc.y)<(gEnd-gStart)*viewScale/2+ENDPOINT_HIT;
+        if(!inZone) return;
+        if(d1<ENDPOINT_HIT||d2<ENDPOINT_HIT){
+          // Endpoint drag — nearest visual handle moves, the other stays fixed
+          const handle=d1<=d2?'start':'end';
+          const fixedDist=handle==='start'?gEnd:gStart; // uses clamped positions
+          opHit={segId:seg.id,opIdx,dragMode:'endpoint',handle,fixedDist};
+        } else {
+          // Body drag — whole opening slides along wall, size unchanged
+          opHit={segId:seg.id,opIdx,dragMode:'body'};
+        }
+      });
+    });
+    if(opHit){
+      pushUndo();
+      selectedOpeningKey={segId:opHit.segId,opIdx:opHit.opIdx};
+      selectedSegId=opHit.segId;
+      openingClickCandidate={...opHit,sx:sp.x,sy:sp.y,clientX:e.clientX,clientY:e.clientY};
+      if(opHit.dragMode==='endpoint'){
+        resizingOpening=opHit;
+        draggingOpening=null;
+      } else {
+        draggingOpening={segId:opHit.segId,opIdx:opHit.opIdx};
+        resizingOpening=null;
+      }
+    } else {
+      selectedOpeningKey=null;
+      draggingOpening=null;
+      // find clicked segment
+      let hit=null;
+      segments.forEach(seg=>{
+        const d=distToSegment(ip,seg.start,seg.end);
+        if(d<0.01) hit=seg.id;
+      });
+      selectedSegId=hit;
+    }
     renderSegList();updateOpeningEditor();renderCanvas();
   } else if(currentTool==='select2'){
     let hit=null;
@@ -1127,18 +2021,60 @@ function onMouseDown(e){
     selectedRoomIdx=hit;
     renderRoomList();renderCanvas();
   } else if(currentTool==='furn-place'){
-    placeFurn(ip.x,ip.y);
+    furnDragStart=ip; furnDragCurrent=ip;
   } else if(currentTool==='select3'){
-    // find furniture
+    // 1) Check handles on currently selected furniture first
+    if(selectedFurnKey){
+      const f=rooms[selectedFurnKey.roomIdx]?.furniture[selectedFurnKey.furnIdx];
+      if(f){
+        const IW=img.naturalWidth,IH=img.naturalHeight;
+        const fw=f.width*IW,fh=f.height*IH;
+        const HS=6/viewScale;
+        const ROT_OFF=18/viewScale;
+        const local=getFurnLocalPos(f,ip);
+        const lx=local.x,ly=local.y;
+        // Rotate handle
+        if(Math.hypot(lx,ly-(-fh/2-ROT_OFF))<HS*2.5){
+          pushUndo();
+          const cx=f.x*img.naturalWidth,cy=f.y*img.naturalHeight;
+          rotatingFurn={...selectedFurnKey,startAngle:Math.atan2(ip.y*IH-cy,ip.x*IW-cx),origRotation:f.rotation||0};
+          renderCanvas();return;
+        }
+        // Corner resize handles — store opposite corner (anchor) in world coords
+        const corners=[[-fw/2,-fh/2,'TL'],[fw/2,-fh/2,'TR'],[fw/2,fh/2,'BR'],[-fw/2,fh/2,'BL']];
+        const opposite={TL:'BR',TR:'BL',BR:'TL',BL:'TR'};
+        const cornerLocal={TL:[-fw/2,-fh/2],TR:[fw/2,-fh/2],BR:[fw/2,fh/2],BL:[-fw/2,fh/2]};
+        for(const [hx,hy,name] of corners){
+          if(Math.hypot(lx-hx,ly-hy)<HS*2.5){
+            pushUndo();
+            // Compute opposite corner's world position (stays fixed during drag)
+            const ang=(f.rotation||0)*Math.PI/180;
+            const c=Math.cos(ang),s=Math.sin(ang);
+            const [olx,oly]=cornerLocal[opposite[name]];
+            const anchorWorld={
+              x:(f.x*IW+olx*c-oly*s)/IW,
+              y:(f.y*IH+olx*s+oly*c)/IH
+            };
+            resizingFurn={...selectedFurnKey,corner:name,anchorWorld};
+            renderCanvas();return;
+          }
+        }
+      }
+    }
+    // 2) find furniture body hit
     let hit=null;
     rooms.forEach((r,ri)=>{
       r.furniture.forEach((f,fi)=>{
-        const dx=Math.abs(ip.x-f.x),dy=Math.abs(ip.y-f.y);
-        if(dx<f.width/2+0.01&&dy<f.height/2+0.01) hit={roomIdx:ri,furnIdx:fi};
+        const local=getFurnLocalPos(f,ip);
+        const IW=img.naturalWidth,IH=img.naturalHeight;
+        if(Math.abs(local.x)<f.width*IW/2+2&&Math.abs(local.y)<f.height*IH/2+2) hit={roomIdx:ri,furnIdx:fi};
       });
     });
     selectedFurnKey=hit;
-    if(hit) draggingFurn={roomIdx:hit.roomIdx,furnIdx:hit.furnIdx,ox:ip.x,oy:ip.y};
+    if(hit){
+      pushUndo();
+      draggingFurn={roomIdx:hit.roomIdx,furnIdx:hit.furnIdx,ox:ip.x,oy:ip.y};
+    }
     renderCanvas();
   }
 }
@@ -1154,9 +2090,75 @@ function onMouseMove(e){
   const sp=getScreenPos(e);
   const snapped=snapToSegEndpoints(sp.x,sp.y);
   let ip=snapped.img;
-  canvas.style.cursor=snapped.snapped?'crosshair':spaceDown?'grab':(currentTool==='wall'||currentTool==='virtual'||currentTool==='room-poly'||currentTool==='furn-place')?'crosshair':'default';
+  // Track snap target while drawing or dragging endpoint (for visual indicator)
+  // Only set from global snap in drawing mode; draggingEndpoint block overrides with excluded snap
+  if(!draggingEndpoint){
+    snapHoverPt=(snapped.snapped&&(currentTool==='wall'||currentTool==='virtual'||currentTool==='select1'))
+      ?{...snapped.img,snapType:snapped.snapType}:null;
+  }
+  // Cursor: check endpoint hover
+  let hoverEndpoint=false;
+  if(currentTool==='select1'){
+    segments.forEach(seg=>{
+      [{x:seg.start.x,y:seg.start.y},{x:seg.end.x,y:seg.end.y}].forEach(p=>{
+        const s=imgToScreen(p.x,p.y);
+        if(Math.hypot(sp.x-s.x,sp.y-s.y)<12) hoverEndpoint=true;
+      });
+    });
+  }
+  // Cursor: endpoint zone → col-resize, body zone → ew-resize
+  let hoverOpCenter=false,hoverOpHandle=false;
+  if(currentTool==='select1'){
+    const EP_HIT=20;
+    segments.forEach(seg=>{
+      if(seg.type!=='wall') return;
+      const IW=img.naturalWidth,IH=img.naturalHeight;
+      const sx=seg.start.x*IW,sy=seg.start.y*IH;
+      const ex=seg.end.x*IW,ey=seg.end.y*IH;
+      const len=Math.hypot(ex-sx,ey-sy);
+      const cos=(ex-sx)/len,sin=(ey-sy)/len;
+      seg.openings.forEach(op=>{
+        const gapPx=opGapPx(op,len);
+        const centerDist=(op.position/100)*len;
+        // Same clamping as rendering
+        const gStart=Math.max(0,centerDist-gapPx/2);
+        const gEnd=Math.min(len,centerDist+gapPx/2);
+        const gx1=sx+cos*gStart,gy1=sy+sin*gStart;
+        const gx2=sx+cos*gEnd,  gy2=sy+sin*gEnd;
+        const s1=imgToScreen(gx1/IW,gy1/IH),s2=imgToScreen(gx2/IW,gy2/IH);
+        const sc=imgToScreen((gx1+gx2)/(2*IW),(gy1+gy2)/(2*IH));
+        const inZone=Math.hypot(sp.x-sc.x,sp.y-sc.y)<(gEnd-gStart)*viewScale/2+EP_HIT;
+        if(!inZone) return;
+        const d1=Math.hypot(sp.x-s1.x,sp.y-s1.y);
+        const d2=Math.hypot(sp.x-s2.x,sp.y-s2.y);
+        if(d1<EP_HIT||d2<EP_HIT) hoverOpHandle=true; // endpoint → col-resize
+        else hoverOpCenter=true;                       // body → ew-resize
+      });
+    });
+  }
+  // Detect furniture handle hover for cursor
+  let hoverFurnHandle=false,hoverFurnRotate=false;
+  if(currentTool==='select3'&&selectedFurnKey&&!e.buttons){
+    const f=rooms[selectedFurnKey.roomIdx]?.furniture[selectedFurnKey.furnIdx];
+    if(f){
+      const IW=img.naturalWidth,IH=img.naturalHeight;
+      const fw=f.width*IW,fh=f.height*IH;
+      const HS=6/viewScale;
+      const ROT_OFF=18/viewScale;
+      const local=getFurnLocalPos(f,ip);
+      const lx=local.x,ly=local.y;
+      if(Math.hypot(lx,ly-(-fh/2-ROT_OFF))<HS*2.5) hoverFurnRotate=true;
+      else{
+        const corners=[[-fw/2,-fh/2],[fw/2,-fh/2],[fw/2,fh/2],[-fw/2,fh/2]];
+        if(corners.some(([hx,hy])=>Math.hypot(lx-hx,ly-hy)<HS*2.5)) hoverFurnHandle=true;
+      }
+    }
+  }
+  canvas.style.cursor=spaceDown?'grab':hoverFurnRotate?'grab':hoverFurnHandle?'nwse-resize':rotatingFurn?'grabbing':resizingFurn?'nwse-resize':snapped.snapped?'crosshair':hoverEndpoint&&currentTool==='select1'?'move':hoverOpHandle?'col-resize':hoverOpCenter?'ew-resize':(currentTool==='wall'||currentTool==='virtual'||currentTool==='room-poly'||currentTool==='room-click'||currentTool==='furn-place'||currentTool==='scale-line')?'crosshair':'default';
 
-  if((currentTool==='wall'||currentTool==='virtual')&&drawStart){
+  if(currentTool==='scale-line'&&scaleTool_phase===2){
+    drawCurrent=ip; renderCanvas();
+  } else if((currentTool==='wall'||currentTool==='virtual')&&drawStart){
     let end=ip;
     if(shiftDown) end=applyShiftLock(drawStart,end);
     drawCurrent=end;
@@ -1164,20 +2166,190 @@ function onMouseMove(e){
   } else if(currentTool==='room-poly'&&polyDrawing){
     polyCurrent=ip;
     renderCanvas();
+  } else if(currentTool==='select3'&&rotatingFurn&&e.buttons===1){
+    const furn=rooms[rotatingFurn.roomIdx]?.furniture[rotatingFurn.furnIdx];
+    if(furn){
+      const IW=img.naturalWidth,IH=img.naturalHeight;
+      const cx=furn.x*IW,cy=furn.y*IH;
+      const angle=Math.atan2(ip.y*IH-cy,ip.x*IW-cx);
+      const delta=(angle-rotatingFurn.startAngle)*180/Math.PI;
+      let newRot=(((rotatingFurn.origRotation+delta)%360)+360)%360;
+      if(shiftDown) newRot=Math.round(newRot/45)*45%360;
+      furn.rotation=newRot;
+      renderCanvas();
+    }
+  } else if(currentTool==='select3'&&resizingFurn&&e.buttons===1){
+    const furn=rooms[resizingFurn.roomIdx]?.furniture[resizingFurn.furnIdx];
+    if(furn){
+      const IW=img.naturalWidth,IH=img.naturalHeight;
+      const anchor=resizingFurn.anchorWorld;      // opposite corner in normalized coords
+      // New center = midpoint of anchor and mouse
+      furn.x=(anchor.x+ip.x)/2;
+      furn.y=(anchor.y+ip.y)/2;
+      // Half-diagonal vector from new center to mouse, in image pixels
+      const dx=(ip.x-anchor.x)/2*IW;
+      const dy=(ip.y-anchor.y)/2*IH;
+      // Project onto furniture local axes (un-rotate)
+      const ang=(furn.rotation||0)*Math.PI/180;
+      const cos=Math.cos(ang),sin=Math.sin(ang);
+      const localX=dx*cos+dy*sin;
+      const localY=-dx*sin+dy*cos;
+      furn.width=Math.max(0.005,Math.abs(localX)*2/IW);
+      furn.height=Math.max(0.005,Math.abs(localY)*2/IH);
+      renderCanvas();
+    }
   } else if(currentTool==='select3'&&draggingFurn&&e.buttons===1){
     const room=rooms[draggingFurn.roomIdx];
     const furn=room?.furniture[draggingFurn.furnIdx];
     if(furn){furn.x=ip.x;furn.y=ip.y;renderCanvas();}
+  } else if(currentTool==='furn-place'&&furnDragStart&&e.buttons===1){
+    furnDragCurrent=ip; renderCanvas();
+  } else if(currentTool==='select1'&&draggingEndpoint&&e.buttons===1){
+    // Re-snap excluding the dragged segments themselves, so we snap to OTHER walls only
+    const excIds=draggingEndpoint.updates.map(u=>u.segId);
+    const epSnap=snapToSegEndpoints(sp.x,sp.y,excIds);
+    const eip=epSnap.img;
+    // Show snap indicator during endpoint drag
+    snapHoverPt=epSnap.snapped?{...eip,snapType:epSnap.snapType}:null;
+    // Move all endpoints sharing the same original position
+    draggingEndpoint.updates.forEach(({segId,which})=>{
+      const seg=getSegById(segId);
+      if(seg) seg[which]={x:eip.x,y:eip.y};
+    });
+    renderCanvas();
+  } else if(currentTool==='select1'&&resizingOpening&&e.buttons===1){
+    // Resize opening by dragging start or end handle
+    const seg=getSegById(resizingOpening.segId);
+    const op=seg?.openings[resizingOpening.opIdx];
+    if(seg&&op){
+      const IW=img.naturalWidth,IH=img.naturalHeight;
+      const sx=seg.start.x*IW,sy=seg.start.y*IH;
+      const ex=seg.end.x*IW,ey=seg.end.y*IH;
+      const len=Math.hypot(ex-sx,ey-sy);
+      if(len>0){
+        const mx=ip.x*IW,my=ip.y*IH;
+        const t=Math.max(0,Math.min(1,((mx-sx)*(ex-sx)+(my-sy)*(ey-sy))/(len*len)));
+        const mouseDist=t*len;
+        const fixedDist=resizingOpening.fixedDist??0;
+        const MIN_GAP=20; // minimum gap in image pixels
+        if(resizingOpening.handle==='start'){
+          const newStart=Math.max(0, Math.min(mouseDist, fixedDist-MIN_GAP));
+          const gapPx=fixedDist-newStart;
+          op.position=(newStart+fixedDist)/(2*len)*100;
+          op.width=gapPxToWidth(gapPx);
+        } else {
+          const newEnd=Math.min(len, Math.max(mouseDist, fixedDist+MIN_GAP));
+          const gapPx=newEnd-fixedDist;
+          op.position=(fixedDist+newEnd)/(2*len)*100;
+          op.width=gapPxToWidth(gapPx);
+        }
+        renderCanvas();
+      }
+    }
+  } else if(currentTool==='select1'&&draggingOpening&&e.buttons===1){
+    const seg=getSegById(draggingOpening.segId);
+    const op=seg?.openings[draggingOpening.opIdx];
+    if(seg&&op){
+      const IW=img.naturalWidth,IH=img.naturalHeight;
+      const sx=seg.start.x*IW,sy=seg.start.y*IH;
+      const ex=seg.end.x*IW,ey=seg.end.y*IH;
+      const len=Math.hypot(ex-sx,ey-sy);
+      if(len>0){
+        const mx=ip.x*IW,my=ip.y*IH;
+        const t=Math.max(0.05,Math.min(0.95,((mx-sx)*(ex-sx)+(my-sy)*(ey-sy))/(len*len)));
+        op.position=Math.round(t*100);
+        renderCanvas();
+      }
+    }
+  }
+
+  // Hover fill: show enclosed region preview in Step 3 room-click mode
+  if(currentStep===3&&currentTool==='room-click'&&!e.buttons){
+    const CELL=10; // ~2% of image — only recompute when crossing to new cell
+    const tx=Math.floor(ip.x*512/CELL),ty=Math.floor(ip.y*512/CELL);
+    if(tx!==hoverFillCell.tx||ty!==hoverFillCell.ty){
+      hoverFillCell={tx,ty};
+      const cnx=ip.x,cny=ip.y; // capture before async
+      if(hoverFillRafId) cancelAnimationFrame(hoverFillRafId);
+      hoverFillRafId=requestAnimationFrame(()=>{
+        hoverFillCanvas=computeHoverFill(cnx,cny);
+        renderCanvas();
+      });
+    }
+  } else if(hoverFillCanvas&&!(currentStep===3&&currentTool==='room-click')){
+    hoverFillCanvas=null;
+    hoverFillCell={tx:-1,ty:-1};
+    renderCanvas();
   }
 }
 
 function onMouseUp(e){
   if(isPanning){isPanning=false;canvas.style.cursor=spaceDown?'grab':'crosshair';}
   draggingFurn=null;
+  resizingFurn=null;
+  rotatingFurn=null;
+  resizingOpening=null;
+  if(draggingEndpoint) snapHoverPt=null; // clear snap indicator when drag ends
+  draggingEndpoint=null;
+  draggingOpening=null;
+  openingClickCandidate=null;
+  // Furniture drag-to-place: on release, open type modal if rect is big enough
+  if(currentTool==='furn-place'&&furnDragStart&&furnDragCurrent){
+    const rx=Math.min(furnDragStart.x,furnDragCurrent.x);
+    const ry=Math.min(furnDragStart.y,furnDragCurrent.y);
+    const rw=Math.abs(furnDragCurrent.x-furnDragStart.x);
+    const rh=Math.abs(furnDragCurrent.y-furnDragStart.y);
+    if(rw>0.005||rh>0.005){
+      openFurnTypeModal({x:rx,y:ry,w:rw,h:rh});
+    } else {
+      furnDragStart=null;furnDragCurrent=null;
+    }
+  }
 }
 
 function onDblClick(e){
-  if(currentTool==='room-poly'&&polyPoints.length>2){finishRoomPolygon();}
+  if(currentTool==='room-poly'&&polyPoints.length>2){finishRoomPolygon();return;}
+  // Double-click stops wall chain (removes the duplicate last segment just placed)
+  if((currentTool==='wall'||currentTool==='virtual')&&drawStart){
+    // The first click of the dbl-click already added a zero-length/tiny segment – remove it
+    if(segments.length>0){
+      const last=segments[segments.length-1];
+      const d=Math.hypot(last.end.x-last.start.x,last.end.y-last.start.y);
+      if(d<0.002) segments.pop(); // near-zero segment from the double-click
+    }
+    drawStart=null;drawCurrent=null;snapHoverPt=null;
+    renderCanvas();
+    return;
+  }
+  // Double-click on an opening (select1 tool) → show floating popup
+  if(currentTool==='select1'&&img){
+    const sp=getScreenPos(e);
+    const ENDPOINT_HIT=20;
+    let found=null;
+    segments.forEach(seg=>{
+      if(found||seg.type!=='wall') return;
+      const IW=img.naturalWidth,IH=img.naturalHeight;
+      const sx=seg.start.x*IW,sy=seg.start.y*IH;
+      const ex=seg.end.x*IW,ey=seg.end.y*IH;
+      const len=Math.hypot(ex-sx,ey-sy); if(!len) return;
+      const cos=(ex-sx)/len,sin=(ey-sy)/len;
+      seg.openings.forEach((op,opIdx)=>{
+        if(found) return;
+        const gapPx=opGapPx(op,len);
+        const centerDist=(op.position/100)*len;
+        const gStart=Math.max(0,centerDist-gapPx/2);
+        const gEnd=Math.min(len,centerDist+gapPx/2);
+        const gx1=sx+cos*gStart,gy1=sy+sin*gStart;
+        const gx2=sx+cos*gEnd,  gy2=sy+sin*gEnd;
+        const sc=imgToScreen((gx1+gx2)/(2*IW),(gy1+gy2)/(2*IH));
+        if(Math.hypot(sp.x-sc.x,sp.y-sc.y)<(gEnd-gStart)*viewScale/2+ENDPOINT_HIT)
+          found={segId:seg.id,opIdx};
+      });
+    });
+    if(found){showOpPopup(found.segId,found.opIdx,e.clientX,e.clientY);return;}
+  }
+  // Double-click anywhere (no active drawing) → reset view to fit
+  if(!drawStart&&!polyDrawing) resetView();
 }
 
 function finishRoomPolygon(){
@@ -1190,10 +2362,26 @@ function finishRoomPolygon(){
 
 function onWheel(e){
   e.preventDefault();
+  if(!img)return;
+  // If furniture is selected and Shift is held, rotate instead of zoom
+  if(shiftDown&&currentTool==='select3'&&selectedFurnKey){
+    const room=rooms[selectedFurnKey.roomIdx];
+    const furn=room?.furniture[selectedFurnKey.furnIdx];
+    if(furn){
+      const dir=e.deltaY>0?1:-1;
+      furn.rotation=(((furn.rotation||0)+dir*45)%360+360)%360;
+      renderCanvas();
+      return;
+    }
+  }
   const sp=getScreenPos(e);
-  const delta=-e.deltaY*0.001;
-  const ns=Math.min(MAX_SCALE,Math.max(MIN_SCALE,viewScale*(1+delta*2)));
-  // zoom toward cursor
+  // Normalize across deltaMode: 0=px, 1=lines, 2=pages
+  let dy=e.deltaY;
+  if(e.deltaMode===1) dy*=24;
+  else if(e.deltaMode===2) dy*=400;
+  // Smooth zoom: each 100px of scroll ≈ 18% zoom
+  const ns=Math.min(MAX_SCALE,Math.max(MIN_SCALE,viewScale*Math.pow(0.998,dy)));
+  // Zoom toward cursor
   viewOffsetX=sp.x-(sp.x-viewOffsetX)*(ns/viewScale);
   viewOffsetY=sp.y-(sp.y-viewOffsetY)*(ns/viewScale);
   viewScale=ns;
@@ -1205,6 +2393,11 @@ function onWheel(e){
 document.addEventListener('keydown',e=>{
   if(e.code==='Space'&&!e.target.matches('input,textarea,select')){e.preventDefault();spaceDown=true;canvas.style.cursor='grab';}
   if(e.code==='ShiftLeft'||e.code==='ShiftRight') shiftDown=true;
+  if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'&&!e.target.matches('input,textarea,select')){
+    e.preventDefault();
+    performUndo();
+    return;
+  }
   if(e.code==='Escape'){
     drawStart=null;drawCurrent=null;
     polyPoints=[];polyDrawing=false;polyCurrent=null;
@@ -1217,6 +2410,287 @@ document.addEventListener('keyup',e=>{
   if(e.code==='Space'){spaceDown=false;canvas.style.cursor='crosshair';}
   if(e.code==='ShiftLeft'||e.code==='ShiftRight') shiftDown=false;
 });
+
+// ═══════════════════════════════════════════
+// SCALE FUNCTIONS
+// ═══════════════════════════════════════════
+function renderScaleObjGrid(){
+  const grid=document.getElementById('scale-obj-grid');
+  if(!grid) return;
+  // Rescue scale-obj-selected from inside the grid before innerHTML wipe
+  const sel=document.getElementById('scale-obj-selected');
+  if(sel&&sel.parentElement===grid) grid.parentElement.insertBefore(sel,grid.nextSibling);
+  const refMap=Object.fromEntries(SCALE_REFS.map(o=>[o.id,o]));
+  grid.style.display='block'; // override grid layout; we'll use group blocks
+  grid.innerHTML=SCALE_GROUPS.map(g=>`
+    <div style="margin-bottom:6px">
+      <div style="font-size:10px;color:#aaa;font-weight:600;letter-spacing:.5px;margin-bottom:3px">${g.label}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px">
+        ${g.ids.filter(id=>refMap[id]).map(id=>{const obj=refMap[id];return`
+        <button onclick="selectScaleObj('${obj.id}')" id="scaleobj-${obj.id}"
+          style="padding:3px 8px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;
+                 font-size:11px;color:#444;line-height:1.4;transition:all .1s;white-space:nowrap">
+          ${obj.name}
+        </button>`;}).join('')}
+      </div>
+    </div>`).join('');
+  // Re-insert under the previously-selected button group (if any)
+  if(scaleRefObject&&sel){
+    const btn=document.getElementById('scaleobj-'+scaleRefObject.id);
+    const gd=btn?.parentElement?.parentElement;
+    if(gd) gd.after(sel);
+  }
+}
+function selectScaleObj(id){
+  scaleRefObject=SCALE_REFS.find(o=>o.id===id);
+  scaleRefDim=null; scaleP1=null; scaleP2=null; scaleTool_phase=0; scaleSet=false;
+  // Highlight selected button
+  document.querySelectorAll('[id^=scaleobj-]').forEach(b=>{
+    b.style.background=b.id==='scaleobj-'+id?'#EBF4FF':'#fff';
+    b.style.borderColor=b.id==='scaleobj-'+id?'#185FA5':'#ddd';
+    b.style.color=b.id==='scaleobj-'+id?'#185FA5':'#444';
+  });
+  // Show selected object + dimension buttons — move panel to appear below the clicked button's group
+  const sel=document.getElementById('scale-obj-selected');
+  const clickedBtn=document.getElementById('scaleobj-'+id);
+  const groupDiv=clickedBtn?.parentElement?.parentElement; // flex-wrap div → group div
+  if(groupDiv) groupDiv.after(sel);
+  sel.style.display='block';
+  document.getElementById('scale-obj-name').textContent=scaleRefObject.name;
+  const dimBtns=document.getElementById('scale-dim-btns');
+  dimBtns.innerHTML=scaleRefObject.dims.map((d,i)=>`
+    <button onclick="selectScaleDim(${i})" id="scaledim-${i}"
+      style="padding:3px 8px;border:1px solid #93C5FD;border-radius:4px;font-size:11px;
+             background:#fff;cursor:pointer;color:#185FA5">
+      ${d.label}
+    </button>`).join('');
+  document.getElementById('scale-status').textContent='請選擇要量測的尺寸';
+  document.getElementById('btn-reset-scale').style.display='none';
+  document.getElementById('scale-result').style.display='none';
+  document.getElementById('btn-to-step2-from-scale').disabled=true;
+  renderCanvas();
+}
+function selectScaleDim(idx){
+  scaleRefDim=scaleRefObject.dims[idx];
+  scaleP1=null; scaleP2=null; scaleTool_phase=1;
+  document.querySelectorAll('[id^=scaledim-]').forEach((b,i)=>{
+    b.style.background=i===idx?'#185FA5':'#fff';
+    b.style.color=i===idx?'#fff':'#185FA5';
+  });
+  document.getElementById('scale-status').textContent=
+    `已選「${scaleRefDim.label}」→ 請在圖面上點選該物品兩個端點`;
+  setTool('scale-line');
+  renderCanvas();
+}
+function _applyScale(p1,p2,cm){
+  const IW=img.naturalWidth,IH=img.naturalHeight;
+  const lineLen=Math.hypot((p2.x-p1.x)*IW,(p2.y-p1.y)*IH);
+  if(lineLen<2) return;
+  pxPerCm=lineLen/cm;
+  scaleRealCm=cm;
+  scaleSet=true;
+  scaleTool_phase=3;
+  document.getElementById('scale-status').textContent='';
+  document.getElementById('scale-result').style.display='block';
+  document.getElementById('scale-result-text').textContent=
+    `✅ ${scaleRefObject.name}（${cm} cm）→ 1 cm = ${pxPerCm.toFixed(2)} px`;
+  document.getElementById('btn-reset-scale').style.display='block';
+  document.getElementById('btn-to-step2-from-scale').disabled=false;
+  renderCanvas();
+}
+function resetScale(){
+  scaleSet=false; scaleP1=null; scaleP2=null; scaleRealCm=0; pxPerCm=1;
+  scaleTool_phase=0; scaleRefObject=null; scaleRefDim=null;
+  document.getElementById('scale-result').style.display='none';
+  document.getElementById('btn-reset-scale').style.display='none';
+  document.getElementById('btn-to-step2-from-scale').disabled=true;
+  document.getElementById('scale-obj-selected').style.display='none';
+  document.getElementById('scale-status').textContent='';
+  document.getElementById('custom-scale-input').value='';
+  document.querySelectorAll('[id^=scaleobj-]').forEach(b=>{
+    b.style.background='#fff';b.style.borderColor='#ddd';b.style.color='#444';
+  });
+  setTool('scale-line');
+  renderCanvas();
+}
+function applyCustomScaleDim(){
+  const val=parseFloat(document.getElementById('custom-scale-input').value);
+  if(!val||val<=0){showError('請輸入有效長度（大於 0 的數字）');return;}
+  // Deselect object-based selection
+  document.querySelectorAll('[id^=scaleobj-]').forEach(b=>{
+    b.style.background='#fff';b.style.borderColor='#ddd';b.style.color='#444';
+  });
+  document.getElementById('scale-obj-selected').style.display='none';
+  // Set synthetic ref
+  scaleRefObject={name:`自訂長度`};
+  scaleRefDim={label:`自訂 ${val} cm`,cm:val};
+  scaleP1=null; scaleP2=null; scaleTool_phase=1; scaleSet=false;
+  document.getElementById('scale-result').style.display='none';
+  document.getElementById('btn-reset-scale').style.display='none';
+  document.getElementById('btn-to-step2-from-scale').disabled=true;
+  document.getElementById('scale-status').textContent=
+    `已設定 ${val} cm → 請在圖面上點選兩個端點`;
+  setTool('scale-line');
+  renderCanvas();
+}
+
+// ═══════════════════════════════════════════
+// ROOM MODAL HELPER
+// ═══════════════════════════════════════════
+function openRoomModal(){
+  if(editingRoomIdx!==null){
+    const r=rooms[editingRoomIdx];
+    document.getElementById('room-name-input').value=r.name==='未命名空間'?'':r.name;
+    document.getElementById('room-type-sel').value=r.type||ROOM_TYPES[0];
+  } else {
+    document.getElementById('room-name-input').value='';
+    document.getElementById('room-type-sel').value=ROOM_TYPES[0];
+  }
+  document.getElementById('room-modal').classList.add('open');
+}
+
+// ═══════════════════════════════════════════
+// AUTO ROOM DETECTION
+// ═══════════════════════════════════════════
+function isPointInPolygon(px,py,polygon){
+  let inside=false;
+  for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){
+    const xi=polygon[i].x,yi=polygon[i].y,xj=polygon[j].x,yj=polygon[j].y;
+    if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+
+async function autoDetectAllRooms(){
+  if(!segments.length){showError('請先在 Step 2 畫出牆段');return;}
+  showLoading('自動偵測空間中...','掃描封閉區塊');
+  await new Promise(r=>setTimeout(r,30)); // let UI render
+  try{
+    const RES=512;
+    const oc=document.createElement('canvas');
+    oc.width=oc.height=RES;
+    const octx=oc.getContext('2d');
+    octx.fillStyle='#fff';octx.fillRect(0,0,RES,RES);
+    // Draw walls
+    octx.strokeStyle='#000';octx.lineWidth=6;octx.lineCap='round';
+    segments.forEach(seg=>{
+      octx.beginPath();
+      octx.moveTo(seg.start.x*RES,seg.start.y*RES);
+      octx.lineTo(seg.end.x*RES,seg.end.y*RES);
+      octx.stroke();
+    });
+    octx.fillStyle='#000';
+    segments.forEach(seg=>{
+      octx.beginPath();octx.arc(seg.start.x*RES,seg.start.y*RES,4,0,Math.PI*2);octx.fill();
+      octx.beginPath();octx.arc(seg.end.x*RES,seg.end.y*RES,4,0,Math.PI*2);octx.fill();
+    });
+    const imgData=octx.getImageData(0,0,RES,RES);
+    const px=imgData.data;
+    const isWall=(x,y)=>{if(x<0||x>=RES||y<0||y>=RES)return true;return px[(y*RES+x)*4]<200;};
+    // Mark exterior via border flood fill
+    const exterior=new Uint8Array(RES*RES);
+    const extStack=[];
+    for(let i=0;i<RES;i++){
+      [[i,0],[i,RES-1],[0,i],[RES-1,i]].forEach(([x,y])=>{
+        const pos=y*RES+x;
+        if(!isWall(x,y)&&!exterior[pos]){exterior[pos]=1;extStack.push(pos);}
+      });
+    }
+    while(extStack.length){
+      const pos=extStack.pop();
+      const qx=pos%RES,qy=Math.floor(pos/RES);
+      [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx,dy])=>{
+        const nx=qx+dx,ny=qy+dy;
+        if(nx<0||nx>=RES||ny<0||ny>=RES)return;
+        const np=ny*RES+nx;
+        if(!exterior[np]&&!isWall(nx,ny)){exterior[np]=1;extStack.push(np);}
+      });
+    }
+    // Find all enclosed regions and trace each boundary directly (no centroid re-flood)
+    const visited=new Uint8Array(RES*RES);
+    const D8=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+    const newPolygons=[];
+    for(let sy=0;sy<RES;sy++){
+      for(let sx=0;sx<RES;sx++){
+        const pos=sy*RES+sx;
+        if(visited[pos]||isWall(sx,sy)||exterior[pos])continue;
+        // DFS fill — collect all pixels of this region
+        const regionPixels=[];
+        const stack=[pos];visited[pos]=1;
+        while(stack.length){
+          const p=stack.pop();
+          regionPixels.push(p);
+          const qx=p%RES,qy=Math.floor(p/RES);
+          [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx,dy])=>{
+            const nx=qx+dx,ny=qy+dy;
+            if(nx<0||nx>=RES||ny<0||ny>=RES)return;
+            const np=ny*RES+nx;
+            if(!visited[np]&&!isWall(nx,ny)&&!exterior[np]){visited[np]=1;stack.push(np);}
+          });
+        }
+        if(regionPixels.length<400)continue;
+        // Build per-region fill mask for Moore trace
+        const rf=new Uint8Array(RES*RES);
+        regionPixels.forEach(p=>{rf[p]=1;});
+        // (sx,sy) is the top-left pixel of this region in row-major scan order
+        const bx=sx,by=sy;
+        // Moore 8-connectivity boundary trace
+        const boundary=[];
+        let cx=bx,cy=by,bd=7;
+        for(let iter=0;iter<RES*RES;iter++){
+          boundary.push({x:cx/RES,y:cy/RES});
+          const cs=(bd+5)%8;
+          let moved=false;
+          for(let di=0;di<8;di++){
+            const d=(cs+di)%8;
+            const nx=cx+D8[d][0],ny=cy+D8[d][1];
+            if(nx>=0&&nx<RES&&ny>=0&&ny<RES&&rf[ny*RES+nx]){
+              bd=(d+4)%8;cx=nx;cy=ny;moved=true;break;
+            }
+          }
+          if(!moved||(cx===bx&&cy===by))break;
+        }
+        if(boundary.length<6)continue;
+        const step=Math.max(1,Math.floor(boundary.length/400));
+        const sampled=step>1?boundary.filter((_,i)=>i%step===0):boundary;
+        const poly=dpSimplify(sampled,0.002);
+        if(poly&&poly.length>=4)newPolygons.push(poly);
+      }
+    }
+    // Clear auto-detected rooms, keep manually named ones
+    rooms=rooms.filter(r=>!r.autoDetected);
+    let added=0;
+    newPolygons.forEach(poly=>{
+      const color=COLORS[rooms.length%COLORS.length];
+      const segIds=findLinkedSegments(poly);
+      rooms.push({id:newId(),name:'未命名空間',type:'',color,polygon:poly,segmentIds:segIds,furniture:[],autoDetected:true});
+      added++;
+    });
+    if(added===0&&rooms.length===0){
+      showError('未偵測到封閉空間，請確認牆段是否完全閉合，或回 Step 2 補齊缺口');
+    } else {
+      showNotif(`偵測到 ${added} 個空間，請點擊色塊命名`,'success');
+    }
+    selectedRoomIdx=null;
+    renderRoomList();renderRoomList3();updateStats();renderCanvas();
+  }catch(e){showError('偵測失敗：'+e.message);}
+  finally{hideLoading();}
+}
+
+// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// FURNITURE HANDLE HELPERS
+// ═══════════════════════════════════════════
+// Convert normalized image position ip{x,y} into furniture local pixel coords
+function getFurnLocalPos(f,ip){
+  const IW=img.naturalWidth,IH=img.naturalHeight;
+  const fcx=f.x*IW,fcy=f.y*IH;
+  const mx=ip.x*IW,my=ip.y*IH;
+  const rad=-(f.rotation||0)*Math.PI/180;
+  const cos=Math.cos(rad),sin=Math.sin(rad);
+  const dx=mx-fcx,dy=my-fcy;
+  return {x:dx*cos-dy*sin,y:dx*sin+dy*cos};
+}
 
 // ═══════════════════════════════════════════
 // GEOMETRY HELPERS
@@ -1235,6 +2709,439 @@ function pointInPolygon(p,polygon){
     if(((yi>p.y)!==(yj>p.y))&&(p.x<(xj-xi)*(p.y-yi)/(yj-yi)+xi)) inside=!inside;
   }
   return inside;
+}
+
+// ═══════════════════════════════════════════
+// FLOOD FILL ROOM DETECTION
+// ═══════════════════════════════════════════
+// Fast rectangular morphological dilation — O(2×RES²) sliding window
+// Makes fill extend outward by r pixels to align with visual wall lines
+function dilateRect(filled, RES, r) {
+  const temp = new Uint8Array(RES * RES);
+  // Horizontal pass
+  for (let y = 0; y < RES; y++) {
+    const base = y * RES;
+    let cnt = 0;
+    for (let k = 0; k <= Math.min(r, RES-1); k++) cnt += filled[base+k];
+    for (let x = 0; x < RES; x++) {
+      if (cnt > 0) temp[base+x] = 1;
+      if (x+r+1 < RES) cnt += filled[base+x+r+1];
+      if (x-r   >= 0)  cnt -= filled[base+x-r];
+    }
+  }
+  const result = new Uint8Array(RES * RES);
+  // Vertical pass
+  for (let x = 0; x < RES; x++) {
+    let cnt = 0;
+    for (let k = 0; k <= Math.min(r, RES-1); k++) cnt += temp[k*RES+x];
+    for (let y = 0; y < RES; y++) {
+      if (cnt > 0) result[y*RES+x] = 1;
+      if (y+r+1 < RES) cnt += temp[(y+r+1)*RES+x];
+      if (y-r   >= 0)  cnt -= temp[(y-r)*RES+x];
+    }
+  }
+  return result;
+}
+
+// Build a cached wall-pixel bitmap used for hover fill detection
+function buildWallBitmap(){
+  const RES=512;
+  const oc=document.createElement('canvas');
+  oc.width=oc.height=RES;
+  const octx=oc.getContext('2d');
+  octx.fillStyle='#fff';octx.fillRect(0,0,RES,RES);
+  // Thin walls (lineWidth=4) so fill extends close to wall centerlines
+  // Gap bridging uses slightly thicker strokes
+  octx.strokeStyle='#000';octx.lineWidth=4;octx.lineCap='round';
+  segments.forEach(seg=>{
+    octx.beginPath();
+    octx.moveTo(seg.start.x*RES,seg.start.y*RES);
+    octx.lineTo(seg.end.x*RES,seg.end.y*RES);
+    octx.stroke();
+  });
+  octx.fillStyle='#000';
+  segments.forEach(seg=>{
+    octx.beginPath();octx.arc(seg.start.x*RES,seg.start.y*RES,4,0,Math.PI*2);octx.fill();
+    octx.beginPath();octx.arc(seg.end.x*RES,seg.end.y*RES,4,0,Math.PI*2);octx.fill();
+  });
+  // Auto-bridge near-miss endpoint gaps (endpoints within ~2% image width)
+  const GAP=0.02;
+  const eps=[];
+  segments.forEach(s=>{eps.push(s.start);eps.push(s.end);});
+  octx.strokeStyle='#000';octx.lineWidth=5; // slightly thicker for gap bridges
+  for(let i=0;i<eps.length;i++) for(let j=i+1;j<eps.length;j++){
+    const d=Math.hypot(eps[i].x-eps[j].x,eps[i].y-eps[j].y);
+    if(d>0.001&&d<GAP){
+      octx.beginPath();
+      octx.moveTo(eps[i].x*RES,eps[i].y*RES);
+      octx.lineTo(eps[j].x*RES,eps[j].y*RES);
+      octx.stroke();
+    }
+  }
+  const id=octx.getImageData(0,0,RES,RES);
+  const wallPx=new Uint8Array(RES*RES);
+  for(let i=0;i<RES*RES;i++) wallPx[i]=id.data[i*4]<200?1:0;
+  return{wallPx,RES};
+}
+
+// Compute hover fill — returns offscreen canvas with bitmap fill (no polygon, no artifacts)
+function computeHoverFill(nx,ny){
+  if(!wallBitmapCache) wallBitmapCache=buildWallBitmap();
+  const{wallPx,RES}=wallBitmapCache;
+  const sx=Math.floor(nx*RES),sy=Math.floor(ny*RES);
+  if(sx<0||sx>=RES||sy<0||sy>=RES||wallPx[sy*RES+sx]) return null;
+  // DFS flood fill
+  const filled=new Uint8Array(RES*RES);
+  const stack=[sy*RES+sx];filled[sy*RES+sx]=1;
+  let cnt=0;const MAX=Math.floor(RES*RES*0.85);
+  while(stack.length&&cnt<MAX){
+    const p=stack.pop();cnt++;
+    const qx=p%RES,qy=Math.floor(p/RES);
+    if(qx>0    &&!filled[p-1]  &&!wallPx[p-1])  {filled[p-1]=1;  stack.push(p-1);}
+    if(qx<RES-1&&!filled[p+1]  &&!wallPx[p+1])  {filled[p+1]=1;  stack.push(p+1);}
+    if(qy>0    &&!filled[p-RES]&&!wallPx[p-RES]){filled[p-RES]=1;stack.push(p-RES);}
+    if(qy<RES-1&&!filled[p+RES]&&!wallPx[p+RES]){filled[p+RES]=1;stack.push(p+RES);}
+  }
+  if(cnt>=MAX||cnt<200) return null;
+  // Dilate 2px to reach bitmap wall inner edge, then clip so fill never crosses walls
+  const dilated=dilateRect(filled,RES,2);
+  for(let i=0;i<RES*RES;i++) if(wallPx[i]) dilated[i]=0;
+  // Build offscreen canvas directly from dilated fill — guaranteed full coverage
+  const oc=document.createElement('canvas');
+  oc.width=oc.height=RES;
+  const octx=oc.getContext('2d');
+  const id=octx.createImageData(RES,RES);
+  for(let i=0;i<RES*RES;i++){
+    if(dilated[i]){
+      id.data[i*4]=63; id.data[i*4+1]=154; id.data[i*4+2]=237; // steel blue
+      id.data[i*4+3]=90; // ~35% opacity
+    }
+  }
+  octx.putImageData(id,0,0);
+  return oc; // caller uses ctx.drawImage(oc, 0,0, IW,IH)
+}
+
+function detectRoomPolygon(clickNX, clickNY){
+  const RES=512; // lower res = faster; still accurate enough with Moore tracing
+  const oc=document.createElement('canvas');
+  oc.width=oc.height=RES;
+  const octx=oc.getContext('2d');
+  octx.fillStyle='#fff'; octx.fillRect(0,0,RES,RES);
+  // Border prevents flood escaping canvas edges
+  octx.strokeStyle='#000'; octx.lineWidth=2;
+  octx.strokeRect(1,1,RES-2,RES-2);
+  // Thin walls (lineWidth=4) — fill will be dilated afterward to align with visual walls
+  octx.strokeStyle='#000'; octx.lineWidth=4; octx.lineCap='round';
+  segments.forEach(seg=>{
+    octx.beginPath();
+    octx.moveTo(seg.start.x*RES, seg.start.y*RES);
+    octx.lineTo(seg.end.x*RES,   seg.end.y*RES);
+    octx.stroke();
+  });
+  // Endpoint circles to seal T-junctions
+  octx.fillStyle='#000';
+  segments.forEach(seg=>{
+    octx.beginPath(); octx.arc(seg.start.x*RES, seg.start.y*RES, 4, 0, Math.PI*2); octx.fill();
+    octx.beginPath(); octx.arc(seg.end.x*RES,   seg.end.y*RES,   4, 0, Math.PI*2); octx.fill();
+  });
+  // Auto-bridge near-miss endpoint gaps (same as buildWallBitmap)
+  const GAP_EPS=0.02;
+  const epsList=[];segments.forEach(s=>{epsList.push(s.start);epsList.push(s.end);});
+  octx.strokeStyle='#000';octx.lineWidth=5;
+  for(let i=0;i<epsList.length;i++) for(let j=i+1;j<epsList.length;j++){
+    const d=Math.hypot(epsList[i].x-epsList[j].x,epsList[i].y-epsList[j].y);
+    if(d>0.001&&d<GAP_EPS){
+      octx.beginPath();
+      octx.moveTo(epsList[i].x*RES,epsList[i].y*RES);
+      octx.lineTo(epsList[j].x*RES,epsList[j].y*RES);
+      octx.stroke();
+    }
+  }
+  const id=octx.getImageData(0,0,RES,RES);
+  const px=id.data;
+  // Extract wall pixel mask for dilation clipping
+  const wallPxLocal=new Uint8Array(RES*RES);
+  for(let i=0;i<RES*RES;i++) wallPxLocal[i]=px[i*4]<200?1:0;
+  function isWall(x,y){ if(x<0||x>=RES||y<0||y>=RES)return true; return wallPxLocal[y*RES+x]===1; }
+
+  // If click landed on a wall pixel, spiral outward to find nearest free pixel
+  let startX=Math.floor(clickNX*RES), startY=Math.floor(clickNY*RES);
+  if(isWall(startX,startY)){
+    let found=false;
+    spiral: for(let r=1;r<=12;r++){
+      for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++){
+        if(Math.abs(dx)!==r&&Math.abs(dy)!==r) continue; // only shell
+        if(!isWall(startX+dx,startY+dy)){startX+=dx;startY+=dy;found=true;break spiral;}
+      }
+    }
+    if(!found) return null;
+  }
+  // DFS stack flood fill — O(n) vs queue.shift()'s O(n²)
+  const filled=new Uint8Array(RES*RES);
+  const stack=[startY*RES+startX]; filled[startY*RES+startX]=1;
+  let count=0; const MAX=RES*RES*0.88;
+  while(stack.length&&count<MAX){
+    const pos=stack.pop(); count++;         // pop = O(1)
+    const qx=pos%RES,qy=Math.floor(pos/RES);
+    // 4-connected
+    if(qx>0   &&!filled[pos-1]   &&!isWall(qx-1,qy)){filled[pos-1]=1;   stack.push(pos-1);}
+    if(qx<RES-1&&!filled[pos+1]  &&!isWall(qx+1,qy)){filled[pos+1]=1;   stack.push(pos+1);}
+    if(qy>0   &&!filled[pos-RES] &&!isWall(qx,qy-1)){filled[pos-RES]=1; stack.push(pos-RES);}
+    if(qy<RES-1&&!filled[pos+RES]&&!isWall(qx,qy+1)){filled[pos+RES]=1; stack.push(pos+RES);}
+  }
+  if(count>=MAX) return null; // not enclosed
+  if(count<300) return null; // tiny pocket at wall corner — not a real room
+
+  // Centroid from flood fill pixels (accurate for label placement)
+  let sumX=0,sumY=0;
+  for(let i=0;i<RES*RES;i++) if(filled[i]){sumX+=i%RES;sumY+=Math.floor(i/RES);}
+  const centroid={x:(sumX/count)/RES,y:(sumY/count)/RES};
+
+  // Moore boundary trace to get approximate boundary in bitmap coords
+  let bx=-1,by=-1;
+  outer: for(let y=0;y<RES;y++) for(let x=0;x<RES;x++){
+    if(filled[y*RES+x]){bx=x;by=y;break outer;}
+  }
+  if(bx<0) return null;
+  const D=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+  const boundary=[];
+  let tracX=bx,tracY=by,bd=7;
+  for(let iter=0;iter<RES*RES;iter++){
+    boundary.push({x:tracX/RES,y:tracY/RES});
+    const cs=(bd+1)%8;let moved=false;
+    for(let di=0;di<8;di++){
+      const d=(cs+di)%8,nx2=tracX+D[d][0],ny2=tracY+D[d][1];
+      if(nx2>=0&&nx2<RES&&ny2>=0&&ny2<RES&&filled[ny2*RES+nx2]){
+        bd=(d+4)%8;tracX=nx2;tracY=ny2;moved=true;break;
+      }
+    }
+    if(!moved||(tracX===bx&&tracY===by))break;
+  }
+  if(boundary.length<6) return null;
+
+  // Subsample boundary to ≤600 pts
+  const step=Math.max(1,Math.floor(boundary.length/600));
+  const sampled=step>1?boundary.filter((_,i)=>i%step===0):boundary;
+
+  // ── SNAP TO WALL SEGMENTS ──────────────────────────────────────────────
+  // For each boundary pixel, find the nearest wall segment and the snapped point + segment ref
+  const SNAP=0.03;
+  const snappedRaw=sampled.map(pt=>{
+    let bestD=SNAP,bestPt=null,bestSeg=null;
+    segments.forEach(seg=>{
+      const dx=seg.end.x-seg.start.x,dy=seg.end.y-seg.start.y;
+      const lenSq=dx*dx+dy*dy;
+      if(lenSq<1e-10) return;
+      const t=Math.max(0,Math.min(1,((pt.x-seg.start.x)*dx+(pt.y-seg.start.y)*dy)/lenSq));
+      const px=seg.start.x+t*dx,py=seg.start.y+t*dy;
+      const d=Math.hypot(pt.x-px,pt.y-py);
+      if(d<bestD){bestD=d;bestPt={x:px,y:py};bestSeg=seg;}
+    });
+    return {pt:bestPt??pt,seg:bestSeg};
+  });
+
+  // Remove consecutive near-duplicates
+  const deduped=snappedRaw.filter((s,i)=>i===0||Math.hypot(s.pt.x-snappedRaw[i-1].pt.x,s.pt.y-snappedRaw[i-1].pt.y)>0.0005);
+  if(deduped.length<3) return null;
+
+  // ── INSERT CORNER INTERSECTIONS ──────────────────────────────────────────
+  // When two consecutive points are on DIFFERENT wall segments, the polygon
+  // would cut across the corner. Fix: compute the intersection of those two
+  // segments and insert it as an exact corner vertex.
+  function segIntersect(a,b,c,d){
+    const dx1=b.x-a.x,dy1=b.y-a.y,dx2=d.x-c.x,dy2=d.y-c.y;
+    const denom=dx1*dy2-dy1*dx2;
+    if(Math.abs(denom)<1e-10) return null;
+    const t=((c.x-a.x)*dy2-(c.y-a.y)*dx2)/denom;
+    return{x:a.x+t*dx1,y:a.y+t*dy1};
+  }
+  const withCorners=[];
+  const N=deduped.length;
+  for(let i=0;i<N;i++){
+    const cur=deduped[i],nxt=deduped[(i+1)%N];
+    withCorners.push(cur.pt);
+    if(cur.seg&&nxt.seg&&cur.seg!==nxt.seg){
+      // Different segments → insert their intersection as a corner vertex
+      const isect=segIntersect(cur.seg.start,cur.seg.end,nxt.seg.start,nxt.seg.end);
+      if(isect) withCorners.push(isect);
+    }
+  }
+
+  // Final D-P simplification with tight epsilon (points already on wall geometry)
+  const polygon=dpSimplify(withCorners,0.0003);
+  return {polygon,fillCanvas:null,centroid};
+}
+
+// Point-to-segment distance (normalized coords)
+function ptSegDist(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay,lenSq=dx*dx+dy*dy;
+  if(lenSq===0) return Math.hypot(px-ax,py-ay);
+  const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/lenSq));
+  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+}
+
+// Find dangling endpoints, near-miss gaps, and problem segments
+function findWallGaps(){
+  const EPS=0.008;
+  // Build valency map
+  const pts=[];
+  const getV=p=>{
+    const v=pts.find(v=>Math.hypot(v.x-p.x,v.y-p.y)<EPS);
+    if(v){v.count++;return v;}
+    const nv={x:p.x,y:p.y,count:1};pts.push(nv);return nv;
+  };
+  segments.forEach(s=>{getV(s.start);getV(s.end);});
+
+  // A T-junction: endpoint valency=1 but lies ON another segment → not a real gap
+  const isTJunction=v=>segments.some(s=>{
+    // skip the segment that owns this endpoint
+    if(Math.hypot(s.start.x-v.x,s.start.y-v.y)<EPS||Math.hypot(s.end.x-v.x,s.end.y-v.y)<EPS) return false;
+    return ptSegDist(v.x,v.y,s.start.x,s.start.y,s.end.x,s.end.y)<EPS;
+  });
+
+  const rawDangling=pts.filter(v=>v.count===1&&!isTJunction(v));
+  const danglingSet=new Set(rawDangling.map(v=>`${v.x.toFixed(5)},${v.y.toFixed(5)}`));
+  const dangling=rawDangling.map(v=>({x:v.x,y:v.y}));
+
+  // Which segments touch a dangling endpoint?
+  const gapSegIds=new Set();
+  segments.forEach(s=>{
+    const sk=`${s.start.x.toFixed(5)},${s.start.y.toFixed(5)}`;
+    const ek=`${s.end.x.toFixed(5)},${s.end.y.toFixed(5)}`;
+    if(danglingSet.has(sk)||danglingSet.has(ek)) gapSegIds.add(s.id);
+  });
+
+  // Near-miss pairs (dangling pts close but not snapped)
+  const nearMiss=[];
+  for(let i=0;i<dangling.length;i++)
+    for(let j=i+1;j<dangling.length;j++){
+      const d=Math.hypot(dangling[i].x-dangling[j].x,dangling[i].y-dangling[j].y);
+      if(d>EPS&&d<0.08) nearMiss.push([dangling[i],dangling[j]]);
+    }
+  return{dangling,nearMiss,gapSegIds};
+}
+
+// Iterative Douglas-Peucker — no recursion, no stack overflow risk
+function dpSimplify(pts,eps){
+  if(pts.length<=3) return pts;
+  const n=pts.length;
+  const keep=new Uint8Array(n); keep[0]=1; keep[n-1]=1;
+  const work=[[0,n-1]]; // explicit stack of [lo,hi] segments to process
+  while(work.length){
+    const[lo,hi]=work.pop();
+    if(hi-lo<2) continue;
+    const p0=pts[lo],pN=pts[hi];
+    const ddx=pN.x-p0.x,ddy=pN.y-p0.y;
+    const lineLen=Math.hypot(ddx,ddy)||1;
+    let maxDist=0,maxIdx=lo+1;
+    for(let i=lo+1;i<hi;i++){
+      const d=Math.abs(ddy*pts[i].x-ddx*pts[i].y+pN.x*p0.y-pN.y*p0.x)/lineLen;
+      if(d>maxDist){maxDist=d;maxIdx=i;}
+    }
+    if(maxDist>eps){
+      keep[maxIdx]=1;
+      work.push([lo,maxIdx]);
+      work.push([maxIdx,hi]);
+    }
+  }
+  return pts.filter((_,i)=>keep[i]);
+}
+
+// ═══════════════════════════════════════════
+// AI ROOM DETECTION
+// ═══════════════════════════════════════════
+async function runAIRoomDetect(){
+  if(!img){showError('請先上傳平面圖');return;}
+  const btn=document.getElementById('btn-ai-detect');
+  btn.disabled=true; btn.textContent='🤖 AI 辨識中...';
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':ANTHROPIC_API_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:1024,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:imgMediaType,data:imgB64}},
+            {type:'text',text:`這是一張建築平面圖。請辨識圖中所有空間（房間）的類型，用繁體中文列出。
+格式要求（JSON array）：
+[{"name":"客廳"},{"name":"主臥室"},{"name":"廚房"},...]
+只回傳 JSON array，不要其他文字。`}
+          ]
+        }]
+      })
+    });
+    if(!resp.ok) throw new Error(await resp.text());
+    const data=await resp.json();
+    const text=data.content[0].text.trim();
+    const match=text.match(/\[[\s\S]*\]/);
+    if(!match) throw new Error('無法解析 AI 回應');
+    const rooms_ai=JSON.parse(match[0]);
+    aiRoomSuggestions=rooms_ai.map(r=>r.name);
+    showAISuggestions(aiRoomSuggestions);
+  } catch(err){
+    showError('AI 辨識失敗：'+err.message);
+  } finally{
+    btn.disabled=false; btn.textContent='🤖 AI 辨識空間';
+  }
+}
+
+async function runAIFurnDetect(){
+  if(!img){showError('請先上傳平面圖');return;}
+  const btn=document.getElementById('btn-ai-furn');
+  if(btn){btn.disabled=true;btn.textContent='🤖 辨識中...';}
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-opus-4-5',max_tokens:1024,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:imgMediaType,data:imgB64}},
+          {type:'text',text:`這是建築平面圖。請列出圖中可見的傢俱，用繁體中文。
+格式（JSON array）：[{"type":"雙人床","room":"主臥室"},{"type":"沙發","room":"客廳"},...]
+只回傳JSON，不要其他文字。`}
+        ]}]
+      })
+    });
+    if(!resp.ok) throw new Error(await resp.text());
+    const data=await resp.json();
+    const match=data.content[0].text.match(/\[[\s\S]*\]/);
+    if(!match) throw new Error('解析失敗');
+    const furns=JSON.parse(match[0]);
+    let el=document.getElementById('ai-furn-suggestions');
+    if(!el){
+      el=document.createElement('div');el.id='ai-furn-suggestions';
+      el.style.cssText='background:#eff6ff;border:1px solid #3B82F6;border-radius:8px;padding:8px;margin-top:8px';
+      document.getElementById('sidebar-4')?.querySelector('.card')?.appendChild(el);
+    }
+    el.innerHTML=`<div style="font-size:11px;font-weight:600;color:#1d4ed8;margin-bottom:5px">🤖 AI偵測到的傢俱：</div>`+
+      furns.map(f=>`<div style="font-size:11px;color:#555;padding:2px 0">${f.room?`<span style="color:#aaa">${f.room} · </span>`:''}${f.type}</div>`).join('');
+  } catch(err){showError('AI傢俱辨識失敗：'+err.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='🤖 AI 辨識傢俱';}}
+}
+
+function showAISuggestions(names){
+  let el=document.getElementById('ai-suggestions');
+  if(!el){
+    el=document.createElement('div');
+    el.id='ai-suggestions';
+    el.style.cssText='background:#fffbeb;border:1px solid #F59E0B;border-radius:8px;padding:10px;margin-top:8px';
+    document.getElementById('sidebar-3').querySelector('.card').appendChild(el);
+  }
+  el.innerHTML=`<div style="font-size:11px;font-weight:600;color:#92400E;margin-bottom:6px">🤖 AI 偵測到以下空間（點選套用名稱）：</div>`+
+    names.map(n=>`<button onclick="useAISuggestion('${n}')" style="display:inline-block;margin:2px;padding:3px 8px;font-size:11px;background:#fff;border:1px solid #F59E0B;border-radius:4px;cursor:pointer;color:#555">${n}</button>`).join('');
+}
+
+function useAISuggestion(name){
+  document.getElementById('room-name-input').value=name;
 }
 
 // ═══════════════════════════════════════════
