@@ -24,18 +24,26 @@ body{font-family:-apple-system,sans-serif;background:#F8FAFC;color:#1E293B;heigh
 .filter-select{padding:8px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;outline:none;background:white}
 .table-wrap{padding:24px;overflow:auto;flex:1;min-height:0}
 table{width:100%;background:white;border-radius:12px;border:1px solid #E2E8F0;border-collapse:separate;border-spacing:0;overflow:hidden}
-th{background:#F8FAFC;padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#64748B;border-bottom:1px solid #E2E8F0;white-space:nowrap}
-td{padding:12px 16px;border-bottom:1px solid #F1F5F9;vertical-align:middle;font-size:13px}
+th{background:#F8FAFC;padding:10px 12px;text-align:left;font-size:12px;font-weight:600;color:#64748B;border-bottom:1px solid #E2E8F0;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #F1F5F9;vertical-align:middle;font-size:13px}
+td:nth-child(3),td:nth-child(4),td:nth-child(5),td:nth-child(6),td:nth-child(7),td:nth-child(8){text-align:center;white-space:nowrap}
+th:nth-child(3),th:nth-child(4),th:nth-child(5),th:nth-child(6),th:nth-child(7),th:nth-child(8){text-align:center}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#F8FAFC}
 .thumb{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #E2E8F0;cursor:pointer;display:block}
 .thumb-placeholder{width:80px;height:60px;background:#F1F5F9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
-.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap}
 .badge-blue{background:#EBF4FF;color:#185FA5}
 .badge-green{background:#D1FAE5;color:#065F46}
 .badge-orange{background:#FEF3C7;color:#92400E}
 .badge-gray{background:#F1F5F9;color:#64748B}
-.actions{display:flex;gap:6px}
+.actions{display:flex;gap:4px;align-items:center}
+.act-btn{width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600;transition:all .15s}
+.act-btn-detail{background:#F1F5F9;color:#475569;font-size:12px;width:auto;padding:0 10px}
+.act-btn-detail:hover{background:#E2E8F0}
+.act-btn-edit{background:#185FA5;color:white}.act-btn-edit:hover{background:#1451A0}
+.act-btn-export{background:#D1FAE5;color:#065F46}.act-btn-export:hover{background:#A7F3D0}
+.act-btn-del{background:#FEE2E2;color:#B91C1C}.act-btn-del:hover{background:#FECACA}
 .title-edit{display:block;font-weight:600;font-size:13px;min-width:120px;outline:none;border-radius:4px;padding:2px 4px;cursor:text;word-break:break-all}
 .title-edit:empty:before{content:attr(placeholder);color:#CBD5E1;font-weight:400;font-style:italic}
 .title-edit:focus{background:#F1F5F9;outline:1px solid #93C5FD;cursor:text}
@@ -314,10 +322,10 @@ function renderTable(data) {
       <td>${qualityBadge}</td>
       <td>
         <div class="actions">
-          <button type="button" class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="openDetail('${d.id}')">詳情</button>
-          <button type="button" class="btn btn-primary" style="padding:5px 10px;font-size:12px" onclick="editAnnotation('${d.id}')">✏️</button>
-          <button type="button" class="btn btn-success" style="padding:5px 10px;font-size:12px" onclick="exportOne('${d.id}')">⬇</button>
-          <button type="button" class="btn btn-danger" style="padding:5px 10px;font-size:12px" onclick="confirmDelete('${d.id}')">🗑</button>
+          <button type="button" class="act-btn act-btn-detail" onclick="openDetail('${d.id}')">詳情</button>
+          <button type="button" class="act-btn act-btn-edit" onclick="editAnnotation('${d.id}')">✏️</button>
+          <button type="button" class="act-btn act-btn-export" onclick="exportOne('${d.id}')">⬇</button>
+          <button type="button" class="act-btn act-btn-del" onclick="confirmDelete('${d.id}')">🗑</button>
         </div>
       </td>
     </tr>`;
