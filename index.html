@@ -3413,9 +3413,16 @@ async function saveAnnotation(){
     const totalFurn=rooms.reduce((s,r)=>s+r.furniture.length,0);
     const payload={
       image_b64:imgB64,
-      segments:segments,
+      walls:segments,   // DB column is 'walls'
       rooms:rooms,
-      summary:{segment_count:segments.length,room_count:rooms.length,opening_count:totalOpenings,furniture_count:totalFurn},
+      summary:{
+        segment_count:segments.length,room_count:rooms.length,
+        opening_count:totalOpenings,furniture_count:totalFurn,
+        scale_px_per_cm:scaleSet&&pxPerCm>0?pxPerCm:null,
+        scale_set:!!scaleSet,
+        image_width_px:img?.naturalWidth||null,
+        image_height_px:img?.naturalHeight||null,
+      },
       source:'annotation_platform_v2',
       quality:'verified'
     };
@@ -3447,35 +3454,57 @@ async function loadAnnotationForEdit(id){
     const{data,error}=await sb.from('annotations').select('*').eq('id',id).single();
     if(error)throw error;
     if(!data)throw new Error('找不到標注資料');
-    // restore image
-    if(data.image_b64){
-      imgB64=data.image_b64;
-      imgMediaType=data.image_media_type||'image/jpeg';
-      const image=new Image();
-      image.onload=()=>{
-        img=image;
-        document.getElementById('upload-zone').style.display='none';
-        canvas.style.display='block';canvas.style.position='absolute';canvas.style.inset='0';
-        document.getElementById('zoom-bar').style.display='flex';
-        document.getElementById('canvas-hint').style.display='block';
-        // restore data
-        segments=data.segments||[];
-        rooms=data.rooms||[];
-        // fix: ensure rooms have furniture array
-        rooms.forEach(r=>{if(!r.furniture)r.furniture=[];});
-        // BUG-2: bump idCnt past all existing IDs to prevent collisions
-        {
-          const allIds=[...segments.map(s=>s.id),...segments.flatMap(s=>s.openings.map(o=>o.id)),...rooms.map(r=>r.id)];
-          const maxNum=Math.max(0,...allIds.map(id=>parseInt(id?.replace('id_',''))||0));
-          if(maxNum>=idCnt) idCnt=maxNum+1;
-        }
-        editingId=id;
-        document.getElementById('edit-banner').style.display='block';
-        document.getElementById('edit-id-label').textContent='('+id.slice(0,8)+'...)';
-        resetView();loadStats();updateStats();renderSegList();renderRoomList();renderRoomList3();
-      };
-      image.src='data:'+(data.image_media_type||'image/jpeg')+';base64,'+data.image_b64;
-    }
+    if(!data.image_b64){showError('此筆資料無圖片，無法在標注工具中編輯');return;}
+
+    imgB64=data.image_b64;
+    imgMediaType='image/jpeg';
+    const image=new Image();
+    image.onload=()=>{
+      img=image;
+      document.getElementById('upload-zone').style.display='none';
+      canvas.style.display='block';canvas.style.position='absolute';canvas.style.inset='0';
+      document.getElementById('zoom-bar').style.display='flex';
+      document.getElementById('canvas-hint').style.display='block';
+
+      // DB column is 'walls'; fall back to 'segments' for older records
+      segments=Array.isArray(data.walls)?data.walls:(data.segments||[]);
+      rooms=data.rooms||[];
+      rooms.forEach(r=>{if(!r.furniture)r.furniture=[];});
+
+      // BUG-2: bump idCnt past all existing IDs to prevent collisions
+      {
+        const allIds=[...segments.map(s=>s.id),...segments.flatMap(s=>s.openings.map(o=>o.id)),...rooms.map(r=>r.id)];
+        const maxNum=Math.max(0,...allIds.map(id=>parseInt(id?.replace('id_',''))||0));
+        if(maxNum>=idCnt) idCnt=maxNum+1;
+      }
+
+      // restore scale calibration from summary
+      if(data.summary?.scale_px_per_cm>0){
+        pxPerCm=data.summary.scale_px_per_cm;
+        scaleSet=true;
+      } else {
+        // no scale saved — treat as calibrated so steps 2-4 are unlocked
+        scaleSet=true; pxPerCm=0;
+      }
+
+      editingId=id;
+      document.getElementById('edit-banner').style.display='block';
+      document.getElementById('edit-id-label').textContent='('+id.slice(0,8)+'...)';
+
+      resetView();
+      renderSegList();renderRoomList();renderRoomList3();updateStats();loadStats();
+
+      // jump to the furthest completed step
+      if(rooms.length>0){
+        goStep(4); setTool('select3');
+      } else if(segments.length>0){
+        goStep(3); setTool('room-click');
+      } else {
+        goStep(2); setTool('select1');
+      }
+      renderCanvas();
+    };
+    image.src='data:image/jpeg;base64,'+data.image_b64;
   }catch(e){showError('載入失敗：'+e.message);}
   finally{hideLoading();}
 }
