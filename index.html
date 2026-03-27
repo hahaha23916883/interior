@@ -271,6 +271,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 
     <!-- Step 2 sidebar (Walls) -->
     <div id="sidebar-2" style="display:none">
+      <!-- 標注規範提示 -->
+      <div class="card" style="background:#FFFBEB;border:1px solid #FCD34D;padding:10px 12px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:6px;display:flex;align-items:center;gap:5px">
+          📐 標注規範
+          <span style="font-weight:400;color:#B45309;margin-left:auto;cursor:pointer;font-size:10px" onclick="this.closest('.card').querySelector('.norm-body').style.display=this.closest('.card').querySelector('.norm-body').style.display==='none'?'block':'none'">收合</span>
+        </div>
+        <div class="norm-body" style="font-size:11px;color:#78350F;line-height:1.8">
+          <div>✅ 請畫在 <strong>內牆面</strong>（室內淨空側）</div>
+          <div>✅ 門窗標記在牆線上</div>
+          <div>✅ 每個封閉空間獨立圈定</div>
+          <div>❌ 請勿畫在牆體中心線或外牆面</div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-title">牆段列表 <button class="btn-icon" onclick="clearAllSegments()" title="清除全部">✕</button></div>
         <div id="seg-list" style="max-height:260px;overflow-y:auto">
@@ -365,6 +378,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
     <div class="form-row">
       <label>自訂名稱（選填）</label>
       <input type="text" id="room-name-input" placeholder="留空使用類型名稱">
+    </div>
+    <div class="form-row">
+      <label>天花板高度（cm）</label>
+      <input type="number" id="room-ceiling-input" min="150" max="600" step="1" value="270" placeholder="270">
     </div>
     <div class="modal-btns">
       <button class="btn btn-secondary" onclick="cancelRoom()">取消</button>
@@ -1215,10 +1232,13 @@ function confirmRoom(){
   const type=document.getElementById('room-type-sel').value;
   const customName=document.getElementById('room-name-input').value.trim();
   const name=customName||type;
+  const ceilVal=parseFloat(document.getElementById('room-ceiling-input').value);
+  const ceilingHeight=(!isNaN(ceilVal)&&ceilVal>=100&&ceilVal<=600)?Math.round(ceilVal):270;
   if(editingRoomIdx!==null){
     // Rename existing room
     rooms[editingRoomIdx].name=name;
     rooms[editingRoomIdx].type=type;
+    rooms[editingRoomIdx].ceilingHeight=ceilingHeight;
     rooms[editingRoomIdx].autoDetected=false;
     selectedRoomIdx=editingRoomIdx;
     editingRoomIdx=null;
@@ -1227,7 +1247,7 @@ function confirmRoom(){
     pushUndo();
     const color=COLORS[rooms.length%COLORS.length];
     const segIds=findLinkedSegments(pendingRoomPolygon);
-    const room={id:newId(),name,type,color,polygon:pendingRoomPolygon,fillCanvas:pendingRoomFillCanvas,centroid:pendingRoomCentroid??null,segmentIds:segIds,furniture:[]};
+    const room={id:newId(),name,type,ceilingHeight,color,polygon:pendingRoomPolygon,fillCanvas:pendingRoomFillCanvas,centroid:pendingRoomCentroid??null,segmentIds:segIds,furniture:[]};
     rooms.push(room);
     selectedRoomIdx=rooms.length-1;
     pendingRoomPolygon=null;
@@ -1273,7 +1293,7 @@ function renderRoomList(){
   el.innerHTML=rooms.map((r,i)=>`
     <div class="room-row${i===selectedRoomIdx?' selected':''}" onclick="selectRoom(${i})">
       <div class="room-dot" style="background:${r.color}"></div>
-      <div style="flex:1"><div class="room-name">${r.name}</div><div class="room-meta">${r.segmentIds.length} 牆段 · ${r.furniture.length} 傢俱</div></div>
+      <div style="flex:1"><div class="room-name">${r.name}</div><div class="room-meta">${r.segmentIds.length} 牆段 · ${r.furniture.length} 傢俱 · 天花 ${r.ceilingHeight||270}cm</div></div>
       <button class="btn-icon" onclick="event.stopPropagation();deleteRoom(${i})">✕</button>
     </div>`).join('');
 }
@@ -2542,9 +2562,11 @@ function openRoomModal(){
     const r=rooms[editingRoomIdx];
     document.getElementById('room-name-input').value=r.name==='未命名空間'?'':r.name;
     document.getElementById('room-type-sel').value=r.type||ROOM_TYPES[0];
+    document.getElementById('room-ceiling-input').value=r.ceilingHeight||270;
   } else {
     document.getElementById('room-name-input').value='';
     document.getElementById('room-type-sel').value=ROOM_TYPES[0];
+    document.getElementById('room-ceiling-input').value=270;
   }
   document.getElementById('room-modal').classList.add('open');
 }
@@ -3244,7 +3266,7 @@ async function loadAnnotationForEdit(id){
 function exportJSONL(){
   const lines=rooms.map(room=>{
     const wallSegs=segments.filter(s=>room.segmentIds.includes(s.id));
-    return JSON.stringify({room_name:room.name,room_type:room.type,polygon:room.polygon,walls:wallSegs,furniture:room.furniture});
+    return JSON.stringify({room_name:room.name,room_type:room.type,ceiling_height_cm:room.ceilingHeight||270,polygon:room.polygon,walls:wallSegs,furniture:room.furniture});
   });
   const blob=new Blob([lines.join('\n')],{type:'application/jsonl'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
