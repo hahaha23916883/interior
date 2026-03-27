@@ -11,7 +11,7 @@ body{font-family:-apple-system,sans-serif;background:#F8FAFC;color:#1E293B;min-h
 .header{background:white;border-bottom:1px solid #E2E8F0;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .header h1{font-size:18px;font-weight:700;color:#1E293B}
 .header-right{display:flex;gap:10px;align-items:center}
-.stat-chips{display:flex;gap:8px}
+.stat-chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{background:#EBF4FF;color:#185FA5;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
 .btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
 .btn-primary{background:#185FA5;color:white}.btn-primary:hover{background:#1451A0}
@@ -28,12 +28,13 @@ th{background:#F8FAFC;padding:12px 16px;text-align:left;font-size:12px;font-weig
 td{padding:12px 16px;border-bottom:1px solid #F1F5F9;vertical-align:middle;font-size:13px}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#F8FAFC}
-.thumb{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #E2E8F0;cursor:pointer}
-.thumb-placeholder{width:80px;height:60px;background:#F1F5F9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.thumb{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #E2E8F0;cursor:pointer;display:block}
+.thumb-placeholder{width:80px;height:60px;background:#F1F5F9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
 .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
 .badge-blue{background:#EBF4FF;color:#185FA5}
 .badge-green{background:#D1FAE5;color:#065F46}
 .badge-orange{background:#FEF3C7;color:#92400E}
+.badge-gray{background:#F1F5F9;color:#64748B}
 .actions{display:flex;gap:6px}
 .loading{text-align:center;padding:48px;color:#94A3B8;font-size:14px}
 /* Modal */
@@ -52,6 +53,7 @@ tr:hover td{background:#F8FAFC}
 .json-area{font-family:monospace;font-size:11px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto}
 .empty{text-align:center;padding:64px;color:#94A3B8}
 .empty-icon{font-size:48px;margin-bottom:12px}
+.no-img{width:100%;height:180px;background:#F1F5F9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:48px}
 /* Confirm dialog */
 .confirm-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center}
 .confirm-bg.open{display:flex}
@@ -77,8 +79,8 @@ tr:hover td{background:#F8FAFC}
     <div class="stat-chips">
       <div class="chip">共 <span id="total-count">-</span> 筆</div>
       <div class="chip">🏠 空間 <span id="total-rooms">-</span> 個</div>
-      <div class="chip">🚪 開口 <span id="total-openings">-</span> 個</div>
-      <div class="chip">🪑 傢俱 <span id="total-furniture">-</span> 個</div>
+      <div class="chip">🧱 牆段 <span id="total-walls">-</span> 段</div>
+      <div class="chip">🪑 傢俱 <span id="total-furniture">-</span> 件</div>
     </div>
     <button class="btn btn-success" onclick="exportAll()">⬇ 匯出全部 JSONL</button>
     <button class="btn btn-secondary" onclick="loadData()">🔄 重新整理</button>
@@ -108,8 +110,9 @@ tr:hover td{background:#F8FAFC}
         <th>縮圖</th>
         <th>建立時間</th>
         <th>空間</th>
-        <th>開口</th>
+        <th>牆段</th>
         <th>傢俱</th>
+        <th>來源</th>
         <th>品質</th>
         <th>操作</th>
       </tr>
@@ -164,6 +167,35 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 let allData = [];
 let currentId = null;
 
+// ── 幫助函式 ──────────────────────────────────
+// 統一取得傢俱清單（支援 array 或 {roomName:[...]} 兩種格式）
+function getFurnItems(d) {
+  const f = d.furniture;
+  if (!f) return [];
+  if (Array.isArray(f)) return f;
+  if (typeof f === 'object') return Object.values(f).flat();
+  return [];
+}
+
+// 牆段數：優先 summary，否則從 walls array 計算
+function getWallCount(d) {
+  return d.summary?.segment_count ?? (Array.isArray(d.walls) ? d.walls.length : 0);
+}
+
+// 空間數
+function getRoomCount(d) {
+  return d.summary?.room_count ?? (Array.isArray(d.rooms) ? d.rooms.length : 0);
+}
+
+// 產生縮圖 HTML（不截斷 base64）
+function thumbHtml(d) {
+  if (d.image_b64) {
+    const mime = d.image_media_type || 'image/jpeg';
+    return `<img class="thumb" src="data:${mime};base64,${d.image_b64}" alt="平面圖" onclick="openDetail('${d.id}')" onerror="this.outerHTML='<div class=thumb-placeholder onclick=openDetail(\\'${d.id}\\')>🏠</div>'">`;
+  }
+  return `<div class="thumb-placeholder" onclick="openDetail('${d.id}')">🏠</div>`;
+}
+
 // ── 載入資料 ──────────────────────────────────
 async function loadData() {
   document.getElementById('loading').style.display = 'block';
@@ -173,7 +205,7 @@ async function loadData() {
   try {
     const { data, error } = await sb
       .from('annotations')
-      .select('id, created_at, rooms, walls, furniture, summary, quality, image_b64')
+      .select('id, created_at, rooms, walls, furniture, summary, quality, source, image_b64, image_media_type')
       .order('created_at', { ascending: false });
     if (error) throw error;
     allData = data || [];
@@ -187,12 +219,9 @@ async function loadData() {
 
 function updateStats() {
   document.getElementById('total-count').textContent = allData.length;
-  const totalRooms = allData.reduce((s, d) => s + (d.summary?.room_count || (d.rooms?.length || 0)), 0);
-  const totalOpenings = allData.reduce((s, d) => s + (d.summary?.opening_count || 0), 0);
-  const totalFurn = allData.reduce((s, d) => s + (d.summary?.furniture_count || 0), 0);
-  document.getElementById('total-rooms').textContent = totalRooms;
-  document.getElementById('total-openings').textContent = totalOpenings;
-  document.getElementById('total-furniture').textContent = totalFurn;
+  document.getElementById('total-rooms').textContent = allData.reduce((s, d) => s + getRoomCount(d), 0);
+  document.getElementById('total-walls').textContent = allData.reduce((s, d) => s + getWallCount(d), 0);
+  document.getElementById('total-furniture').textContent = allData.reduce((s, d) => s + getFurnItems(d).length, 0);
 }
 
 // ── 過濾 + 排序 ───────────────────────────────
@@ -211,7 +240,7 @@ function filterData() {
   filtered.sort((a, b) => {
     if (sort === 'newest') return new Date(b.created_at) - new Date(a.created_at);
     if (sort === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
-    const ra = a.rooms?.length || 0, rb = b.rooms?.length || 0;
+    const ra = getRoomCount(a), rb = getRoomCount(b);
     if (sort === 'rooms_desc') return rb - ra;
     if (sort === 'rooms_asc') return ra - rb;
     return 0;
@@ -235,28 +264,31 @@ function renderTable(data) {
   document.getElementById('empty-state').style.display = 'none';
 
   tbody.innerHTML = data.map(d => {
-    const rooms = d.rooms || [];
+    const rooms  = d.rooms || [];
     const roomNames = rooms.slice(0, 3).map(r => r.name || '未命名').join('、');
-    const moreRooms = rooms.length > 3 ? `+${rooms.length - 3}` : '';
-    const openings = d.summary?.opening_count || 0;
-    const furniture = d.summary?.furniture_count || 0;
+    const moreRooms = rooms.length > 3 ? ` +${rooms.length - 3}` : '';
+    const wallCount = getWallCount(d);
+    const furnCount = getFurnItems(d).length;
     const date = new Date(d.created_at).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
     const qualityBadge = d.quality === 'verified'
       ? '<span class="badge badge-green">✓ 已驗證</span>'
       : '<span class="badge badge-orange">AI</span>';
-    const thumb = d.image_b64
-      ? `<img class="thumb" src="data:image/jpeg;base64,${d.image_b64.slice(0,100)}..." onclick="openDetail('${d.id}')" onerror="this.outerHTML='<div class=\\'thumb-placeholder\\'>🏠</div>'" onload="fixThumb(this,'${d.id}')">`
-      : '<div class="thumb-placeholder">🏠</div>';
+
+    const sourceBadge = d.source === 'jsonl_import'
+      ? '<span class="badge badge-gray">匯入</span>'
+      : '<span class="badge badge-blue">標注</span>';
 
     return `<tr>
-      <td>${thumb}</td>
+      <td>${thumbHtml(d)}</td>
       <td style="white-space:nowrap;color:#64748B">${date}</td>
       <td>
-        <span style="font-weight:600">${rooms.length} 個空間</span><br>
-        <span style="font-size:11px;color:#94A3B8">${roomNames}${moreRooms ? ' ...' + moreRooms : ''}</span>
+        <span style="font-weight:600">${rooms.length} 個</span><br>
+        <span style="font-size:11px;color:#94A3B8">${roomNames}${moreRooms}</span>
       </td>
-      <td><span class="badge badge-blue">${openings}</span></td>
-      <td><span class="badge badge-blue">${furniture}</span></td>
+      <td><span class="badge badge-blue">${wallCount}</span></td>
+      <td><span class="badge badge-blue">${furnCount}</span></td>
+      <td>${sourceBadge}</td>
       <td>${qualityBadge}</td>
       <td>
         <div class="actions">
@@ -270,73 +302,91 @@ function renderTable(data) {
   }).join('');
 }
 
-// 修正 thumb：用完整 base64
-function fixThumb(img, id) {
-  const d = allData.find(x => x.id === id);
-  if (d?.image_b64) img.src = 'data:image/jpeg;base64,' + d.image_b64;
-}
-
 // ── 詳情 Modal ────────────────────────────────
 function openDetail(id) {
   const d = allData.find(x => x.id === id);
   if (!d) return;
   currentId = id;
-  document.getElementById('modal-title').textContent = `標注詳情 — ${new Date(d.created_at).toLocaleString('zh-TW')}`;
+  document.getElementById('modal-title').textContent =
+    `標注詳情 — ${new Date(d.created_at).toLocaleString('zh-TW')}`;
 
-  const rooms = d.rooms || [];
-  const walls = d.walls || [];
-  const furniture = d.furnitureData || d.furniture || {};
-  const furnItems = Object.values(furniture).flat();
+  const rooms     = d.rooms || [];
+  const walls     = Array.isArray(d.walls) ? d.walls : [];
+  const furnItems = getFurnItems(d);
+  const wallCount = getWallCount(d);
+  const openingCount = walls.reduce((s, w) => s + (w.openings?.length || 0), 0);
 
   const roomTags = rooms.map(r =>
-    `<span class="room-tag">${r.name || '未命名'}</span>`
-  ).join('');
+    `<span class="room-tag">${r.name || '未命名'}${r.type && r.type !== r.name ? ' · ' + r.type : ''}</span>`
+  ).join('') || '<span style="color:#94A3B8">無</span>';
 
-  const wallInfo = Array.isArray(walls)
-    ? `${walls.length} 段牆體，${walls.reduce((s,w) => s+(w.openings?.length||0), 0)} 個開口`
-    : Object.keys(walls).length + ' 個空間有牆體資料';
+  const wallDetail = `${wallCount} 段牆體，共 ${openingCount} 個開口`;
 
   const furnList = furnItems.slice(0, 12).map(f =>
-    `<span class="room-tag" style="background:#FEF3C7;color:#92400E">${f.icon||'📦'} ${f.name||f.type}</span>`
-  ).join('') + (furnItems.length > 12 ? `<span class="room-tag">+${furnItems.length-12} 更多</span>` : '');
+    `<span class="room-tag" style="background:#FEF3C7;color:#92400E">${f.icon || '📦'} ${f.name || f.type || '未知'}</span>`
+  ).join('') + (furnItems.length > 12 ? `<span class="room-tag">+${furnItems.length - 12} 更多</span>` : '')
+    || '<span style="color:#94A3B8">無</span>';
 
-  const imgSrc = d.image_b64 ? 'data:image/jpeg;base64,' + d.image_b64 : null;
+  const imgHtml = d.image_b64
+    ? `<img class="detail-img" src="data:${d.image_media_type||'image/jpeg'};base64,${d.image_b64}" alt="平面圖">`
+    : `<div class="no-img">🏠</div>`;
+
+  const scaleLine = d.summary?.scale_px_per_cm
+    ? `<p style="font-size:12px;color:#64748B;margin-top:4px">比例尺 ${d.summary.scale_px_per_cm.toFixed(3)} px/cm・圖片 ${d.summary.image_width_px}×${d.summary.image_height_px}</p>`
+    : '';
+
+  const sourceLine = d.source
+    ? `<span class="badge ${d.source === 'jsonl_import' ? 'badge-gray' : 'badge-blue'}">${d.source}</span>`
+    : '';
 
   document.getElementById('modal-body').innerHTML = `
     <div>
-      ${imgSrc ? `<img class="detail-img" src="${imgSrc}" alt="平面圖">` : '<div style="width:100%;height:200px;background:#F1F5F9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:48px">🏠</div>'}
+      ${imgHtml}
       <div class="detail-section" style="margin-top:16px">
         <h3>統計</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
-          <div style="background:#EBF4FF;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:700;color:#185FA5">${rooms.length}</div><div style="font-size:11px;color:#64748B">空間</div></div>
-          <div style="background:#EBF4FF;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:700;color:#185FA5">${d.summary?.opening_count||0}</div><div style="font-size:11px;color:#64748B">開口</div></div>
-          <div style="background:#EBF4FF;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:700;color:#185FA5">${furnItems.length}</div><div style="font-size:11px;color:#64748B">傢俱</div></div>
+          <div style="background:#EBF4FF;border-radius:8px;padding:10px">
+            <div style="font-size:22px;font-weight:700;color:#185FA5">${rooms.length}</div>
+            <div style="font-size:11px;color:#64748B">空間</div>
+          </div>
+          <div style="background:#EBF4FF;border-radius:8px;padding:10px">
+            <div style="font-size:22px;font-weight:700;color:#185FA5">${wallCount}</div>
+            <div style="font-size:11px;color:#64748B">牆段</div>
+          </div>
+          <div style="background:#EBF4FF;border-radius:8px;padding:10px">
+            <div style="font-size:22px;font-weight:700;color:#185FA5">${furnItems.length}</div>
+            <div style="font-size:11px;color:#64748B">傢俱</div>
+          </div>
         </div>
+        ${scaleLine}
       </div>
     </div>
     <div>
       <div class="detail-section">
         <h3>空間列表</h3>
-        <div>${roomTags || '<span style="color:#94A3B8">無</span>'}</div>
+        <div>${roomTags}</div>
       </div>
       <div class="detail-section">
-        <h3>牆體 / 開口</h3>
-        <p style="font-size:13px;color:#475569">${wallInfo}</p>
+        <h3>牆段 / 開口</h3>
+        <p style="font-size:13px;color:#475569">${wallDetail}</p>
       </div>
       <div class="detail-section">
         <h3>傢俱</h3>
-        <div>${furnList || '<span style="color:#94A3B8">無</span>'}</div>
+        <div>${furnList}</div>
       </div>
       <div class="detail-section">
-        <h3>ID</h3>
-        <div style="font-family:monospace;font-size:11px;color:#64748B">${d.id}</div>
+        <h3>來源 / ID</h3>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          ${sourceLine}
+          <span style="font-family:monospace;font-size:11px;color:#64748B">${d.id}</span>
+        </div>
       </div>
     </div>
   `;
 
   document.getElementById('modal-delete-btn').onclick = () => confirmDelete(id);
   document.getElementById('modal-export-btn').onclick = () => exportOne(id);
-  document.getElementById('modal-edit-btn').onclick = () => editAnnotation(id);
+  document.getElementById('modal-edit-btn').onclick   = () => editAnnotation(id);
   document.getElementById('detail-modal').classList.add('open');
 }
 
@@ -373,6 +423,12 @@ async function doDelete(id) {
 
 // ── 編輯（跳轉主頁）─────────────────────────────
 function editAnnotation(id) {
+  const d = allData.find(x => x.id === id);
+  if (!d) return;
+  if (!d.image_b64) {
+    showToast('此筆資料無圖片，無法在標注工具中編輯（JSONL 匯入）', 'error');
+    return;
+  }
   window.open('/?id=' + id, '_blank');
 }
 
@@ -380,15 +436,38 @@ function editAnnotation(id) {
 function exportOne(id) {
   const d = allData.find(x => x.id === id);
   if (!d) return;
-  const json = JSON.stringify(d, null, 2);
-  download('annotation_' + id.slice(0,8) + '.json', json, 'application/json');
+  // 匯出為 JSONL 格式（每個空間一行），與原始 exportJSONL 一致
+  const rooms  = d.rooms  || [];
+  const walls  = Array.isArray(d.walls) ? d.walls : [];
+  const wallMap = Object.fromEntries(walls.map(w => [w.id, w]));
+  const meta = {
+    scale_px_per_cm:  d.summary?.scale_px_per_cm  ?? null,
+    scale_set:        d.summary?.scale_set         ?? false,
+    image_width_px:   d.summary?.image_width_px    ?? null,
+    image_height_px:  d.summary?.image_height_px   ?? null,
+  };
+  const lines = rooms.map(r => {
+    const roomWalls = (r.segmentIds || []).map(sid => wallMap[sid]).filter(Boolean);
+    return JSON.stringify({
+      ...meta,
+      room_name:         r.name,
+      room_type:         r.type,
+      ceiling_height_cm: r.ceilingHeight || 270,
+      polygon:           r.polygon,
+      walls:             roomWalls,
+      furniture:         Array.isArray(r.furniture) ? r.furniture : (getFurnItems(d).filter(f => f.roomName === r.name)),
+    });
+  });
+  const content = lines.length ? lines.join('\n') : JSON.stringify(d, null, 2);
+  const ext     = lines.length ? 'jsonl' : 'json';
+  download(`annotation_${id.slice(0, 8)}.${ext}`, content, 'application/x-jsonlines');
   showToast('✅ 已匯出', 'success');
 }
 
 function exportAll() {
   if (!allData.length) { showToast('沒有資料可匯出', 'error'); return; }
   const jsonl = allData.map(d => JSON.stringify(d)).join('\n');
-  download('annotations_' + new Date().toISOString().slice(0,10) + '.jsonl', jsonl, 'application/x-jsonlines');
+  download('annotations_' + new Date().toISOString().slice(0, 10) + '.jsonl', jsonl, 'application/x-jsonlines');
   showToast(`✅ 已匯出 ${allData.length} 筆 JSONL`, 'success');
 }
 
@@ -406,7 +485,7 @@ function showToast(msg, type = 'success') {
   t.textContent = msg;
   t.className = 'toast show toast-' + type;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.className = 'toast', 3000);
+  toastTimer = setTimeout(() => t.className = 'toast', 3500);
 }
 
 // ── 關閉 modal 點背景 ─────────────────────────
