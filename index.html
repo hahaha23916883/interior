@@ -503,7 +503,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 // ═══════════════════════════════════════════
 // SUPABASE
 // ═══════════════════════════════════════════
-const ANTHROPIC_API_KEY='';
+// API Key 已移至後端 .env，前端不需要持有
 const SUPABASE_URL='https://duiycimttbzozdaoxzrh.supabase.co';
 const SUPABASE_KEY='sb_publishable_PJptx3XXIU7fm7efyb2wEw_LspsF8qz';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
@@ -3055,14 +3055,9 @@ async function runAIRoomDetect(){
   const btn=document.getElementById('btn-ai-detect');
   btn.disabled=true; btn.textContent='🤖 AI 辨識中...';
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    const resp=await fetch('/api/claude',{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':ANTHROPIC_API_KEY,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model:'claude-opus-4-5',
         max_tokens:1024,
@@ -3098,9 +3093,9 @@ async function runAIFurnDetect(){
   const btn=document.getElementById('btn-ai-furn');
   if(btn){btn.disabled=true;btn.textContent='🤖 辨識中...';}
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    const resp=await fetch('/api/claude',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model:'claude-opus-4-5',max_tokens:1024,
         messages:[{role:'user',content:[
