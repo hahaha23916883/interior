@@ -491,7 +491,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
   <div id="opp-connect-row" style="display:none;margin-bottom:10px;padding:7px 9px;border-radius:7px;background:#fefce8;border:1px solid #fde047;font-size:12px;color:#713f12">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
       <span id="opp-connect-label" style="flex:1;line-height:1.4"></span>
-      <button onclick="unlinkOpConnectedTo()"
+      <button onclick="unlinkOpMirror()"
         style="padding:2px 7px;background:#fff;border:1px solid #fde047;border-radius:5px;cursor:pointer;font-size:11px;color:#92400e;white-space:nowrap">解除</button>
     </div>
   </div>
@@ -925,75 +925,119 @@ function gapPxToWidth(gapPx){
 }
 
 // ═══════════════════════════════════════════
-// OPENING CONNECTIVITY AUTO-DETECTION
+// OPENING MIRROR — AUTO-SYNC ACROSS PARALLEL WALLS
 // ═══════════════════════════════════════════
-// Two openings are "connected" if they lie on parallel, adjacent walls
-// (like two inner wall faces of the same physical wall) and their
-// projected intervals overlap > 50%.
-function detectConnectedOpenings(){
+// When an opening is added/modified on wall A, and a parallel adjacent wall B
+// exists (perpendicular distance < 80px), the opening is automatically mirrored
+// onto B.  Both openings are linked via op.mirrorKey = {segId, opId}.
+// Position, width, type, style are kept in sync.
+// swingSide and flipHinge are independent (each wall face can open differently).
+// Deleting one opening also deletes its auto-mirror partner.
+
+// Find any opening by its stable id across all segments
+function findOpById(opId){
+  for(const seg of segments){
+    const idx=seg.openings.findIndex(o=>o.id===opId);
+    if(idx>=0) return {seg,op:seg.openings[idx],opIdx:idx};
+  }
+  return null;
+}
+
+// Compute mirror geometry parameters between two segments.
+// Returns {proj, sameDir, len1, len2} or null if not parallel/close.
+function _segMirrorParams(s1,s2){
+  if(!img) return null;
+  const IW=img.naturalWidth,IH=img.naturalHeight;
+  const dx1=(s1.end.x-s1.start.x)*IW, dy1=(s1.end.y-s1.start.y)*IH;
+  const len1=Math.hypot(dx1,dy1); if(len1<1) return null;
+  const ux1=dx1/len1, uy1=dy1/len1;
+  const nx1=-uy1, ny1=ux1;
+  const dx2=(s2.end.x-s2.start.x)*IW, dy2=(s2.end.y-s2.start.y)*IH;
+  const len2=Math.hypot(dx2,dy2); if(len2<1) return null;
+  const ux2=dx2/len2, uy2=dy2/len2;
+  const dotDir=ux1*ux2+uy1*uy2;
+  if(Math.abs(dotDir)<0.97) return null;
+  const vx=(s2.start.x-s1.start.x)*IW, vy=(s2.start.y-s1.start.y)*IH;
+  if(Math.abs(vx*nx1+vy*ny1)>80) return null;
+  return {proj:vx*ux1+vy*uy1, sameDir:dotDir>0, len1, len2};
+}
+
+// Convert position c1 (px along s1) to position along s2 using mirror params
+function _mirrorPos(c1,params){
+  return params.sameDir ? c1-params.proj : params.proj-c1;
+}
+
+// Sync position/width/type/style of op's mirror (if any)
+function syncOpMirror(opId){
+  const found=findOpById(opId); if(!found) return;
+  const {seg:s1,op}=found;
+  if(!op.mirrorKey) return;
+  const found2=findOpById(op.mirrorKey.opId); if(!found2) return;
+  const {seg:s2,op:op2}=found2;
+  const params=_segMirrorParams(s1,s2); if(!params) return;
+  const c2=_mirrorPos((op.position/100)*params.len1, params);
+  op2.position=Math.max(0,Math.min(100, (c2/params.len2)*100));
+  op2.width=op.width;
+  op2.type=op.type;
+  op2.style=op.style;
+  // swingSide and flipHinge stay independent
+}
+
+// Create a mirror opening on the nearest parallel wall for a new opening
+function createMirrorOpening(opId){
   if(!img) return;
-  const IW=img.naturalWidth, IH=img.naturalHeight;
-  const MAX_WALL_DIST=80;   // max perpendicular distance between parallel walls (image px)
-  const PARALLEL_DOT=0.97;  // |cos θ| threshold ≈ 14°
+  const found=findOpById(opId); if(!found) return;
+  const {seg:s1,op}=found;
+  if(op.autoMirror||op.mirrorKey) return; // already linked or is itself a mirror
 
-  // Clear auto-detected connections only (keep manual ones)
-  segments.forEach(s=>s.openings.forEach(op=>{
-    if(op.connectedTo && op.connectedTo.auto) op.connectedTo=null;
-  }));
+  for(const s2 of segments){
+    if(s2.id===s1.id) continue;
+    const params=_segMirrorParams(s1,s2); if(!params) continue;
+    const c1=(op.position/100)*params.len1;
+    const c2=_mirrorPos(c1,params);
+    if(c2<0||c2>params.len2) continue; // would land outside wall
 
-  for(let i=0;i<segments.length;i++){
-    const s1=segments[i];
-    if(!s1.openings.length) continue;
-    const dx1=(s1.end.x-s1.start.x)*IW, dy1=(s1.end.y-s1.start.y)*IH;
-    const len1=Math.hypot(dx1,dy1); if(len1<1) continue;
-    const ux1=dx1/len1, uy1=dy1/len1;  // unit direction
-    const nx1=-uy1, ny1=ux1;            // unit normal (perpendicular)
+    // If s2 already has an opening near that position, just link to it
+    const gapPx=opGapPx(op,params.len1);
+    const nearby=s2.openings.find(o=>!o.mirrorKey&&Math.abs((o.position/100)*params.len2-c2)<gapPx*0.6);
+    if(nearby){
+      op.mirrorKey={segId:s2.id,opId:nearby.id};
+      nearby.mirrorKey={segId:s1.id,opId:op.id};
+      nearby.autoMirror=true;
+      syncOpMirror(op.id);
+      return;
+    }
 
-    for(let j=i+1;j<segments.length;j++){
-      const s2=segments[j];
-      if(!s2.openings.length) continue;
-      const dx2=(s2.end.x-s2.start.x)*IW, dy2=(s2.end.y-s2.start.y)*IH;
-      const len2=Math.hypot(dx2,dy2); if(len2<1) continue;
-      const ux2=dx2/len2, uy2=dy2/len2;
+    // Create a brand-new mirror opening
+    const mirrorOp={
+      id:newId(), type:op.type, style:op.style,
+      position:(c2/params.len2)*100, width:op.width,
+      height:op.height||210, sill:op.sill||0,
+      swingSide:op.swingSide||'right', flipHinge:!!op.flipHinge,
+      autoMirror:true,
+      mirrorKey:{segId:s1.id, opId:op.id}
+    };
+    s2.openings.push(mirrorOp);
+    op.mirrorKey={segId:s2.id, opId:mirrorOp.id};
+    return; // mirror to first valid parallel wall only
+  }
+}
 
-      // 1. Parallel check
-      const dotDir=ux1*ux2+uy1*uy2;
-      if(Math.abs(dotDir)<PARALLEL_DOT) continue;
-
-      // 2. Perpendicular distance check
-      const vx=(s2.start.x-s1.start.x)*IW, vy=(s2.start.y-s1.start.y)*IH;
-      const perpDist=Math.abs(vx*nx1+vy*ny1);
-      if(perpDist>MAX_WALL_DIST) continue;
-
-      // Project S2.start onto S1's axis
-      const proj_s2start=vx*ux1+vy*uy1;
-      const sameDir=dotDir>0;
-
-      // 3. Check each pair of openings for interval overlap
-      s1.openings.forEach((op1,idx1)=>{
-        if(op1.connectedTo && !op1.connectedTo.auto) return;
-        const gp1=opGapPx(op1,len1);
-        const c1=(op1.position/100)*len1;
-        const a1=c1-gp1/2, b1=c1+gp1/2;
-
-        s2.openings.forEach((op2,idx2)=>{
-          if(op2.connectedTo && !op2.connectedTo.auto) return;
-          if(op1.connectedTo) return; // already matched
-          const gp2=opGapPx(op2,len2);
-          const c2_s2=(op2.position/100)*len2;
-          // Project op2 center onto S1's axis
-          const c2=sameDir ? proj_s2start+c2_s2 : proj_s2start-c2_s2;
-          const a2=c2-gp2/2, b2=c2+gp2/2;
-
-          const overlap=Math.min(b1,b2)-Math.max(a1,a2);
-          if(overlap>0 && overlap/Math.min(gp1,gp2)>0.5){
-            op1.connectedTo={segId:s2.id, opIdx:idx2, auto:true};
-            op2.connectedTo={segId:s1.id, opIdx:idx1, auto:true};
-          }
-        });
-      });
+// Delete an opening and its auto-mirror partner (if it has one)
+function deleteOpeningWithMirror(segId,opIdx){
+  const seg=getSegById(segId); if(!seg) return;
+  const op=seg.openings[opIdx]; if(!op) return;
+  if(op.mirrorKey){
+    const found=findOpById(op.mirrorKey.opId);
+    if(found){
+      if(found.op.autoMirror){
+        found.seg.openings.splice(found.opIdx,1); // delete the auto-mirror
+      } else {
+        found.op.mirrorKey=null; // unlink manually-placed partner
+      }
     }
   }
+  seg.openings.splice(opIdx,1);
 }
 
 // Returns the room name whose boundary includes the given segId (for popup display)
@@ -1181,21 +1225,26 @@ function confirmOpening(){
     swingSide:document.getElementById('op-swing').value,
     flipHinge:document.getElementById('op-hinge').value==='end',
   };
-  if(openingModalOpIdx===null) seg.openings.push(op);
-  else seg.openings[openingModalOpIdx]=op;
+  if(openingModalOpIdx===null){
+    seg.openings.push(op);
+    createMirrorOpening(op.id); // auto-mirror onto parallel adjacent wall
+  } else {
+    seg.openings[openingModalOpIdx]=op;
+    syncOpMirror(op.id);
+  }
   closeOpeningModal();
   updateOpeningEditor();renderCanvas();
 }
 function deleteOpening(){
   const seg=getSegById(openingModalSegId);if(!seg||openingModalOpIdx===null)return;
   pushUndo();
-  seg.openings.splice(openingModalOpIdx,1);
+  deleteOpeningWithMirror(openingModalSegId,openingModalOpIdx);
   closeOpeningModal();updateOpeningEditor();renderCanvas();
 }
 function deleteOpeningAt(segId,idx){
   const seg=getSegById(segId);if(!seg)return;
   pushUndo();
-  seg.openings.splice(idx,1);
+  deleteOpeningWithMirror(segId,idx);
   updateOpeningEditor();renderCanvas();
 }
 function closeOpeningModal(){document.getElementById('opening-modal').classList.remove('open');}
@@ -1232,12 +1281,12 @@ function showOpPopup(segId,opIdx,clientX,clientY){
   document.getElementById('opp-swing').value=op.swingSide||'right';
   document.getElementById('opp-hinge').value=op.flipHinge?'end':'start';
   document.getElementById('opp-door-rows').style.display=isDoor?'block':'none';
-  // Connectivity display
+  // Mirror display
   const connRow=document.getElementById('opp-connect-row');
-  if(op.connectedTo && !op.connectedTo.unlinked){
-    const connRoom=getRoomNameForSeg(op.connectedTo.segId);
-    const tag=op.connectedTo.auto?'自動偵測':'已確認';
-    const label=connRoom?`🔗 ${tag}：連通「${connRoom}」`:`🔗 ${tag}：連通鄰接牆段`;
+  if(op.mirrorKey){
+    const connRoom=getRoomNameForSeg(op.mirrorKey.segId);
+    const tag=op.autoMirror?'自動鏡像':'已連結';
+    const label=connRoom?`🔗 ${tag}：連通「${connRoom}」`:`🔗 ${tag}：連通鄰接牆面`;
     document.getElementById('opp-connect-label').textContent=label;
     connRow.style.display='block';
   } else {
@@ -1256,17 +1305,14 @@ function hideOpPopup(){
   document.getElementById('op-popup').style.display='none';
   opPopupKey=null;
 }
-function unlinkOpConnectedTo(){
+function unlinkOpMirror(){
   if(!opPopupKey) return;
   const seg=getSegById(opPopupKey.segId);
-  const op=seg?.openings[opPopupKey.opIdx]; if(!op||!op.connectedTo) return;
+  const op=seg?.openings[opPopupKey.opIdx]; if(!op||!op.mirrorKey) return;
   pushUndo();
-  // Mark partner as manually unlinked so auto-detect won't re-pair it
-  const seg2=getSegById(op.connectedTo.segId);
-  const op2=seg2?.openings[op.connectedTo.opIdx];
-  if(op2) op2.connectedTo={segId:opPopupKey.segId, opIdx:opPopupKey.opIdx, auto:false, unlinked:true};
-  op.connectedTo={segId:op.connectedTo.segId, opIdx:op.connectedTo.opIdx, auto:false, unlinked:true};
-  // Refresh popup in place
+  const found2=findOpById(op.mirrorKey.opId);
+  if(found2){ found2.op.mirrorKey=null; found2.op.autoMirror=false; }
+  op.mirrorKey=null;
   const px=parseInt(document.getElementById('op-popup').style.left);
   const py=parseInt(document.getElementById('op-popup').style.top)+10;
   showOpPopup(opPopupKey.segId, opPopupKey.opIdx, px, py);
@@ -1303,13 +1349,14 @@ function applyOpPopup(){
   }
   op.swingSide=document.getElementById('opp-swing').value;
   op.flipHinge=document.getElementById('opp-hinge').value==='end';
+  syncOpMirror(op.id); // keep mirror in sync (position/width/type/style only)
   renderCanvas();
 }
 function deleteOpeningFromPopup(){
   if(!opPopupKey)return;
   const seg=getSegById(opPopupKey.segId);if(!seg)return;
   pushUndo();
-  seg.openings.splice(opPopupKey.opIdx,1);
+  deleteOpeningWithMirror(opPopupKey.segId,opPopupKey.opIdx);
   hideOpPopup();
   updateOpeningEditor();renderCanvas();
 }
@@ -1637,9 +1684,6 @@ function renderCanvas(){
     });
   }
 
-  // Refresh opening connectivity (fast, runs each frame)
-  detectConnectedOpenings();
-
   // Draw segments — use IW/IH for normalized→image-pixel conversion
   segments.forEach(seg=>{
     const sx=seg.start.x*IW,sy=seg.start.y*IH;
@@ -1723,44 +1767,33 @@ function renderCanvas(){
     });
   });
 
-  // Draw connectivity bridge lines between paired openings
+  // Draw mirror bridge lines between linked openings
   {
     const drawnPairs=new Set();
     segments.forEach(seg=>{
       const dx1=(seg.end.x-seg.start.x)*IW, dy1=(seg.end.y-seg.start.y)*IH;
       const len1=Math.hypot(dx1,dy1); if(len1<1) return;
       const cos1=dx1/len1, sin1=dy1/len1;
-      seg.openings.forEach((op,opIdx)=>{
-        if(!op.connectedTo||op.connectedTo.unlinked) return;
-        const key1=`${seg.id}:${opIdx}`;
-        const key2=`${op.connectedTo.segId}:${op.connectedTo.opIdx}`;
-        const pairKey=[key1,key2].sort().join('|');
+      seg.openings.forEach(op=>{
+        if(!op.mirrorKey) return;
+        const pairKey=[op.id,op.mirrorKey.opId].sort().join('|');
         if(drawnPairs.has(pairKey)) return;
         drawnPairs.add(pairKey);
-        const seg2=getSegById(op.connectedTo.segId); if(!seg2) return;
-        const op2=seg2.openings[op.connectedTo.opIdx]; if(!op2) return;
+        const found2=findOpById(op.mirrorKey.opId); if(!found2) return;
+        const {seg:seg2,op:op2}=found2;
         const dx2=(seg2.end.x-seg2.start.x)*IW, dy2=(seg2.end.y-seg2.start.y)*IH;
         const len2=Math.hypot(dx2,dy2); if(len2<1) return;
         const cos2=dx2/len2, sin2=dy2/len2;
-        // Midpoints of each opening
         const c1=(op.position/100)*len1;
         const mx1=seg.start.x*IW+cos1*c1, my1=seg.start.y*IH+sin1*c1;
         const c2=(op2.position/100)*len2;
         const mx2=seg2.start.x*IW+cos2*c2, my2=seg2.start.y*IH+sin2*c2;
-        // Draw dashed bridge (yellow = auto, green = confirmed)
-        ctx.beginPath();
-        ctx.moveTo(mx1,my1); ctx.lineTo(mx2,my2);
-        ctx.strokeStyle=op.connectedTo.auto?'#FCD34D':'#22C55E';
-        ctx.lineWidth=1.5/viewScale;
-        ctx.setLineDash([4/viewScale,3/viewScale]);
-        ctx.stroke(); ctx.setLineDash([]);
-        // Small circle at each midpoint
-        [mx1,my1,mx2,my2].forEach((_,i,a)=>{
-          if(i%2!==0) return;
-          ctx.beginPath();
-          ctx.arc(a[i],a[i+1],3/viewScale,0,Math.PI*2);
-          ctx.fillStyle=op.connectedTo.auto?'#FCD34D':'#22C55E';
-          ctx.fill();
+        ctx.beginPath(); ctx.moveTo(mx1,my1); ctx.lineTo(mx2,my2);
+        ctx.strokeStyle='#FCD34D'; ctx.lineWidth=1.5/viewScale;
+        ctx.setLineDash([4/viewScale,3/viewScale]); ctx.stroke(); ctx.setLineDash([]);
+        [[mx1,my1],[mx2,my2]].forEach(([x,y])=>{
+          ctx.beginPath(); ctx.arc(x,y,3/viewScale,0,Math.PI*2);
+          ctx.fillStyle='#FCD34D'; ctx.fill();
         });
       });
     });
@@ -2467,6 +2500,17 @@ function onMouseUp(e){
   draggingFurn=null;
   resizingFurn=null;
   rotatingFurn=null;
+  // Sync mirror after opening drag/resize ends
+  if(resizingOpening){
+    const seg=getSegById(resizingOpening.segId);
+    const op=seg?.openings[resizingOpening.opIdx];
+    if(op) syncOpMirror(op.id);
+  }
+  if(draggingOpening){
+    const seg=getSegById(draggingOpening.segId);
+    const op=seg?.openings[draggingOpening.opIdx];
+    if(op) syncOpMirror(op.id);
+  }
   resizingOpening=null;
   if(draggingEndpoint) snapHoverPt=null; // clear snap indicator when drag ends
   draggingEndpoint=null;
