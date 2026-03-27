@@ -31,7 +31,11 @@ th:nth-child(3),th:nth-child(4),th:nth-child(5),th:nth-child(6),th:nth-child(7),
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#F8FAFC}
 .thumb{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #E2E8F0;cursor:pointer;display:block}
-.thumb-placeholder{width:80px;height:60px;background:#F1F5F9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
+.thumb-placeholder{width:80px;height:60px;background:#F1F5F9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;position:relative}
+.thumb-placeholder:hover::after{content:'📤';position:absolute;font-size:14px;bottom:2px;right:4px}
+.thumb-wrap{position:relative;display:inline-block}
+.thumb-wrap:hover .thumb-upload-hint{display:flex}
+.thumb-upload-hint{display:none;position:absolute;inset:0;background:rgba(0,0,0,.45);border-radius:6px;align-items:center;justify-content:center;color:white;font-size:12px;cursor:pointer;pointer-events:none}
 .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap}
 .badge-blue{background:#EBF4FF;color:#185FA5}
 .badge-green{background:#D1FAE5;color:#065F46}
@@ -169,6 +173,9 @@ tr:hover td{background:#F8FAFC}
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- 隱藏的圖片上傳 input -->
+<input type="file" id="img-upload-input" accept="image/*" style="display:none" onchange="onImgSelected(event)">
+
 <script>
 const SUPABASE_URL = 'https://duiycimttbzozdaoxzrh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PJptx3XXIU7fm7efyb2wEw_LspsF8qz';
@@ -217,10 +224,42 @@ function getRoomCount(d) {
 // 產生縮圖 HTML（不截斷 base64）
 function thumbHtml(d) {
   if (d.image_b64) {
-    const mime = 'image/jpeg';
-    return `<img class="thumb" src="data:${mime};base64,${d.image_b64}" alt="平面圖" onclick="openDetail('${d.id}')" onerror="this.outerHTML='<div class=thumb-placeholder onclick=openDetail(\\'${d.id}\\')>🏠</div>'">`;
+    return `<div class="thumb-wrap">
+      <img class="thumb" src="data:image/jpeg;base64,${d.image_b64}" alt="平面圖" onclick="openDetail('${d.id}')"
+        onerror="this.parentElement.innerHTML='<div class=thumb-placeholder onclick=uploadThumb(\\'${d.id}\\')>🏠</div>'">
+      <div class="thumb-upload-hint" onclick="uploadThumb('${d.id}')">📤 換圖</div>
+    </div>`;
   }
-  return `<div class="thumb-placeholder" onclick="openDetail('${d.id}')">🏠</div>`;
+  return `<div class="thumb-placeholder" title="點擊上傳圖片" onclick="uploadThumb('${d.id}')">🏠</div>`;
+}
+
+// 點擊縮圖上傳圖片
+function uploadThumb(id) {
+  const input = document.getElementById('img-upload-input');
+  input.dataset.targetId = id;
+  input.value = '';
+  input.click();
+}
+
+async function onImgSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const id = e.target.dataset.targetId;
+  const d  = allData.find(x => x.id === id);
+  if (!d) return;
+
+  showToast('⏳ 上傳中...', 'success');
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    // strip "data:image/...;base64," prefix
+    const b64 = ev.target.result.split(',')[1];
+    const { error } = await sb.from('annotations').update({ image_b64: b64 }).eq('id', id);
+    if (error) { showToast('上傳失敗：' + error.message, 'error'); return; }
+    d.image_b64 = b64;
+    showToast('✅ 圖片已更新', 'success');
+    filterData(); // re-render table
+  };
+  reader.readAsDataURL(file);
 }
 
 // ── 載入資料 ──────────────────────────────────
