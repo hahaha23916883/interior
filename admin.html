@@ -113,6 +113,7 @@ tr:hover td{background:#F8FAFC}
         <th>縮圖</th>
         <th>名稱 / 空間</th>
         <th>建立時間</th>
+        <th>空間</th>
         <th>牆段</th>
         <th>傢俱</th>
         <th>來源</th>
@@ -306,6 +307,7 @@ function renderTable(data) {
         <span style="font-size:11px;color:#94A3B8;display:block;margin-top:2px">${rooms.length} 個空間・${roomNames}${moreRooms}</span>
       </td>
       <td style="white-space:nowrap;color:#64748B">${date}</td>
+      <td><span class="badge badge-blue">${rooms.length}</span></td>
       <td><span class="badge badge-blue">${wallCount}</span></td>
       <td><span class="badge badge-blue">${furnCount}</span></td>
       <td>${sourceBadge}</td>
