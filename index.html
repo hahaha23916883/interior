@@ -509,7 +509,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
   <div class="modal" style="max-width:480px">
     <h3>選擇傢俱類型</h3>
     <div id="furn-type-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:300px;overflow-y:auto;margin-bottom:12px"></div>
-    <div class="form-row">
+    <div class="form-row" id="furn-dir-row" style="display:none">
       <label>方向（頭部朝向）</label>
       <select id="furn-head-dir">
         <option value="0">上（↑）</option>
@@ -519,8 +519,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
       </select>
     </div>
     <div class="modal-btns">
+      <button class="btn btn-primary" id="furn-confirm-btn" onclick="confirmFurnType()" style="display:none">確認</button>
       <button class="btn btn-secondary" onclick="closeFurnTypeModal()">取消</button>
     </div>
+  </div>
+</div>
+
+<!-- 傢俱編輯 Popup -->
+<div id="furn-edit-popup" style="position:fixed;display:none;z-index:3000;background:white;border:1px solid #E2E8F0;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:14px 16px;min-width:200px;max-width:260px">
+  <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:#1E293B" id="fepp-title">傢俱屬性</div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <label style="font-size:11px;color:#64748B">名稱</label>
+    <select id="fepp-type" style="padding:5px 8px;border:1px solid #CBD5E1;border-radius:6px;font-size:12px" onchange="onFeppTypeChange()">
+    </select>
+    <div id="fepp-dir-row" style="display:none;flex-direction:column;gap:4px">
+      <label style="font-size:11px;color:#64748B">方向</label>
+      <select id="fepp-dir" style="padding:5px 8px;border:1px solid #CBD5E1;border-radius:6px;font-size:12px">
+        <option value="0">上（↑）</option><option value="1">右（→）</option>
+        <option value="2">下（↓）</option><option value="3">左（←）</option>
+      </select>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin-top:12px">
+    <button onclick="applyFurnEdit()" style="flex:1;padding:6px;background:#185FA5;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer">套用</button>
+    <button onclick="deleteFurnEdit()" style="padding:6px 10px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;font-size:12px;cursor:pointer">🗑</button>
+    <button onclick="hideFurnEditPopup()" style="padding:6px 10px;background:#F1F5F9;color:#475569;border:none;border-radius:6px;font-size:12px;cursor:pointer">✕</button>
   </div>
 </div>
 
@@ -541,27 +564,36 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
 const COLORS=['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#F97316','#84CC16','#EC4899','#14B8A6','#6366F1','#FB923C'];
 const ROOM_TYPES=['客廳','餐廳','廚房','主臥室','次臥室','客房','兒童房','主衛浴','衛浴','玄關','陽台','工作陽台','走廊','儲藏室','更衣室','書房','工作區'];
 const FURNITURE_LIST=[
-  {id:'bed_double',name:'雙人床',icon:'🛏',w:160,h:200},
-  {id:'bed_single',name:'單人床',icon:'🛏',w:100,h:200},
-  {id:'wardrobe',name:'衣櫃',icon:'🗄',w:120,h:60},
-  {id:'nightstand',name:'床頭櫃',icon:'🟫',w:50,h:50},
-  {id:'sofa',name:'沙發',icon:'🛋',w:200,h:80},
-  {id:'sofa_l',name:'L型沙發',icon:'🛋',w:240,h:160},
-  {id:'coffee_table',name:'茶几',icon:'🪵',w:110,h:60},
-  {id:'tv_stand',name:'電視櫃',icon:'📺',w:160,h:45},
-  {id:'dining_table',name:'餐桌',icon:'🪑',w:120,h:80},
-  {id:'dining_chair',name:'餐椅',icon:'🪑',w:45,h:45},
-  {id:'kitchen_counter',name:'廚具台面',icon:'🍳',w:200,h:60},
-  {id:'refrigerator',name:'冰箱',icon:'❄️',w:65,h:70},
-  {id:'toilet',name:'馬桶',icon:'🚽',w:40,h:70},
-  {id:'bathtub',name:'浴缸',icon:'🛁',w:80,h:160},
-  {id:'shower',name:'淋浴間',icon:'🚿',w:90,h:90},
-  {id:'sink_bath',name:'洗手台',icon:'🪥',w:60,h:50},
-  {id:'desk',name:'書桌',icon:'🖥',w:120,h:60},
-  {id:'bookshelf',name:'書櫃',icon:'📚',w:100,h:30},
-  {id:'washing_machine',name:'洗衣機',icon:'👕',w:60,h:60},
-  {id:'plant',name:'植栽',icon:'🌿',w:40,h:40},
-  {id:'other',name:'其他',icon:'📦',w:60,h:60},
+  // 臥室
+  {id:'bed_double',  name:'雙人床',   icon:'🛏', w:160,h:200, hasDirection:true},
+  {id:'bed_single',  name:'單人床',   icon:'🛏', w:100,h:200, hasDirection:true},
+  {id:'nightstand',  name:'床頭櫃',   icon:'🟫', w:50, h:50,  hasDirection:false},
+  // 客廳
+  {id:'sofa',        name:'沙發',     icon:'🛋', w:200,h:80,  hasDirection:true},
+  {id:'sofa_l',      name:'L型沙發',  icon:'🛋', w:240,h:160, hasDirection:true},
+  {id:'coffee_table',name:'茶几',     icon:'🪵', w:110,h:60,  hasDirection:false},
+  // 餐廳
+  {id:'dining_table',name:'餐桌',     icon:'🍽', w:120,h:80,  hasDirection:false},
+  {id:'chair',       name:'椅子',     icon:'🪑', w:45, h:45,  hasDirection:true},
+  // 書房/工作
+  {id:'desk',        name:'書桌',     icon:'🖥', w:120,h:60,  hasDirection:true},
+  // 廚房
+  {id:'kitchen_counter',name:'廚具台面',icon:'🍳',w:200,h:60, hasDirection:false},
+  {id:'refrigerator',name:'冰箱',     icon:'❄️',w:65, h:70,  hasDirection:false},
+  // 衛浴
+  {id:'toilet',      name:'馬桶',     icon:'🚽', w:40, h:70,  hasDirection:true},
+  {id:'bathtub',     name:'浴缸',     icon:'🛁', w:80, h:160, hasDirection:true},
+  {id:'shower',      name:'淋浴間',   icon:'🚿', w:90, h:90,  hasDirection:false},
+  {id:'sink',        name:'洗手台',   icon:'🪥', w:60, h:50,  hasDirection:false},
+  // 收納
+  {id:'cabinet',     name:'櫃子',     icon:'🗄', w:120,h:50,  hasDirection:false},
+  // 家電
+  {id:'washing_machine',name:'洗衣機',icon:'👕',w:60, h:60,  hasDirection:false},
+  {id:'ac',          name:'冷氣',     icon:'❄', w:80, h:25,  hasDirection:false},
+  // 其他
+  {id:'staircase',   name:'樓梯',     icon:'🪜', w:100,h:200, hasDirection:false},
+  {id:'plant',       name:'植栽',     icon:'🌿', w:40, h:40,  hasDirection:false},
+  {id:'other',       name:'其他',     icon:'📦', w:60, h:60,  hasDirection:false},
 ];
 const SNAP_DIST=18; // px screen distance for snapping
 
@@ -1305,6 +1337,61 @@ function showOpPopup(segId,opIdx,clientX,clientY){
   if(py<8) py=8;
   popup.style.left=px+'px';popup.style.top=py+'px';popup.style.display='block';
 }
+// ── 傢俱編輯 Popup ─────────────────────────────
+let furnEditKey=null;
+function showFurnEditPopup(roomIdx,furnIdx,clientX,clientY){
+  furnEditKey={roomIdx,furnIdx};
+  const furn=rooms[roomIdx]?.furniture[furnIdx];
+  if(!furn) return;
+  const popup=document.getElementById('furn-edit-popup');
+  // populate type selector
+  const sel=document.getElementById('fepp-type');
+  sel.innerHTML=FURNITURE_LIST.map(f=>`<option value="${f.id}"${f.id===furn.type?' selected':''}>${f.name}</option>`).join('');
+  // direction
+  const def=FURNITURE_LIST.find(f=>f.id===furn.type);
+  const dirRow=document.getElementById('fepp-dir-row');
+  dirRow.style.display=(def?.hasDirection)?'flex':'none';
+  document.getElementById('fepp-dir').value=furn.headDir||0;
+  document.getElementById('fepp-title').textContent=furn.name||'傢俱屬性';
+  // position popup
+  const pw=260,ph=200;
+  let left=clientX+10, top=clientY-50;
+  if(left+pw>window.innerWidth) left=clientX-pw-10;
+  if(top+ph>window.innerHeight) top=window.innerHeight-ph-10;
+  if(top<4) top=4;
+  popup.style.left=left+'px'; popup.style.top=top+'px';
+  popup.style.display='block';
+}
+function onFeppTypeChange(){
+  const typeId=document.getElementById('fepp-type').value;
+  const def=FURNITURE_LIST.find(f=>f.id===typeId);
+  document.getElementById('fepp-dir-row').style.display=(def?.hasDirection)?'flex':'none';
+}
+function hideFurnEditPopup(){
+  document.getElementById('furn-edit-popup').style.display='none';
+  furnEditKey=null;
+}
+function applyFurnEdit(){
+  if(!furnEditKey) return;
+  const furn=rooms[furnEditKey.roomIdx]?.furniture[furnEditKey.furnIdx];
+  if(!furn) return;
+  pushUndo();
+  const typeId=document.getElementById('fepp-type').value;
+  const def=FURNITURE_LIST.find(f=>f.id===typeId);
+  if(def){ furn.type=def.id; furn.name=def.name; furn.icon=def.icon; }
+  furn.headDir=parseInt(document.getElementById('fepp-dir').value)||0;
+  hideFurnEditPopup();
+  renderCanvas();renderRoomList();renderRoomList3();
+}
+function deleteFurnEdit(){
+  if(!furnEditKey) return;
+  pushUndo();
+  rooms[furnEditKey.roomIdx]?.furniture.splice(furnEditKey.furnIdx,1);
+  selectedFurnKey=null;
+  hideFurnEditPopup();
+  updateStats();renderCanvas();renderRoomList();renderRoomList3();
+}
+
 function hideOpPopup(){
   document.getElementById('op-popup').style.display='none';
   opPopupKey=null;
@@ -1370,6 +1457,10 @@ document.addEventListener('mousedown',e=>{
   const popup=document.getElementById('op-popup');
   if(popup&&!popup.contains(e.target)) hideOpPopup();
 },{capture:true});
+document.addEventListener('mousedown',e=>{
+  const p=document.getElementById('furn-edit-popup');
+  if(p&&p.style.display!=='none'&&!p.contains(e.target)) hideFurnEditPopup();
+});
 
 // ═══════════════════════════════════════════
 // ROOM OPERATIONS
@@ -1501,22 +1592,40 @@ function openFurnTypeModal(rect){
   pendingFurnRect=rect;
   const grid=document.getElementById('furn-type-grid');
   if(grid) grid.innerHTML=FURNITURE_LIST.map(f=>`
-    <button onclick="confirmFurnType('${f.id}')"
+    <button onclick="selectFurnType('${f.id}')"
+      id="furn-btn-${f.id}"
       style="padding:8px 4px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:11px;text-align:center;color:#444;transition:all .1s">
       ${f.name}
     </button>`).join('');
   document.getElementById('furn-head-dir').value='0';
+  document.getElementById('furn-dir-row').style.display='none';
   document.getElementById('furn-type-modal').classList.add('open');
 }
+function selectFurnType(typeId){
+  // highlight selected
+  document.querySelectorAll('#furn-type-grid button').forEach(b=>b.style.background='#fff');
+  const btn=document.getElementById('furn-btn-'+typeId);
+  if(btn) btn.style.background='#EBF4FF';
+  // show/hide direction row
+  const def=FURNITURE_LIST.find(f=>f.id===typeId);
+  const dirRow=document.getElementById('furn-dir-row');
+  dirRow.style.display=(def&&def.hasDirection)?'flex':'none';
+  // auto-confirm if no direction needed
+  if(def&&!def.hasDirection){ confirmFurnType(typeId); }
+  else if(def){ _pendingFurnTypeId=typeId;
+  document.getElementById('furn-confirm-btn').style.display='inline-block'; }
+}
+let _pendingFurnTypeId=null;
 function closeFurnTypeModal(){
   document.getElementById('furn-type-modal').classList.remove('open');
   furnDragStart=null;furnDragCurrent=null;pendingFurnRect=null;
   renderCanvas();
 }
 function confirmFurnType(typeId){
-  const def=FURNITURE_LIST.find(f=>f.id===typeId);
+  const id=typeId||_pendingFurnTypeId; _pendingFurnTypeId=null;
+  const def=FURNITURE_LIST.find(f=>f.id===id);
   if(!def||!pendingFurnRect) return;
-  const headDir=parseInt(document.getElementById('furn-head-dir').value)||0;
+  const headDir=(def.hasDirection)?parseInt(document.getElementById('furn-head-dir').value)||0:0;
   // Find the room that contains the center of the rect
   const centerX=pendingFurnRect.x+pendingFurnRect.w/2;
   const centerY=pendingFurnRect.y+pendingFurnRect.h/2;
@@ -1591,8 +1700,8 @@ function renderCanvas(){
       j===0?ctx.moveTo(p.x*IW,p.y*IH):ctx.lineTo(p.x*IW,p.y*IH);
     });
     ctx.closePath();
-    const roomOpacity=currentStep===4?'1a':(isSelected?'88':'66');
-    ctx.fillStyle=isAuto?hex+'44':hex+roomOpacity;
+    const roomOpacity=currentStep===4?'33':(isSelected?'99':'77');
+    ctx.fillStyle=isAuto?hex+'55':hex+roomOpacity;
     ctx.fill();
 
     // No border stroke — walls are drawn on top anyway; selection gets subtle highlight
@@ -1732,10 +1841,19 @@ function renderCanvas(){
         const gapPx=g.end-g.start;
         const gx1=sx+cos*g.start, gy1=sy+sin*g.start;
         const gx2=sx+cos*g.end,   gy2=sy+sin*g.end;
-        if(g.op.type==='door'){
-          drawDoorSymbol(ctx,gx1,gy1,gapPx,angle,g.op,g.isSelOp);
-        } else {
-          drawWindowSymbol(ctx,gx1,gy1,gapPx,angle,g.op,g.isSelOp);
+        // Skip symbol if this is the "secondary" half of a mirrored pair (primary has smaller segId)
+        const isMirrorSecondary=(()=>{
+          if(!g.op.mirrorKey) return false;
+          const found2=findOpById(g.op.mirrorKey.opId);
+          if(!found2) return false;
+          return seg.id>found2.seg.id; // secondary = higher segId
+        })();
+        if(!isMirrorSecondary){
+          if(g.op.type==='door'){
+            drawDoorSymbol(ctx,gx1,gy1,gapPx,angle,g.op,g.isSelOp);
+          } else {
+            drawWindowSymbol(ctx,gx1,gy1,gapPx,angle,g.op,g.isSelOp);
+          }
         }
         // Endpoint drag handles — always visible, larger for easier grabbing
         const isResizing=resizingOpening&&resizingOpening.segId===seg.id&&resizingOpening.opIdx===g.opIdx;
@@ -1803,39 +1921,88 @@ function renderCanvas(){
   }
 
   function drawDoorSymbol(ctx,gapX1,gapY1,gapPx,angle,op,isSelOp){
-    // side: +1 = swing right of wall direction (perpAngle = angle+π/2)
-    //       -1 = swing left  (perpAngle = angle-π/2)
-    const side=(op.swingSide==='left')?-1:1;
-    const flip=!!op.flipHinge;       // hinge at gap END instead of START
-    const cos=Math.cos(angle),sin=Math.sin(angle);
-    // Hinge position
-    const hx=flip?gapX1+cos*gapPx:gapX1;
-    const hy=flip?gapY1+sin*gapPx:gapY1;
-    // Door leaf: from hinge, perpendicular to wall
-    const perpAngle=angle+side*Math.PI/2;
-    const pcos=Math.cos(perpAngle),psin=Math.sin(perpAngle);
-    const tipX=hx+pcos*gapPx, tipY=hy+psin*gapPx;
-    // Arc end angle: door opens flat against wall, towards the other end of gap
-    //   no flip → opens towards angle direction
-    //   flip    → opens towards angle+π direction
-    const arcEnd=flip?angle+Math.PI:angle;
-    // Anticlockwise flag (canvas y-down):
-    //   no flip, side+1: from perpAngle(=angle+π/2) to angle, CCW (anticlockwise=true)
-    //   no flip, side-1: from perpAngle(=angle-π/2) to angle, CW  (anticlockwise=false)
-    //   flip inverts both side and direction together → same formula works
-    const ccw=flip?(side<0):(side>0);
-    const color=isSelOp?'#D97706':'#F59E0B';
-    // Door leaf line
-    ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(tipX,tipY);
-    ctx.strokeStyle=color;ctx.lineWidth=(isSelOp?2:1.5)/viewScale;ctx.setLineDash([]);ctx.stroke();
-    // Quarter-arc (swing path, dashed)
-    ctx.beginPath();ctx.arc(hx,hy,gapPx,perpAngle,arcEnd,ccw);
-    ctx.strokeStyle=color;ctx.lineWidth=1/viewScale;
-    ctx.setLineDash([4/viewScale,2/viewScale]);ctx.stroke();ctx.setLineDash([]);
-    // Hinge dot
-    ctx.beginPath();ctx.arc(hx,hy,2.5/viewScale,0,Math.PI*2);
-    ctx.fillStyle=color;ctx.fill();
+  const color=isSelOp?'#D97706':'#F59E0B';
+  const cos=Math.cos(angle),sin=Math.sin(angle);
+  // ── 推拉門：兩片重疊矩形 ──
+  if(op.style==='推拉門'){
+    const perp=angle+Math.PI/2;
+    const pcos=Math.cos(perp),psin=Math.sin(perp);
+    const d=4/viewScale; // half-depth
+    const half=gapPx/2;
+    // panel 1: left half + slight offset
+    const offset=gapPx*0.15;
+    ctx.strokeStyle=color;ctx.lineWidth=1.5/viewScale;ctx.setLineDash([]);
+    [[0,half+offset],[offset,gapPx]].forEach(([s,e])=>{
+      ctx.beginPath();
+      ctx.moveTo(gapX1+cos*s-pcos*d,gapY1+sin*s-psin*d);
+      ctx.lineTo(gapX1+cos*e-pcos*d,gapY1+sin*e-psin*d);
+      ctx.lineTo(gapX1+cos*e+pcos*d,gapY1+sin*e+psin*d);
+      ctx.lineTo(gapX1+cos*s+pcos*d,gapY1+sin*s+psin*d);
+      ctx.closePath();ctx.stroke();
+    });
+    // centre line
+    ctx.beginPath();
+    ctx.moveTo(gapX1+cos*(gapPx/2)-pcos*d,gapY1+sin*(gapPx/2)-psin*d);
+    ctx.lineTo(gapX1+cos*(gapPx/2)+pcos*d,gapY1+sin*(gapPx/2)+psin*d);
+    ctx.lineWidth=1/viewScale;ctx.stroke();
+    return;
   }
+  // ── 雙開門 ──
+  if(op.style==='雙開門'){
+    const side=(op.swingSide==='left')?-1:1;
+    const half=gapPx/2;
+    const midX=gapX1+cos*half, midY=gapY1+sin*half;
+    [[gapX1,gapY1,midX,midY,false],[midX,midY,gapX1+cos*gapPx,gapY1+sin*gapPx,true]].forEach(([sx,sy,ex,ey,flip])=>{
+      const hx=flip?ex:sx, hy=flip?ey:sy;
+      const leafPx=Math.hypot(ex-sx,ey-sy);
+      const perpAngle=angle+side*Math.PI/2;
+      const pcos2=Math.cos(perpAngle),psin2=Math.sin(perpAngle);
+      const tipX=hx+pcos2*leafPx, tipY=hy+psin2*leafPx;
+      const arcEnd=flip?angle+Math.PI:angle;
+      const ccw=flip?(side<0):(side>0);
+      ctx.strokeStyle=color;ctx.lineWidth=(isSelOp?2:1.5)/viewScale;ctx.setLineDash([]);
+      ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(tipX,tipY);ctx.stroke();
+      ctx.beginPath();ctx.arc(hx,hy,leafPx,perpAngle,arcEnd,ccw);
+      ctx.lineWidth=1/viewScale;ctx.setLineDash([4/viewScale,2/viewScale]);ctx.stroke();ctx.setLineDash([]);
+      ctx.beginPath();ctx.arc(hx,hy,2.5/viewScale,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    });
+    return;
+  }
+  // ── 折疊門：鋸齒 ──
+  if(op.style==='折疊門'){
+    const perp=angle+Math.PI/2;
+    const pcos=Math.cos(perp),psin=Math.sin(perp);
+    const d=5/viewScale;
+    const panels=4;
+    ctx.strokeStyle=color;ctx.lineWidth=1.5/viewScale;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(gapX1,gapY1);
+    for(let i=0;i<=panels;i++){
+      const t=i/panels;
+      const mx=gapX1+cos*gapPx*t, my=gapY1+sin*gapPx*t;
+      const side=(i%2===0)?1:-1;
+      ctx.lineTo(mx+pcos*d*side,my+psin*d*side);
+    }
+    ctx.stroke();
+    return;
+  }
+  // ── 單開門（default）──
+  const side=(op.swingSide==='left')?-1:1;
+  const flip=!!op.flipHinge;
+  const hx=flip?gapX1+cos*gapPx:gapX1;
+  const hy=flip?gapY1+sin*gapPx:gapY1;
+  const perpAngle=angle+side*Math.PI/2;
+  const pcos=Math.cos(perpAngle),psin=Math.sin(perpAngle);
+  const tipX=hx+pcos*gapPx, tipY=hy+psin*gapPx;
+  const arcEnd=flip?angle+Math.PI:angle;
+  const ccw=flip?(side<0):(side>0);
+  ctx.strokeStyle=color;ctx.lineWidth=(isSelOp?2:1.5)/viewScale;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(tipX,tipY);ctx.stroke();
+  ctx.beginPath();ctx.arc(hx,hy,gapPx,perpAngle,arcEnd,ccw);
+  ctx.strokeStyle=color;ctx.lineWidth=1/viewScale;
+  ctx.setLineDash([4/viewScale,2/viewScale]);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.arc(hx,hy,2.5/viewScale,0,Math.PI*2);
+  ctx.fillStyle=color;ctx.fill();
+}
 
   function drawWindowSymbol(ctx,x1,y1,gapPx,angle,op,isSelOp){
     const cos=Math.cos(angle),sin=Math.sin(angle);
@@ -2225,7 +2392,7 @@ function onMouseDown(e){
       let hit=null;
       segments.forEach(seg=>{
         const d=distToSegment(ip,seg.start,seg.end);
-        if(d<0.01) hit=seg.id;
+        if(d<0.005) hit=seg.id;
       });
       selectedSegId=hit;
     }
@@ -2285,11 +2452,21 @@ function onMouseDown(e){
         if(Math.abs(local.x)<f.width*IW/2+2&&Math.abs(local.y)<f.height*IH/2+2) hit={roomIdx:ri,furnIdx:fi};
       });
     });
+    // Double-click OR click on already-selected → edit popup
+    if(hit && selectedFurnKey && hit.roomIdx===selectedFurnKey.roomIdx && hit.furnIdx===selectedFurnKey.furnIdx){
+      selectedFurnKey=hit;
+      showFurnEditPopup(hit.roomIdx,hit.furnIdx,e.clientX,e.clientY);
+      renderCanvas();
+      return;
+    }
     selectedFurnKey=hit;
     if(hit){
+      hideFurnEditPopup();
       pushUndo();
       const _hf=rooms[hit.roomIdx]?.furniture[hit.furnIdx];
       draggingFurn={roomIdx:hit.roomIdx,furnIdx:hit.furnIdx,ox:ip.x,oy:ip.y,origX:_hf?.x??ip.x,origY:_hf?.y??ip.y};
+    } else {
+      hideFurnEditPopup();
     }
     renderCanvas();
   }
@@ -3078,7 +3255,7 @@ function detectRoomPolygon(clickNX, clickNY){
     octx.beginPath(); octx.arc(seg.end.x*RES,   seg.end.y*RES,   4, 0, Math.PI*2); octx.fill();
   });
   // Auto-bridge near-miss endpoint gaps (same as buildWallBitmap)
-  const GAP_EPS=0.02;
+  const GAP_EPS=0.05;
   const epsList=[];segments.forEach(s=>{epsList.push(s.start);epsList.push(s.end);});
   octx.strokeStyle='#000';octx.lineWidth=5;
   for(let i=0;i<epsList.length;i++) for(let j=i+1;j<epsList.length;j++){
