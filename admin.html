@@ -36,6 +36,9 @@ tr:hover td{background:#F8FAFC}
 .badge-orange{background:#FEF3C7;color:#92400E}
 .badge-gray{background:#F1F5F9;color:#64748B}
 .actions{display:flex;gap:6px}
+.title-edit{display:block;font-weight:600;font-size:13px;min-width:120px;outline:none;border-radius:4px;padding:2px 4px;cursor:text;word-break:break-all}
+.title-edit:empty:before{content:attr(placeholder);color:#CBD5E1;font-weight:400;font-style:italic}
+.title-edit:focus{background:#F1F5F9;outline:1px solid #93C5FD;cursor:text}
 .loading{text-align:center;padding:48px;color:#94A3B8;font-size:14px}
 /* Modal */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
@@ -108,8 +111,8 @@ tr:hover td{background:#F8FAFC}
     <thead>
       <tr>
         <th>縮圖</th>
+        <th>名稱 / 空間</th>
         <th>建立時間</th>
-        <th>空間</th>
         <th>牆段</th>
         <th>傢俱</th>
         <th>來源</th>
@@ -168,6 +171,21 @@ let allData = [];
 let currentId = null;
 
 // ── 幫助函式 ──────────────────────────────────
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// 儲存名稱到 summary.title
+async function saveTitle(id, title) {
+  const d = allData.find(x => x.id === id);
+  if (!d) return;
+  const newSummary = { ...(d.summary || {}), title };
+  const { error } = await sb.from('annotations').update({ summary: newSummary }).eq('id', id);
+  if (error) { showToast('儲存失敗：' + error.message, 'error'); return; }
+  d.summary = newSummary;
+  showToast('✅ 名稱已儲存', 'success');
+}
+
 // 統一取得傢俱清單（支援 array 或 {roomName:[...]} 兩種格式）
 function getFurnItems(d) {
   const f = d.furniture;
@@ -232,7 +250,8 @@ function filterData() {
 
   let filtered = allData.filter(d => {
     const rooms = d.rooms || [];
-    const matchSearch = !q || rooms.some(r => (r.name || '').toLowerCase().includes(q));
+    const title = (d.summary?.title || '').toLowerCase();
+    const matchSearch = !q || title.includes(q) || rooms.some(r => (r.name || '').toLowerCase().includes(q));
     const matchQuality = !quality || d.quality === quality;
     return matchSearch && matchQuality;
   });
@@ -264,11 +283,12 @@ function renderTable(data) {
   document.getElementById('empty-state').style.display = 'none';
 
   tbody.innerHTML = data.map(d => {
-    const rooms  = d.rooms || [];
+    const rooms     = d.rooms || [];
     const roomNames = rooms.slice(0, 3).map(r => r.name || '未命名').join('、');
     const moreRooms = rooms.length > 3 ? ` +${rooms.length - 3}` : '';
     const wallCount = getWallCount(d);
     const furnCount = getFurnItems(d).length;
+    const title     = escHtml(d.summary?.title || '');
     const date = new Date(d.created_at).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
     const qualityBadge = d.quality === 'verified'
@@ -281,11 +301,11 @@ function renderTable(data) {
 
     return `<tr>
       <td>${thumbHtml(d)}</td>
-      <td style="white-space:nowrap;color:#64748B">${date}</td>
       <td>
-        <span style="font-weight:600">${rooms.length} 個</span><br>
-        <span style="font-size:11px;color:#94A3B8">${roomNames}${moreRooms}</span>
+        <span class="title-edit" contenteditable="true" data-id="${d.id}" placeholder="點擊新增名稱">${title}</span>
+        <span style="font-size:11px;color:#94A3B8;display:block;margin-top:2px">${rooms.length} 個空間・${roomNames}${moreRooms}</span>
       </td>
+      <td style="white-space:nowrap;color:#64748B">${date}</td>
       <td><span class="badge badge-blue">${wallCount}</span></td>
       <td><span class="badge badge-blue">${furnCount}</span></td>
       <td>${sourceBadge}</td>
@@ -300,6 +320,19 @@ function renderTable(data) {
       </td>
     </tr>`;
   }).join('');
+
+  // 綁定名稱欄位 inline 編輯事件
+  tbody.querySelectorAll('.title-edit').forEach(el => {
+    el.addEventListener('focus', () => { el.dataset.orig = el.textContent; });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+      if (e.key === 'Escape') { el.textContent = el.dataset.orig; el.blur(); }
+    });
+    el.addEventListener('blur', () => {
+      const newTitle = el.textContent.trim();
+      if (newTitle !== (el.dataset.orig || '')) saveTitle(el.dataset.id, newTitle);
+    });
+  });
 }
 
 // ── 詳情 Modal ────────────────────────────────
@@ -307,8 +340,8 @@ function openDetail(id) {
   const d = allData.find(x => x.id === id);
   if (!d) return;
   currentId = id;
-  document.getElementById('modal-title').textContent =
-    `標注詳情 — ${new Date(d.created_at).toLocaleString('zh-TW')}`;
+  const titleText = d.summary?.title || new Date(d.created_at).toLocaleString('zh-TW');
+  document.getElementById('modal-title').textContent = `標注詳情 — ${titleText}`;
 
   const rooms     = d.rooms || [];
   const walls     = Array.isArray(d.walls) ? d.walls : [];
