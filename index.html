@@ -416,8 +416,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
       <input type="number" id="op-pos" min="0" max="100" value="50">
     </div>
     <div class="form-row">
-      <label>寬度（cm）</label>
-      <input type="number" id="op-width" min="10" max="500" value="90">
+      <label id="op-width-modal-label">寬度（cm）</label>
+      <input type="number" id="op-width" min="1" max="99999" step="0.1" value="90">
     </div>
     <div class="form-row" id="op-sill-row">
       <label>窗台高（cm，窗戶適用）</label>
@@ -1155,7 +1155,7 @@ function updateOpeningEditor(){
   list.innerHTML=seg.openings.map((op,i)=>`
     <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
       <span class="opening-tag ${op.type==='door'?'tag-door':'tag-window'}">${op.type==='door'?'門':'窗'} ${op.style||''}</span>
-      <span style="font-size:10px;color:#aaa">${op.width}cm @ ${op.position}%</span>
+      <span style="font-size:10px;color:#aaa">${scaleSet&&pxPerCm>0?(op.width*0.5/pxPerCm).toFixed(1)+'cm':op.width} @ ${op.position}%</span>
       <button class="btn-icon" onclick="openEditOpening('${seg.id}',${i})">✏️</button>
       <button class="btn-icon" onclick="deleteOpeningAt('${seg.id}',${i})">✕</button>
     </div>`).join('');
@@ -1175,7 +1175,8 @@ function openAddOpening(){
   document.getElementById('op-type').value='door';
   document.getElementById('op-style').value='單開門';
   document.getElementById('op-pos').value=50;
-  document.getElementById('op-width').value=90;
+  document.getElementById('op-width').value=90; // always cm
+  document.getElementById('op-width-modal-label').textContent=scaleSet&&pxPerCm>0?'寬度（cm）':'寬度（cm，未設比例尺）';
   document.getElementById('op-height').value=210;
   document.getElementById('op-sill').value=90;
   document.getElementById('op-swing').value='right';
@@ -1192,7 +1193,10 @@ function openEditOpening(segId,opIdx){
   document.getElementById('op-type').value=op.type;
   document.getElementById('op-style').value=op.style||'單開門';
   document.getElementById('op-pos').value=op.position;
-  document.getElementById('op-width').value=op.width;
+  // POPUP-2: display real cm if scale set, otherwise show internal value
+  const _wDisp=scaleSet&&pxPerCm>0 ? (op.width*0.5/pxPerCm).toFixed(1) : op.width;
+  document.getElementById('op-width').value=_wDisp;
+  document.getElementById('op-width-modal-label').textContent=scaleSet&&pxPerCm>0?'寬度（cm）':'寬度（內部值）';
   document.getElementById('op-height').value=op.height||210;
   document.getElementById('op-sill').value=op.sill||90;
   document.getElementById('op-swing').value=op.swingSide||'right';
@@ -1219,7 +1223,7 @@ function confirmOpening(){
     type,
     style:document.getElementById('op-style').value,
     position:parseFloat(document.getElementById('op-pos').value),
-    width:parseFloat(document.getElementById('op-width').value),
+    width:(()=>{const w=parseFloat(document.getElementById('op-width').value)||90; return scaleSet&&pxPerCm>0 ? Math.max(2,w*pxPerCm*2) : w;})(),
     height:parseFloat(document.getElementById('op-height').value),
     sill:parseFloat(document.getElementById('op-sill').value),
     swingSide:document.getElementById('op-swing').value,
@@ -1439,12 +1443,11 @@ function segmentsNear(a,b,c,d,thresh){
   const mab={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
   const mcd={x:(c.x+d.x)/2,y:(c.y+d.y)/2};
   const dist=Math.hypot(mab.x-mcd.x,mab.y-mcd.y);
-  if(dist>0.2) return false;
-  // direction similarity
+  if(dist>thresh*4) return false; // early exit: much farther than threshold
   const dab=Math.atan2(b.y-a.y,b.x-a.x);
   const dcd=Math.atan2(d.y-c.y,d.x-c.x);
   const angleDiff=Math.abs(dab-dcd)%(Math.PI);
-  return dist<thresh||(dist<0.05&&angleDiff<0.3);
+  return dist<thresh && angleDiff<0.3;
 }
 
 function renderRoomList(){
@@ -1654,7 +1657,7 @@ function renderCanvas(){
         ctx.strokeStyle='#EF4444';ctx.lineWidth=2/viewScale;ctx.stroke();
       });
       // Distance label
-      const gapCm=scaleSet?Math.round(Math.hypot(p2.x-p1.x,p2.y-p1.y)*IW/pxPerCm):null;
+      const gapCm=scaleSet?Math.round(Math.hypot((p2.x-p1.x)*IW,(p2.y-p1.y)*IH)/pxPerCm):null;
       const label=`⚠ 缺口${gapCm?` ${gapCm}cm`:''}`;
       const mx=(p1.x+p2.x)/2*IW, my=(p1.y+p2.y)/2*IH;
       ctx.font=`bold ${11/viewScale}px sans-serif`;
@@ -1856,7 +1859,7 @@ function renderCanvas(){
       ctx.strokeStyle=color;ctx.lineWidth=1.5/viewScale;ctx.setLineDash([]);ctx.stroke();
     });
     // Center divider(s)
-    const divs=gapPx>60/viewScale?[1/2]:[1/2];
+    const divs=gapPx>80/viewScale?[1/3,2/3]:[1/2];
     divs.forEach(t=>{
       const mx=x1+cos*gapPx*t, my=y1+sin*gapPx*t;
       ctx.beginPath();
@@ -2285,7 +2288,8 @@ function onMouseDown(e){
     selectedFurnKey=hit;
     if(hit){
       pushUndo();
-      draggingFurn={roomIdx:hit.roomIdx,furnIdx:hit.furnIdx,ox:ip.x,oy:ip.y};
+      const _hf=rooms[hit.roomIdx]?.furniture[hit.furnIdx];
+      draggingFurn={roomIdx:hit.roomIdx,furnIdx:hit.furnIdx,ox:ip.x,oy:ip.y,origX:_hf?.x??ip.x,origY:_hf?.y??ip.y};
     }
     renderCanvas();
   }
@@ -2413,7 +2417,11 @@ function onMouseMove(e){
   } else if(currentTool==='select3'&&draggingFurn&&e.buttons===1){
     const room=rooms[draggingFurn.roomIdx];
     const furn=room?.furniture[draggingFurn.furnIdx];
-    if(furn){furn.x=ip.x;furn.y=ip.y;renderCanvas();}
+    if(furn){
+      furn.x=draggingFurn.origX+(ip.x-draggingFurn.ox);
+      furn.y=draggingFurn.origY+(ip.y-draggingFurn.oy);
+      renderCanvas();
+    }
   } else if(currentTool==='furn-place'&&furnDragStart&&e.buttons===1){
     furnDragCurrent=ip; renderCanvas();
   } else if(currentTool==='select1'&&draggingEndpoint&&e.buttons===1){
@@ -3133,7 +3141,7 @@ function detectRoomPolygon(clickNX, clickNY){
   let tracX=bx,tracY=by,bd=7;
   for(let iter=0;iter<RES*RES;iter++){
     boundary.push({x:tracX/RES,y:tracY/RES});
-    const cs=(bd+1)%8;let moved=false;
+    const cs=(bd+5)%8;let moved=false;
     for(let di=0;di<8;di++){
       const d=(cs+di)%8,nx2=tracX+D[d][0],ny2=tracY+D[d][1];
       if(nx2>=0&&nx2<RES&&ny2>=0&&ny2<RES&&filled[ny2*RES+nx2]){
@@ -3455,6 +3463,12 @@ async function loadAnnotationForEdit(id){
         rooms=data.rooms||[];
         // fix: ensure rooms have furniture array
         rooms.forEach(r=>{if(!r.furniture)r.furniture=[];});
+        // BUG-2: bump idCnt past all existing IDs to prevent collisions
+        {
+          const allIds=[...segments.map(s=>s.id),...segments.flatMap(s=>s.openings.map(o=>o.id)),...rooms.map(r=>r.id)];
+          const maxNum=Math.max(0,...allIds.map(id=>parseInt(id?.replace('id_',''))||0));
+          if(maxNum>=idCnt) idCnt=maxNum+1;
+        }
         editingId=id;
         document.getElementById('edit-banner').style.display='block';
         document.getElementById('edit-id-label').textContent='('+id.slice(0,8)+'...)';
@@ -3467,9 +3481,23 @@ async function loadAnnotationForEdit(id){
 }
 
 function exportJSONL(){
+  const meta={
+    scale_px_per_cm:scaleSet&&pxPerCm>0?pxPerCm:null,
+    scale_set:!!scaleSet,
+    image_width_px:img?img.naturalWidth:null,
+    image_height_px:img?img.naturalHeight:null,
+  };
   const lines=rooms.map(room=>{
     const wallSegs=segments.filter(s=>room.segmentIds.includes(s.id));
-    return JSON.stringify({room_name:room.name,room_type:room.type,ceiling_height_cm:room.ceilingHeight||270,polygon:room.polygon,walls:wallSegs,furniture:room.furniture});
+    // enrich openings with real cm width for consumers
+    const wallsWithCm=wallSegs.map(seg=>({
+      ...seg,
+      openings:seg.openings.map(op=>({
+        ...op,
+        width_cm:scaleSet&&pxPerCm>0 ? +(op.width*0.5/pxPerCm).toFixed(1) : null,
+      }))
+    }));
+    return JSON.stringify({...meta,room_name:room.name,room_type:room.type,ceiling_height_cm:room.ceilingHeight||270,polygon:room.polygon,walls:wallsWithCm,furniture:room.furniture});
   });
   const blob=new Blob([lines.join('\n')],{type:'application/jsonl'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
