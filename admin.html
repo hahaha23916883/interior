@@ -190,7 +190,7 @@ function getRoomCount(d) {
 // 產生縮圖 HTML（不截斷 base64）
 function thumbHtml(d) {
   if (d.image_b64) {
-    const mime = d.image_media_type || 'image/jpeg';
+    const mime = 'image/jpeg';
     return `<img class="thumb" src="data:${mime};base64,${d.image_b64}" alt="平面圖" onclick="openDetail('${d.id}')" onerror="this.outerHTML='<div class=thumb-placeholder onclick=openDetail(\\'${d.id}\\')>🏠</div>'">`;
   }
   return `<div class="thumb-placeholder" onclick="openDetail('${d.id}')">🏠</div>`;
@@ -205,7 +205,7 @@ async function loadData() {
   try {
     const { data, error } = await sb
       .from('annotations')
-      .select('id, created_at, rooms, walls, furniture, summary, quality, source, image_b64, image_media_type')
+      .select('id, created_at, rooms, walls, furniture, summary, quality, source, image_b64')
       .order('created_at', { ascending: false });
     if (error) throw error;
     allData = data || [];
@@ -328,7 +328,7 @@ function openDetail(id) {
     || '<span style="color:#94A3B8">無</span>';
 
   const imgHtml = d.image_b64
-    ? `<img class="detail-img" src="data:${d.image_media_type||'image/jpeg'};base64,${d.image_b64}" alt="平面圖">`
+    ? `<img class="detail-img" src="data:image/jpeg;base64,${d.image_b64}" alt="平面圖">`
     : `<div class="no-img">🏠</div>`;
 
   const scaleLine = d.summary?.scale_px_per_cm
