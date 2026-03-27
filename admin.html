@@ -282,9 +282,6 @@ async function loadData() {
 
 function updateStats() {
   document.getElementById('total-count').textContent = allData.length;
-  document.getElementById('total-rooms').textContent = allData.reduce((s, d) => s + getRoomCount(d), 0);
-  document.getElementById('total-walls').textContent = allData.reduce((s, d) => s + getWallCount(d), 0);
-  document.getElementById('total-furniture').textContent = allData.reduce((s, d) => s + getFurnItems(d).length, 0);
 }
 
 // ── 過濾 + 排序 ───────────────────────────────
