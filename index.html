@@ -131,7 +131,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px}
+/* Lucide icons */
+.lc{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.lc svg{stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 </style>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -140,7 +144,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 <div class="header">
   <h1>🏠 平面圖標注平台 <span id="app-version" style="font-size:10px;font-weight:400;color:#aaa;letter-spacing:.02em">v2603281620</span></h1>
   <div class="header-right">
-    <a href="/admin.html" target="_blank" class="btn btn-secondary btn-sm">📋 管理資料</a>
+    <a href="/admin.html" target="_blank" class="btn btn-secondary btn-sm"><i data-lucide="layout-dashboard" style="width:13px;height:13px"></i> 管理資料</a>
   </div>
 </div>
 
@@ -174,37 +178,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
   <div class="canvas-wrap">
     <!-- Step 1 toolbar (Scale) -->
     <div class="toolbar" id="toolbar-1">
-      <button class="tool-btn active" id="t1-scale" onclick="setTool('scale-line')">📏 畫比例線</button>
+      <button class="tool-btn active" id="t1-scale" onclick="setTool('scale-line')"><i data-lucide="ruler" style="width:14px;height:14px"></i> 畫比例線</button>
       <span class="tool-hint" id="hint-1">點選圖面上兩個已知距離的端點</span>
     </div>
     <!-- Step 2 toolbar (Walls) -->
     <div class="toolbar" id="toolbar-2" style="display:none">
-      <button class="tool-btn active" id="t2-wall" onclick="setTool('wall')">🧱 實牆</button>
-      <button class="tool-btn" id="t2-virtual" onclick="setTool('virtual')">- - 虛擬邊界</button>
+      <button class="tool-btn active" id="t2-wall" onclick="setTool('wall')"><i data-lucide="pen-line" style="width:14px;height:14px"></i> 實牆</button>
+      <button class="tool-btn" id="t2-virtual" onclick="setTool('virtual')"><i data-lucide="minus" style="width:14px;height:14px"></i> 虛擬邊界</button>
       <div class="tool-sep"></div>
-      <button class="tool-btn" id="t2-select" onclick="setTool('select1')">↖ 選取</button>
-      <button class="tool-btn" id="t2-delete" onclick="deleteSelected()">🗑 刪除</button>
+      <button class="tool-btn" id="t2-select" onclick="setTool('select1')"><i data-lucide="mouse-pointer" style="width:14px;height:14px"></i> 選取</button>
+      <button class="tool-btn" id="t2-delete" onclick="deleteSelected()"><i data-lucide="trash-2" style="width:14px;height:14px"></i> 刪除</button>
       <div class="tool-sep"></div>
-      <button class="tool-btn" id="t2-opening" onclick="openAddOpening()" disabled>＋ 加開口</button>
+      <button class="tool-btn" id="t2-opening" onclick="openAddOpening()" disabled><i data-lucide="plus" style="width:14px;height:14px"></i> 加開口</button>
       <span class="tool-hint" id="hint-2">點擊起點 → 點擊終點完成牆段；Shift 鎖定 45°</span>
     </div>
     <!-- Step 3 toolbar (Rooms) -->
     <div class="toolbar" id="toolbar-3" style="display:none">
-      <button class="tool-btn active" id="t3-click" onclick="setTool('room-click')">🖱 點選空間</button>
-      <button class="tool-btn" id="t3-poly" onclick="setTool('room-poly')">✏️ 手動畫</button>
+      <button class="tool-btn active" id="t3-click" onclick="setTool('room-click')"><i data-lucide="scan" style="width:14px;height:14px"></i> 點選空間</button>
+      <button class="tool-btn" id="t3-poly" onclick="setTool('room-poly')"><i data-lucide="pencil" style="width:14px;height:14px"></i> 手動畫</button>
       <div class="tool-sep"></div>
-      <button class="tool-btn" id="t3-select" onclick="setTool('select2')">↖ 選取空間</button>
-      <button class="tool-btn" id="t3-delete" onclick="deleteSelected()">🗑 刪除空間</button>
+      <button class="tool-btn" id="t3-select" onclick="setTool('select2')"><i data-lucide="mouse-pointer" style="width:14px;height:14px"></i> 選取空間</button>
+      <button class="tool-btn" id="t3-delete" onclick="deleteSelected()"><i data-lucide="trash-2" style="width:14px;height:14px"></i> 刪除空間</button>
       <div class="tool-sep"></div>
-      <button class="btn btn-secondary btn-sm" onclick="runAIRoomDetect()" id="btn-ai-detect" style="font-size:11px;padding:4px 10px">🤖 AI 辨識空間</button>
+      <button class="btn btn-secondary btn-sm" onclick="runAIRoomDetect()" id="btn-ai-detect" style="font-size:11px;padding:4px 10px"><i data-lucide="sparkles" style="width:12px;height:12px"></i> AI 辨識空間</button>
       <span class="tool-hint" id="hint-3">點選封閉空間內部自動偵測範圍；或手動畫多邊形</span>
     </div>
     <!-- Step 4 toolbar (Furniture) -->
     <div class="toolbar" id="toolbar-4" style="display:none">
-      <button class="tool-btn active" id="t4-place" onclick="setTool('furn-place')">＋ 放置</button>
-      <button class="tool-btn" id="t4-select" onclick="setTool('select3')">↖ 選取</button>
-      <button class="tool-btn" id="t4-delete" onclick="deleteSelected()">🗑 刪除</button>
-      <button class="btn btn-secondary btn-sm" onclick="runAIFurnDetect()" id="btn-ai-furn" style="font-size:11px;padding:4px 10px">🤖 AI 辨識傢俱</button>
+      <button class="tool-btn active" id="t4-place" onclick="setTool('furn-place')"><i data-lucide="plus-square" style="width:14px;height:14px"></i> 放置</button>
+      <button class="tool-btn" id="t4-select" onclick="setTool('select3')"><i data-lucide="mouse-pointer" style="width:14px;height:14px"></i> 選取</button>
+      <button class="tool-btn" id="t4-delete" onclick="deleteSelected()"><i data-lucide="trash-2" style="width:14px;height:14px"></i> 刪除</button>
+      <button class="btn btn-secondary btn-sm" onclick="runAIFurnDetect()" id="btn-ai-furn" style="font-size:11px;padding:4px 10px"><i data-lucide="sparkles" style="width:12px;height:12px"></i> AI 辨識傢俱</button>
       <span class="tool-hint" id="hint-4">拖曳矩形放置傢俱；Shift+滾輪旋轉</span>
     </div>
 
@@ -264,7 +268,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
         <div id="scale-result" style="display:none;font-size:11px;background:#f0f9f0;border:1px solid #10B981;border-radius:6px;padding:7px;margin-bottom:8px">
           <div id="scale-result-text" style="color:#065F46"></div>
         </div>
-        <button class="btn btn-sm" id="btn-reset-scale" onclick="resetScale()" style="margin-bottom:6px;display:none;width:100%;background:#f3f4f6;color:#555;border:1px solid #ddd">↩ 重設比例尺</button>
+        <button class="btn btn-sm" id="btn-reset-scale" onclick="resetScale()" style="margin-bottom:6px;display:none;width:100%;background:#f3f4f6;color:#555;border:1px solid #ddd"><i data-lucide="rotate-ccw" style="width:12px;height:12px"></i> 重設比例尺</button>
         <button class="btn btn-primary btn-sm btn-block" onclick="tryGoStep(2)" id="btn-to-step2-from-scale" disabled>Step 2：畫牆體 →</button>
       </div>
     </div>
@@ -274,7 +278,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
       <!-- 標注規範提示 -->
       <div class="card" style="background:#FFFBEB;border:1px solid #FCD34D;padding:10px 12px;margin-bottom:8px">
         <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:6px;display:flex;align-items:center;gap:5px">
-          📐 標注規範
+          <i data-lucide="ruler" style="width:13px;height:13px"></i> 標注規範
           <span style="font-weight:400;color:#B45309;margin-left:auto;cursor:pointer;font-size:10px" onclick="this.closest('.card').querySelector('.norm-body').style.display=this.closest('.card').querySelector('.norm-body').style.display==='none'?'block':'none'">收合</span>
         </div>
         <div class="norm-body" style="font-size:11px;color:#78350F;line-height:1.8">
@@ -304,7 +308,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
       <div class="card">
         <div class="card-title">空間列表 <button class="btn-icon" onclick="clearAllRooms()" title="清除全部">✕</button></div>
         <div style="font-size:11px;color:#777;margin-bottom:6px;line-height:1.5">點擊色塊命名空間；點擊「重新偵測」重新掃描。</div>
-        <button class="btn btn-sm btn-block" onclick="autoDetectAllRooms()" style="margin-bottom:8px;background:#EBF4FF;color:#185FA5;border:1px solid #93C5FD;font-size:11px">🔍 重新偵測空間</button>
+        <button class="btn btn-sm btn-block" onclick="autoDetectAllRooms()" style="margin-bottom:8px;background:#EBF4FF;color:#185FA5;border:1px solid #93C5FD;font-size:11px"><i data-lucide="scan-search" style="width:13px;height:13px"></i> 重新偵測空間</button>
         <div id="room-list" style="max-height:220px;overflow-y:auto">
           <div style="color:#ccc;font-size:12px;text-align:center;padding:20px 0">尚未定義空間</div>
         </div>
@@ -329,8 +333,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
         <div class="stat-box"><div class="stat-num" id="stat-rooms">0</div><div class="stat-lbl">空間</div></div>
         <div class="stat-box"><div class="stat-num" id="stat-furns">0</div><div class="stat-lbl">傢俱</div></div>
       </div>
-      <button type="button" class="btn btn-primary btn-block" id="save-db-btn" onclick="saveAnnotation()" style="margin-bottom:8px">💾 儲存到資料庫</button>
-      <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="exportJSONL()">匯出 JSONL</button>
+      <button type="button" class="btn btn-primary btn-block" id="save-db-btn" onclick="saveAnnotation()" style="margin-bottom:8px"><i data-lucide="database" style="width:14px;height:14px"></i> 儲存到資料庫</button>
+      <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="exportJSONL()"><i data-lucide="download" style="width:13px;height:13px"></i> 匯出 JSONL</button>
       <div style="border-top:1px solid #eee;padding-top:8px;margin-top:8px">
         <div class="db-box">
           <div class="db-num" id="db-total">-</div>
@@ -347,7 +351,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
           </div>
         </div>
         <div style="font-size:11px;text-align:center;color:#888" id="db-hint">載入中...</div>
-        <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="loadStats()" style="margin-top:6px">🔄 重新整理</button>
+        <button type="button" class="btn btn-secondary btn-sm btn-block" onclick="loadStats()" style="margin-top:6px"><i data-lucide="refresh-cw" style="width:12px;height:12px"></i> 重新整理</button>
       </div>
     </div>
 
@@ -591,42 +595,42 @@ const COLORS=['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#F973
 const ROOM_TYPES=['客廳','餐廳','廚房','主臥室','次臥室','客房','兒童房','主衛浴','衛浴','玄關','陽台','工作陽台','走廊','儲藏室','更衣室','書房','工作區'];
 const FURNITURE_LIST=[
   // 臥室
-  {id:'bed_double',  name:'雙人床',      icon:'🛏', w:160,h:200, hasDirection:true,  directionLabel:'床頭朝向'},
-  {id:'bed_single',  name:'單人床',      icon:'🛏', w:100,h:200, hasDirection:true,  directionLabel:'床頭朝向'},
-  {id:'nightstand',  name:'床頭櫃',      icon:'🟫', w:50, h:50,  hasDirection:false},
+  {id:'bed_double',  name:'雙人床',      icon:'bed',          w:160,h:200, hasDirection:true,  directionLabel:'床頭朝向'},
+  {id:'bed_single',  name:'單人床',      icon:'bed-single',   w:100,h:200, hasDirection:true,  directionLabel:'床頭朝向'},
+  {id:'nightstand',  name:'床頭櫃',      icon:'square',       w:50, h:50,  hasDirection:false},
   // 客廳
-  {id:'sofa',        name:'沙發',        icon:'🛋', w:200,h:80,  hasDirection:true,  directionLabel:'背面朝向'},
-  {id:'sofa_l',      name:'L型沙發',     icon:'🛋', w:240,h:160, hasDirection:true,  directionLabel:'背面朝向'},
-  {id:'coffee_table',name:'茶几',        icon:'🪵', w:110,h:60,  hasDirection:false},
-  {id:'tv',          name:'電視',        icon:'📺', w:120,h:10,  hasDirection:false},
-  {id:'tv_cabinet',  name:'電視櫃',      icon:'🗃', w:160,h:45,  hasDirection:false},
+  {id:'sofa',        name:'沙發',        icon:'sofa',         w:200,h:80,  hasDirection:true,  directionLabel:'背面朝向'},
+  {id:'sofa_l',      name:'L型沙發',     icon:'sofa',         w:240,h:160, hasDirection:true,  directionLabel:'背面朝向'},
+  {id:'coffee_table',name:'茶几',        icon:'table-2',      w:110,h:60,  hasDirection:false},
+  {id:'tv',          name:'電視',        icon:'tv',           w:120,h:10,  hasDirection:false},
+  {id:'tv_cabinet',  name:'電視櫃',      icon:'monitor',      w:160,h:45,  hasDirection:false},
   // 餐廳
-  {id:'dining_table',name:'餐桌',        icon:'🍽', w:120,h:80,  hasDirection:false},
-  {id:'chair',       name:'椅子',        icon:'🪑', w:45, h:45,  hasDirection:true,  directionLabel:'椅背朝向'},
+  {id:'dining_table',name:'餐桌',        icon:'utensils',     w:120,h:80,  hasDirection:false},
+  {id:'chair',       name:'椅子',        icon:'armchair',     w:45, h:45,  hasDirection:true,  directionLabel:'椅背朝向'},
   // 書房/工作
-  {id:'desk',        name:'書桌',        icon:'🖥', w:120,h:60,  hasDirection:true,  directionLabel:'椅子側'},
+  {id:'desk',        name:'書桌',        icon:'monitor',      w:120,h:60,  hasDirection:true,  directionLabel:'椅子側'},
   // 廚房
-  {id:'kitchen_counter',name:'廚具台面', icon:'🍳', w:200,h:60,  hasDirection:true,  directionLabel:'靠牆面'},
-  {id:'refrigerator',name:'冰箱',        icon:'❄️', w:65, h:70,  hasDirection:true,  directionLabel:'開門側'},
+  {id:'kitchen_counter',name:'廚具台面', icon:'chef-hat',     w:200,h:60,  hasDirection:true,  directionLabel:'靠牆面'},
+  {id:'refrigerator',name:'冰箱',        icon:'refrigerator', w:65, h:70,  hasDirection:true,  directionLabel:'開門側'},
   // 衛浴
-  {id:'toilet',      name:'馬桶',        icon:'🚽', w:40, h:70,  hasDirection:true,  directionLabel:'背對牆方向'},
-  {id:'bathtub',     name:'浴缸',        icon:'🛁', w:80, h:160, hasDirection:true,  directionLabel:'水龍頭方向'},
-  {id:'shower',      name:'淋浴間',      icon:'🚿', w:90, h:90,  hasDirection:true,  directionLabel:'出入口朝向'},
-  {id:'sink',        name:'洗手台',      icon:'🪥', w:60, h:50,  hasDirection:true,  directionLabel:'靠牆面'},
+  {id:'toilet',      name:'馬桶',        icon:'toilet',       w:40, h:70,  hasDirection:true,  directionLabel:'背對牆方向'},
+  {id:'bathtub',     name:'浴缸',        icon:'bath',         w:80, h:160, hasDirection:true,  directionLabel:'水龍頭方向'},
+  {id:'shower',      name:'淋浴間',      icon:'shower-head',  w:90, h:90,  hasDirection:true,  directionLabel:'出入口朝向'},
+  {id:'sink',        name:'洗手台',      icon:'droplets',     w:60, h:50,  hasDirection:true,  directionLabel:'靠牆面'},
   // 收納
-  {id:'wardrobe',    name:'衣櫃',        icon:'👗', w:180,h:60,  hasDirection:true,  directionLabel:'開口朝向'},
-  {id:'cabinet_tall',name:'高櫃（落地頂天）',icon:'🗄',w:90,h:50,hasDirection:true,  directionLabel:'開口朝向'},
-  {id:'cabinet_mid', name:'中高櫃（腰高以上）',icon:'🗄',w:90,h:45,hasDirection:true,directionLabel:'開口朝向'},
-  {id:'cabinet_low', name:'矮櫃（腰高以下）',icon:'🗄',w:120,h:40,hasDirection:true, directionLabel:'開口朝向'},
-  {id:'shoe_cabinet',name:'鞋櫃',        icon:'👟', w:90, h:35,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'wardrobe',    name:'衣櫃',        icon:'shirt',        w:180,h:60,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'cabinet_tall',name:'高櫃（落地頂天）',icon:'archive', w:90, h:50,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'cabinet_mid', name:'中高櫃（腰高以上）',icon:'archive',w:90,h:45,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'cabinet_low', name:'矮櫃（腰高以下）',icon:'package', w:120,h:40,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'shoe_cabinet',name:'鞋櫃',        icon:'footprints',   w:90, h:35,  hasDirection:true,  directionLabel:'開口朝向'},
   // 家電
-  {id:'washing_machine',name:'洗衣機',   icon:'👕', w:60, h:60,  hasDirection:true,  directionLabel:'開門側'},
-  {id:'ac',          name:'冷氣（室內機）',icon:'❄', w:80, h:25,  hasDirection:true, directionLabel:'出風方向'},
+  {id:'washing_machine',name:'洗衣機',   icon:'washing-machine',w:60,h:60, hasDirection:true,  directionLabel:'開門側'},
+  {id:'ac',          name:'冷氣（室內機）',icon:'air-vent',   w:80, h:25,  hasDirection:true,  directionLabel:'出風方向'},
   // 其他
-  {id:'staircase',   name:'樓梯',        icon:'🪜', w:100,h:200, hasDirection:true,  directionLabel:'上樓方向'},
-  {id:'elevator',    name:'電梯',        icon:'🛗', w:100,h:120, hasDirection:false},
-  {id:'plant',       name:'植栽',        icon:'🌿', w:40, h:40,  hasDirection:false},
-  {id:'other',       name:'其他',        icon:'📦', w:60, h:60,  hasDirection:false},
+  {id:'staircase',   name:'樓梯',        icon:'stairs',       w:100,h:200, hasDirection:true,  directionLabel:'上樓方向'},
+  {id:'elevator',    name:'電梯',        icon:'arrow-up-down',w:100,h:120, hasDirection:false},
+  {id:'plant',       name:'植栽',        icon:'tree-pine',    w:40, h:40,  hasDirection:false},
+  {id:'other',       name:'其他',        icon:'package',      w:60, h:60,  hasDirection:false},
 ];
 const SNAP_DIST=18; // px screen distance for snapping
 
@@ -1715,12 +1719,14 @@ function placeFurn(imgX,imgY){
 function openFurnTypeModal(rect){
   pendingFurnRect=rect;
   const grid=document.getElementById('furn-type-grid');
-  if(grid) grid.innerHTML=FURNITURE_LIST.map(f=>`
-    <button onclick="selectFurnType('${f.id}')"
+  if(grid) grid.innerHTML=FURNITURE_LIST.map(f=>`<button
+      onclick="selectFurnType('${f.id}')"
       id="furn-btn-${f.id}"
-      style="padding:8px 4px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:11px;text-align:center;color:#444;transition:all .1s">
-      ${f.name}
+      style="padding:8px 4px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:10px;text-align:center;color:#444;transition:all .1s;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <i data-lucide="${f.icon}" style="width:18px;height:18px;color:#555"></i>
+      <span>${f.name}</span>
     </button>`).join('');
+  if(window.lucide) lucide.createIcons({elements:document.querySelectorAll('#furn-type-grid [data-lucide]')});
   document.getElementById('furn-head-dir').value='0';
   document.getElementById('furn-dir-row').style.display='none';
   document.getElementById('furn-type-modal').classList.add('open');
@@ -1789,6 +1795,35 @@ function _buildRoomFillCanvas(mask,RES,hex){
   }
   octx.putImageData(id,0,0);
   return oc;
+}
+
+// ═══════════════════════════════════════════
+// LUCIDE ICON PRELOAD FOR CANVAS
+// ═══════════════════════════════════════════
+// Pre-render Lucide furniture icons to Image objects for canvas drawing
+const _furnIconImgCache = {};
+function _preloadFurnIcons(){
+  FURNITURE_LIST.forEach(f=>{
+    if(_furnIconImgCache[f.icon]) return;
+    const dummy=document.createElement('i');
+    dummy.setAttribute('data-lucide', f.icon);
+    dummy.style.cssText='position:absolute;visibility:hidden;width:0;height:0';
+    document.body.appendChild(dummy);
+    if(window.lucide) lucide.createIcons({elements:[dummy]});
+    const svg=dummy.querySelector('svg');
+    if(!svg){document.body.removeChild(dummy);return;}
+    svg.setAttribute('width','32'); svg.setAttribute('height','32');
+    svg.style.color='#555';
+    // Set stroke color for lucide icons
+    svg.querySelectorAll('*').forEach(el=>{
+      if(el.getAttribute('stroke')) el.setAttribute('stroke','#555');
+    });
+    const svgStr=new XMLSerializer().serializeToString(svg);
+    document.body.removeChild(dummy);
+    const img=new Image();
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgStr);
+    _furnIconImgCache[f.icon]=img;
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -2307,12 +2342,18 @@ function renderCanvas(){
       else if(headDir===1) ctx.fillRect(fw/2-stripeW,-fh/2,stripeW,fh); // right stripe
       else if(headDir===2) ctx.fillRect(-fw/2,fh/2-stripeW,fw,stripeW); // bottom stripe
       else ctx.fillRect(-fw/2,-fh/2,stripeW,fh);                       // left stripe
-      // Text label (name only, no icon)
-      const labelPx=Math.max(9/viewScale,Math.min(14/viewScale,Math.min(fw,fh)*0.28));
-      ctx.font=`bold ${labelPx}px sans-serif`;
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillStyle='rgba(0,0,0,0.82)';
-      ctx.fillText(f.name||f.type,0,0);
+      // Icon + text label
+      const iconImg=_furnIconImgCache[f.icon||'package'];
+      if(iconImg&&iconImg.complete&&iconImg.naturalWidth>0){
+        const iSize=Math.min(fw,fh)*0.55;
+        ctx.drawImage(iconImg, -iSize/2, -iSize/2-fh*0.08, iSize, iSize);
+      } else {
+        ctx.fillStyle='rgba(0,0,0,0.82)';
+        const labelPx=Math.max(9/viewScale,Math.min(14/viewScale,Math.min(fw,fh)*0.28));
+        ctx.font=`bold ${labelPx}px sans-serif`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(f.name?.slice(0,2)||'?', 0, 0);
+      }
       // Draw handles if selected
       if(isSelFurn){
         const HS=6/viewScale;         // half-size of corner handle square
@@ -3928,6 +3969,12 @@ window.addEventListener('resize',()=>{if(img)resetView();});
 })();
 loadStats();
 renderFurnPalette();
+// Initialize Lucide icons
+document.addEventListener('DOMContentLoaded', () => {
+  if(window.lucide) lucide.createIcons();
+});
+// Also call immediately in case DOM is already ready
+setTimeout(()=>{ if(window.lucide){ lucide.createIcons(); _preloadFurnIcons(); } }, 100);
 </script>
 </body>
 </html>
