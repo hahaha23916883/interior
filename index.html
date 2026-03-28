@@ -1858,16 +1858,15 @@ function renderCanvas(){
       ctx.fill();
     }
 
-    // No border stroke — walls are drawn on top anyway; selection gets subtle highlight
-    if(isSelected){
-      ctx.beginPath();
-      room.polygon.forEach((p,j)=>{j===0?ctx.moveTo(p.x*IW,p.y*IH):ctx.lineTo(p.x*IW,p.y*IH);});
-      ctx.closePath();
-      ctx.strokeStyle=hexAlpha(hex,0.8);
-      ctx.lineWidth=3/viewScale;
-      ctx.setLineDash([]);
-      ctx.stroke();
-    }
+    // Polygon outline — always draw to show wall-snapped boundary on top of bitmap fill
+    ctx.beginPath();
+    room.polygon.forEach((p,j)=>{j===0?ctx.moveTo(p.x*IW,p.y*IH):ctx.lineTo(p.x*IW,p.y*IH);});
+    ctx.closePath();
+    ctx.strokeStyle=hexAlpha(hex,isSelected?0.95:0.55);
+    ctx.lineWidth=(isSelected?2.5:1.5)/viewScale;
+    ctx.setLineDash(isSelected?[]:[4/viewScale,3/viewScale]);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     // Room label pill — use cached centroid if available, else polygon average
     const cx=(room.centroid?.x??room.polygon.reduce((s,p)=>s+p.x,0)/room.polygon.length)*IW;
