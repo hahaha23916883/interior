@@ -149,7 +149,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 </div>
 
 <!-- Edit banner -->
-<div id="edit-banner">✏️ 編輯模式：正在修改已存的標注 <span id="edit-id-label"></span></div>
+<div id="edit-banner"><i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px"></i> 編輯模式：正在修改已存的標注 <span id="edit-id-label"></span></div>
 
 <!-- Steps -->
 <div class="steps">
@@ -243,7 +243,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
     <!-- Step 1 sidebar (Scale) -->
     <div id="sidebar-1">
       <div class="card">
-        <div class="card-title">📏 設置比例尺</div>
+        <div class="card-title"><i data-lucide="ruler" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"></i>設置比例尺</div>
         <div style="font-size:11px;color:#777;margin-bottom:8px;line-height:1.6">①選擇已知尺寸的物品 → ②點圖面上該物品兩端點</div>
         <div id="scale-obj-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px"></div>
         <div id="scale-obj-selected" style="display:none;background:#EBF4FF;border:1px solid #93C5FD;border-radius:6px;padding:8px;margin-bottom:8px">
@@ -282,14 +282,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
           <span style="font-weight:400;color:#B45309;margin-left:auto;cursor:pointer;font-size:10px" onclick="this.closest('.card').querySelector('.norm-body').style.display=this.closest('.card').querySelector('.norm-body').style.display==='none'?'block':'none'">收合</span>
         </div>
         <div class="norm-body" style="font-size:11px;color:#78350F;line-height:1.8">
-          <div>✅ 請畫在 <strong>內牆面</strong>（室內淨空側）</div>
-          <div>✅ 門窗標記在牆線上</div>
-          <div>✅ 每個封閉空間獨立圈定</div>
-          <div>❌ 請勿畫在牆體中心線或外牆面</div>
+          <div><i data-lucide="check-circle-2" style="width:11px;height:11px;color:#059669;vertical-align:-1px;margin-right:3px"></i>請畫在 <strong>內牆面</strong>（室內淨空側）</div>
+          <div><i data-lucide="check-circle-2" style="width:11px;height:11px;color:#059669;vertical-align:-1px;margin-right:3px"></i>門窗標記在牆線上</div>
+          <div><i data-lucide="check-circle-2" style="width:11px;height:11px;color:#059669;vertical-align:-1px;margin-right:3px"></i>每個封閉空間獨立圈定</div>
+          <div><i data-lucide="x-circle" style="width:11px;height:11px;color:#dc2626;vertical-align:-1px;margin-right:3px"></i>請勿畫在牆體中心線或外牆面</div>
         </div>
       </div>
       <div class="card">
-        <div class="card-title">牆段列表 <button class="btn-icon" onclick="clearAllSegments()" title="清除全部">✕</button></div>
+        <div class="card-title">牆段列表 <button class="btn-icon" onclick="clearAllSegments()" title="清除全部"><i data-lucide="x" style="width:12px;height:12px"></i></button></div>
         <div id="seg-list" style="max-height:260px;overflow-y:auto">
           <div style="color:#ccc;font-size:12px;text-align:center;padding:20px 0">尚未畫任何牆段</div>
         </div>
@@ -306,7 +306,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
     <!-- Step 3 sidebar (Rooms) -->
     <div id="sidebar-3" style="display:none">
       <div class="card">
-        <div class="card-title">空間列表 <button class="btn-icon" onclick="clearAllRooms()" title="清除全部">✕</button></div>
+        <div class="card-title">空間列表 <button class="btn-icon" onclick="clearAllRooms()" title="清除全部"><i data-lucide="x" style="width:12px;height:12px"></i></button></div>
         <div style="font-size:11px;color:#777;margin-bottom:6px;line-height:1.5">點擊色塊命名空間；點擊「重新偵測」重新掃描。</div>
         <button class="btn btn-sm btn-block" onclick="autoDetectAllRooms()" style="margin-bottom:8px;background:#EBF4FF;color:#185FA5;border:1px solid #93C5FD;font-size:11px"><i data-lucide="scan-search" style="width:13px;height:13px"></i> 重新偵測空間</button>
         <div id="room-list" style="max-height:220px;overflow-y:auto">
@@ -364,7 +364,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 
 <!-- Mirror offer banner -->
 <div id="mirror-offer-bar" style="display:none;position:fixed;bottom:64px;left:50%;transform:translateX(-50%);z-index:3500;background:#fffbeb;border:1.5px solid #fde047;border-radius:12px;padding:10px 18px;font-size:13px;color:#713f12;flex-direction:column;gap:8px;align-items:stretch;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:280px;max-width:420px">
-  <div style="font-weight:600;margin-bottom:2px">🔗 偵測到相鄰牆面 — 請選擇要聯通的牆段：</div>
+  <div style="font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:5px"><i data-lucide="link-2" style="width:14px;height:14px"></i>偵測到相鄰牆面 — 請選擇要聯通的牆段：</div>
   <div id="mirror-offer-walls" style="display:flex;flex-direction:column;gap:4px"></div>
   <button onclick="declineMirrorOffer()" style="padding:4px 10px;background:#f3f4f6;border:1px solid #ddd;border-radius:6px;cursor:pointer;font-size:12px;align-self:flex-end">不連通</button>
 </div>
@@ -528,7 +528,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
   <!-- Actions -->
   <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f0f0f0;padding-top:10px">
     <button onclick="deleteOpeningFromPopup()"
-      style="padding:5px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer;font-size:12px">🗑 刪除</button>
+      style="padding:5px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px"><i data-lucide="trash-2" style="width:12px;height:12px"></i>刪除</button>
     <button onclick="hideOpPopup()"
       style="padding:5px 12px;background:#f3f4f6;border:none;border-radius:6px;cursor:pointer;font-size:12px">關閉</button>
   </div>
@@ -572,8 +572,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
   </div>
   <div style="display:flex;gap:6px;margin-top:12px">
     <button onclick="applyFurnEdit()" style="flex:1;padding:6px;background:#185FA5;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer">套用</button>
-    <button onclick="deleteFurnEdit()" style="padding:6px 10px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;font-size:12px;cursor:pointer">🗑</button>
-    <button onclick="hideFurnEditPopup()" style="padding:6px 10px;background:#F1F5F9;color:#475569;border:none;border-radius:6px;font-size:12px;cursor:pointer">✕</button>
+    <button onclick="deleteFurnEdit()" style="padding:6px 10px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;font-size:12px;cursor:pointer"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button>
+    <button onclick="hideFurnEditPopup()" style="padding:6px 10px;background:#F1F5F9;color:#475569;border:none;border-radius:6px;font-size:12px;cursor:pointer"><i data-lucide="x" style="width:12px;height:12px"></i></button>
   </div>
 </div>
 
@@ -915,7 +915,7 @@ function confirmAnnotName(){
   const input=document.getElementById('annot-name-input');
   annotationName=input.value.trim()||input.placeholder;
   document.getElementById('annot-name-modal').classList.remove('open');
-  showSuccess('📝 已命名：'+annotationName);
+  showSuccess('已命名：'+annotationName);
 }
 
 // ═══════════════════════════════════════════
@@ -1136,8 +1136,9 @@ function _offerMirrorOpening(opId){
   wallsEl.innerHTML=_mirrorCandidates.map((c,i)=>`
     <button onclick="acceptMirrorOfferAt(${i})"
       style="padding:6px 10px;background:#EBF4FF;color:#185FA5;border:1.5px solid #93C5FD;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;text-align:left">
-      🔗 ${c.label}
+      <i data-lucide="link-2" style="width:11px;height:11px;vertical-align:-1px;margin-right:4px"></i>${c.label}
     </button>`).join('');
+  if(window.lucide) lucide.createIcons({elements:document.querySelectorAll('#mirror-offer-walls [data-lucide]')});
   document.getElementById('mirror-offer-bar').style.display='flex';
   renderCanvas(); // highlight candidates
 }
@@ -1269,14 +1270,15 @@ function renderSegList(){
   const el=document.getElementById('seg-list');
   if(!segments.length){el.innerHTML='<div style="color:#ccc;font-size:12px;text-align:center;padding:20px 0">尚未畫任何牆段</div>';return;}
   el.innerHTML=segments.map((s,i)=>{
-    const label=s.type==='wall'?'🧱 實牆':'- - 虛擬';
+    const label=s.type==='wall'?'實牆':'虛擬';
     const opCount=s.openings.length;
     return `<div class="seg-row${s.id===selectedSegId?' selected':''}" onclick="selectSegment('${s.id}')">
       <span style="flex:1">${label} ${i+1}</span>
       ${opCount?`<span class="opening-tag ${s.type==='wall'?'tag-door':'tag-virtual'}">${opCount} 開口</span>`:''}
-      <button class="btn-icon" onclick="event.stopPropagation();deleteSegmentById('${s.id}')">✕</button>
+      <button class="btn-icon" onclick="event.stopPropagation();deleteSegmentById('${s.id}')"><i data-lucide="x" style="width:11px;height:11px"></i></button>
     </div>`;
   }).join('');
+  if(window.lucide) lucide.createIcons({elements:el.querySelectorAll('[data-lucide]')});
 }
 
 function deleteSegmentById(id){
@@ -1307,9 +1309,10 @@ function updateOpeningEditor(){
     <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
       <span class="opening-tag ${op.type==='door'?'tag-door':'tag-window'}">${op.type==='door'?'門':'窗'} ${op.style||''}</span>
       <span style="font-size:10px;color:#aaa">${scaleSet&&pxPerCm>0?(op.width*0.5/pxPerCm).toFixed(1)+'cm':op.width} @ ${op.position}%</span>
-      <button class="btn-icon" onclick="openEditOpening('${seg.id}',${i})">✏️</button>
-      <button class="btn-icon" onclick="deleteOpeningAt('${seg.id}',${i})">✕</button>
+      <button class="btn-icon" onclick="openEditOpening('${seg.id}',${i})"><i data-lucide="pencil" style="width:11px;height:11px"></i></button>
+      <button class="btn-icon" onclick="deleteOpeningAt('${seg.id}',${i})"><i data-lucide="x" style="width:11px;height:11px"></i></button>
     </div>`).join('');
+  if(window.lucide) lucide.createIcons({elements:list.querySelectorAll('[data-lucide]')});
 }
 
 function _setDoorWindowRows(type){
@@ -1441,7 +1444,7 @@ function showOpPopup(segId,opIdx,clientX,clientY){
   if(op.mirrorKey){
     const connRoom=getRoomNameForSeg(op.mirrorKey.segId);
     const tag=op.autoMirror?'自動鏡像':'已連結';
-    const label=connRoom?`🔗 ${tag}：連通「${connRoom}」`:`🔗 ${tag}：連通鄰接牆面`;
+    const label=connRoom?`${tag}：連通「${connRoom}」`:`${tag}：連通鄰接牆面`;
     document.getElementById('opp-connect-label').textContent=label;
     connRow.style.display='block';
   } else {
@@ -1676,8 +1679,9 @@ function renderRoomList(){
     <div class="room-row${i===selectedRoomIdx?' selected':''}" onclick="selectRoom(${i})">
       <div class="room-dot" style="background:${r.color}"></div>
       <div style="flex:1"><div class="room-name">${r.name}</div><div class="room-meta">${r.segmentIds.length} 牆段 · ${r.furniture.length} 傢俱 · 天花 ${r.ceilingHeight==='露天'?'露天':(r.ceilingHeight||270)+'cm'}</div></div>
-      <button class="btn-icon" onclick="event.stopPropagation();deleteRoom(${i})">✕</button>
+      <button class="btn-icon" onclick="event.stopPropagation();deleteRoom(${i})"><i data-lucide="x" style="width:11px;height:11px"></i></button>
     </div>`).join('');
+  if(window.lucide) lucide.createIcons({elements:el.querySelectorAll('[data-lucide]')});
 }
 function renderRoomList3(){
   const el=document.getElementById('room-list-3');
@@ -1955,7 +1959,7 @@ function renderCanvas(){
       });
       // Distance label
       const gapCm=scaleSet?Math.round(Math.hypot((p2.x-p1.x)*IW,(p2.y-p1.y)*IH)/pxPerCm):null;
-      const label=`⚠ 缺口${gapCm?` ${gapCm}cm`:''}`;
+      const label=`! 缺口${gapCm?` ${gapCm}cm`:''}`;
       const mx=(p1.x+p2.x)/2*IW, my=(p1.y+p2.y)/2*IH;
       ctx.font=`bold ${11/viewScale}px sans-serif`;
       ctx.textAlign='center';ctx.textBaseline='middle';
@@ -3116,7 +3120,7 @@ function _applyScale(p1,p2,cm){
   document.getElementById('scale-status').textContent='';
   document.getElementById('scale-result').style.display='block';
   document.getElementById('scale-result-text').textContent=
-    `✅ ${scaleRefObject.name}（${cm} cm）→ 1 cm = ${pxPerCm.toFixed(2)} px`;
+    `${scaleRefObject.name}（${cm} cm）→ 1 cm = ${pxPerCm.toFixed(2)} px`;
   document.getElementById('btn-reset-scale').style.display='block';
   document.getElementById('btn-to-step2-from-scale').disabled=false;
   renderCanvas();
@@ -3686,7 +3690,7 @@ function dpSimplify(pts,eps){
 async function runAIRoomDetect(){
   if(!img){showError('請先上傳平面圖');return;}
   const btn=document.getElementById('btn-ai-detect');
-  btn.disabled=true; btn.textContent='🤖 AI 辨識中...';
+  btn.disabled=true; btn.innerHTML='<i data-lucide="loader-circle" style="width:12px;height:12px"></i> AI 辨識中...';if(window.lucide)lucide.createIcons({elements:btn.querySelectorAll('[data-lucide]')});
   try{
     const resp=await fetch('/api/claude',{
       method:'POST',
@@ -3717,14 +3721,14 @@ async function runAIRoomDetect(){
   } catch(err){
     showError('AI 辨識失敗：'+err.message);
   } finally{
-    btn.disabled=false; btn.textContent='🤖 AI 辨識空間';
+    btn.disabled=false; btn.innerHTML='<i data-lucide="sparkles" style="width:12px;height:12px"></i> AI 辨識空間';if(window.lucide)lucide.createIcons({elements:btn.querySelectorAll('[data-lucide]')});
   }
 }
 
 async function runAIFurnDetect(){
   if(!img){showError('請先上傳平面圖');return;}
   const btn=document.getElementById('btn-ai-furn');
-  if(btn){btn.disabled=true;btn.textContent='🤖 辨識中...';}
+  if(btn){btn.disabled=true;btn.innerHTML='<i data-lucide="loader-circle" style="width:12px;height:12px"></i> 辨識中...';if(window.lucide)lucide.createIcons({elements:btn.querySelectorAll('[data-lucide]')});}
   try{
     const resp=await fetch('/api/claude',{
       method:'POST',
@@ -3750,10 +3754,11 @@ async function runAIFurnDetect(){
       el.style.cssText='background:#eff6ff;border:1px solid #3B82F6;border-radius:8px;padding:8px;margin-top:8px';
       document.getElementById('sidebar-4')?.querySelector('.card')?.appendChild(el);
     }
-    el.innerHTML=`<div style="font-size:11px;font-weight:600;color:#1d4ed8;margin-bottom:5px">🤖 AI偵測到的傢俱：</div>`+
+    el.innerHTML=`<div style="font-size:11px;font-weight:600;color:#1d4ed8;margin-bottom:5px;display:flex;align-items:center;gap:4px"><i data-lucide="sparkles" style="width:12px;height:12px"></i>AI偵測到的傢俱：</div>`+
       furns.map(f=>`<div style="font-size:11px;color:#555;padding:2px 0">${f.room?`<span style="color:#aaa">${f.room} · </span>`:''}${f.type}</div>`).join('');
+    if(window.lucide) lucide.createIcons({elements:el.querySelectorAll('[data-lucide]')});
   } catch(err){showError('AI傢俱辨識失敗：'+err.message);}
-  finally{if(btn){btn.disabled=false;btn.textContent='🤖 AI 辨識傢俱';}}
+  finally{if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="sparkles" style="width:12px;height:12px"></i> AI 辨識傢俱';if(window.lucide)lucide.createIcons({elements:btn.querySelectorAll('[data-lucide]')});}}
 }
 
 function showAISuggestions(names){
@@ -3764,8 +3769,9 @@ function showAISuggestions(names){
     el.style.cssText='background:#fffbeb;border:1px solid #F59E0B;border-radius:8px;padding:10px;margin-top:8px';
     document.getElementById('sidebar-3').querySelector('.card').appendChild(el);
   }
-  el.innerHTML=`<div style="font-size:11px;font-weight:600;color:#92400E;margin-bottom:6px">🤖 AI 偵測到以下空間（點選套用名稱）：</div>`+
+  el.innerHTML=`<div style="font-size:11px;font-weight:600;color:#92400E;margin-bottom:6px;display:flex;align-items:center;gap:4px"><i data-lucide="sparkles" style="width:12px;height:12px"></i>AI 偵測到以下空間（點選套用名稱）：</div>`+
     names.map(n=>`<button onclick="useAISuggestion('${n}')" style="display:inline-block;margin:2px;padding:3px 8px;font-size:11px;background:#fff;border:1px solid #F59E0B;border-radius:4px;cursor:pointer;color:#555">${n}</button>`).join('');
+  if(window.lucide) lucide.createIcons({elements:el.querySelectorAll('[data-lucide]')});
 }
 
 function useAISuggestion(name){
@@ -3792,11 +3798,11 @@ async function loadStats(){
     document.getElementById('db-ann').textContent=ann;
     document.getElementById('db-ses').textContent=ses;
     document.getElementById('db-total').textContent=ann+ses;
-    hint.textContent=ann+ses>=50?'✅ 可以開始 Fine-tune！':`還需要 ${50-ann-ses} 筆達到門檻`;
+    hint.textContent=ann+ses>=50?'可以開始 Fine-tune！':`還需要 ${50-ann-ses} 筆達到門檻`;
     hint.style.color=ann+ses>=50?'#10B981':'#888';
   }catch(e){
     document.getElementById('db-total').textContent='?';
-    hint.textContent='⚠️ 無法連線';hint.style.color='#EF4444';
+    hint.textContent='無法連線';hint.style.color='#EF4444';
   }
 }
 
@@ -3833,7 +3839,7 @@ async function saveAnnotation(){
       // UPDATE existing
       const{error}=await sb.from('annotations').update(payload).eq('id',editingId);
       if(error)throw error;
-      showSuccess('✅ 已更新！重新整理中...');
+      showSuccess('已更新！重新整理中...');
     } else {
       // INSERT new + image record
       const{data:imgRec,error:imgErr}=await sb.from('images').insert({
@@ -3844,12 +3850,12 @@ async function saveAnnotation(){
       payload.image_id=imgRec.id;
       const{error}=await sb.from('annotations').insert(payload);
       if(error)throw error;
-      showSuccess('✅ 已儲存！重新整理中...');
+      showSuccess('已儲存！重新整理中...');
     }
     setTimeout(()=>location.reload(),1800);
     loadStats();
   }catch(e){showError('儲存失敗：'+e.message);}
-  finally{btn.disabled=false;btn.textContent='💾 儲存到資料庫';}
+  finally{btn.disabled=false;btn.innerHTML='<i data-lucide="database" style="width:14px;height:14px"></i> 儲存到資料庫';if(window.lucide)lucide.createIcons({elements:btn.querySelectorAll('[data-lucide]')});}
 }
 
 async function loadAnnotationForEdit(id){
