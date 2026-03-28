@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>標注資料管理</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,sans-serif;background:#F8FAFC;color:#1E293B;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -32,7 +33,7 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:#F8FAFC}
 .thumb{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #E2E8F0;cursor:pointer;display:block}
 .thumb-placeholder{width:80px;height:60px;background:#F1F5F9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;position:relative}
-.thumb-placeholder:hover::after{content:'📤';position:absolute;font-size:14px;bottom:2px;right:4px}
+.thumb-placeholder:hover::after{content:'↑';position:absolute;font-size:13px;font-weight:700;bottom:2px;right:4px;color:#185FA5}
 .thumb-wrap{position:relative;display:inline-block}
 .thumb-wrap:hover .thumb-upload-hint{display:flex}
 .thumb-upload-hint{display:none;position:absolute;inset:0;background:rgba(0,0,0,.45);border-radius:6px;align-items:center;justify-content:center;color:white;font-size:12px;cursor:pointer;pointer-events:none}
@@ -67,8 +68,8 @@ tr:hover td{background:#F8FAFC}
 .room-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;background:#EBF4FF;color:#185FA5;margin:2px}
 .json-area{font-family:monospace;font-size:11px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto}
 .empty{text-align:center;padding:64px;color:#94A3B8}
-.empty-icon{font-size:48px;margin-bottom:12px}
-.no-img{width:100%;height:180px;background:#F1F5F9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:48px}
+.empty-icon{font-size:48px;margin-bottom:12px;color:#CBD5E1}
+.no-img{width:100%;height:180px;background:#F1F5F9;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#CBD5E1}
 /* Confirm dialog */
 .confirm-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center}
 .confirm-bg.open{display:flex}
@@ -81,6 +82,8 @@ tr:hover td{background:#F8FAFC}
 .toast.show{display:block}
 .toast-success{background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0}
 .toast-error{background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA}
+@keyframes spin{to{transform:rotate(360deg)}}
+[data-lucide]{display:inline-block;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -88,14 +91,14 @@ tr:hover td{background:#F8FAFC}
 <div class="header">
   <div style="display:flex;align-items:center;gap:12px">
     <a href="/" style="font-size:20px;text-decoration:none">←</a>
-    <h1>📋 標注資料管理</h1>
+    <h1 style="display:flex;align-items:center;gap:8px"><i data-lucide="clipboard-list" style="width:20px;height:20px;color:#185FA5"></i>標注資料管理</h1>
   </div>
   <div class="header-right">
     <div class="stat-chips">
       <div class="chip">共 <span id="total-count">-</span> 筆</div>
     </div>
-    <button class="btn btn-success" onclick="exportAll()">⬇ 匯出全部 JSONL</button>
-    <button class="btn btn-secondary" onclick="loadData()">🔄 重新整理</button>
+    <button class="btn btn-success" onclick="exportAll()" style="display:flex;align-items:center;gap:6px"><i data-lucide="download" style="width:14px;height:14px"></i>匯出全部 JSONL</button>
+    <button class="btn btn-secondary" onclick="loadData()" style="display:flex;align-items:center;gap:6px"><i data-lucide="refresh-cw" style="width:14px;height:14px"></i>重新整理</button>
   </div>
 </div>
 
@@ -115,7 +118,7 @@ tr:hover td{background:#F8FAFC}
 </div>
 
 <div class="table-wrap">
-  <div class="loading" id="loading">⏳ 載入中...</div>
+  <div class="loading" id="loading" style="display:flex;align-items:center;gap:8px;justify-content:center"><i data-lucide="loader-circle" style="width:16px;height:16px;animation:spin 1s linear infinite"></i>載入中...</div>
   <table id="data-table" style="display:none">
     <thead>
       <tr>
@@ -133,7 +136,7 @@ tr:hover td{background:#F8FAFC}
     <tbody id="table-body"></tbody>
   </table>
   <div class="empty" id="empty-state" style="display:none">
-    <div class="empty-icon">📭</div>
+    <div class="empty-icon"><i data-lucide="inbox" style="width:48px;height:48px"></i></div>
     <p>沒有找到標注資料</p>
   </div>
 </div>
@@ -147,9 +150,9 @@ tr:hover td{background:#F8FAFC}
     </div>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-footer">
-      <button class="btn btn-danger" id="modal-delete-btn">🗑 刪除此筆</button>
-      <button class="btn btn-success" id="modal-export-btn">⬇ 匯出此筆 JSON</button>
-      <button class="btn btn-primary" id="modal-edit-btn">✏️ 編輯此筆</button>
+      <button class="btn btn-danger" id="modal-delete-btn" style="display:flex;align-items:center;gap:6px"><i data-lucide="trash-2" style="width:14px;height:14px"></i>刪除此筆</button>
+      <button class="btn btn-success" id="modal-export-btn" style="display:flex;align-items:center;gap:6px"><i data-lucide="download" style="width:14px;height:14px"></i>匯出此筆 JSON</button>
+      <button class="btn btn-primary" id="modal-edit-btn" style="display:flex;align-items:center;gap:6px"><i data-lucide="pencil" style="width:14px;height:14px"></i>編輯此筆</button>
       <button class="btn btn-secondary" onclick="closeModal()">關閉</button>
     </div>
   </div>
@@ -196,7 +199,7 @@ async function saveTitle(id, title) {
   const { error } = await sb.from('annotations').update({ summary: newSummary }).eq('id', id);
   if (error) { showToast('儲存失敗：' + error.message, 'error'); return; }
   d.summary = newSummary;
-  showToast('✅ 名稱已儲存', 'success');
+  showToast('名稱已儲存', 'success');
 }
 
 // 統一取得傢俱清單（支援 array 或 {roomName:[...]} 兩種格式）
@@ -223,11 +226,11 @@ function thumbHtml(d) {
   if (d.image_b64) {
     return `<div class="thumb-wrap">
       <img class="thumb" src="data:image/jpeg;base64,${d.image_b64}" alt="平面圖" onclick="openDetail('${d.id}')"
-        onerror="this.parentElement.innerHTML='<div class=thumb-placeholder onclick=uploadThumb(\\'${d.id}\\')>🏠</div>'">
-      <div class="thumb-upload-hint" onclick="uploadThumb('${d.id}')">📤 換圖</div>
+        onerror="this.parentElement.innerHTML='<div class=thumb-placeholder onclick=uploadThumb(\\'${d.id}\\')>圖</div>'">
+      <div class="thumb-upload-hint" onclick="uploadThumb('${d.id}')"><i data-lucide="upload" style="width:14px;height:14px;margin-right:3px"></i>換圖</div>
     </div>`;
   }
-  return `<div class="thumb-placeholder" title="點擊上傳圖片" onclick="uploadThumb('${d.id}')">🏠</div>`;
+  return `<div class="thumb-placeholder" title="點擊上傳圖片" onclick="uploadThumb('${d.id}')"><i data-lucide="image-plus" style="width:22px;height:22px;color:#94A3B8"></i></div>`;
 }
 
 // 點擊縮圖上傳圖片
@@ -245,7 +248,7 @@ async function onImgSelected(e) {
   const d  = allData.find(x => x.id === id);
   if (!d) return;
 
-  showToast('⏳ 上傳中...', 'success');
+  showToast('上傳中...', 'success');
   const reader = new FileReader();
   reader.onload = async ev => {
     // strip "data:image/...;base64," prefix
@@ -253,7 +256,7 @@ async function onImgSelected(e) {
     const { error } = await sb.from('annotations').update({ image_b64: b64 }).eq('id', id);
     if (error) { showToast('上傳失敗：' + error.message, 'error'); return; }
     d.image_b64 = b64;
-    showToast('✅ 圖片已更新', 'success');
+    showToast('圖片已更新', 'success');
     filterData(); // re-render table
   };
   reader.readAsDataURL(file);
@@ -334,7 +337,7 @@ function renderTable(data) {
     const date = new Date(d.created_at).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
     const qualityBadge = d.quality === 'verified'
-      ? '<span class="badge badge-green">✓ 已驗證</span>'
+      ? '<span class="badge badge-green" style="display:inline-flex;align-items:center;gap:3px"><i data-lucide="check" style="width:11px;height:11px"></i>已驗證</span>'
       : '<span class="badge badge-orange">AI</span>';
 
     const sourceBadge = d.source === 'jsonl_import'
@@ -356,13 +359,14 @@ function renderTable(data) {
       <td>
         <div class="actions">
           <button type="button" class="act-btn act-btn-detail" onclick="openDetail('${d.id}')">詳情</button>
-          <button type="button" class="act-btn act-btn-edit" onclick="editAnnotation('${d.id}')">✏️</button>
-          <button type="button" class="act-btn act-btn-export" onclick="exportOne('${d.id}')">⬇</button>
-          <button type="button" class="act-btn act-btn-del" onclick="confirmDelete('${d.id}')">🗑</button>
+          <button type="button" class="act-btn act-btn-edit" onclick="editAnnotation('${d.id}')"><i data-lucide="pencil" style="width:12px;height:12px"></i></button>
+          <button type="button" class="act-btn act-btn-export" onclick="exportOne('${d.id}')"><i data-lucide="download" style="width:12px;height:12px"></i></button>
+          <button type="button" class="act-btn act-btn-del" onclick="confirmDelete('${d.id}')"><i data-lucide="trash-2" style="width:12px;height:12px"></i></button>
         </div>
       </td>
     </tr>`;
   }).join('');
+  if(window.lucide) lucide.createIcons({elements: tbody.querySelectorAll('[data-lucide]')});
 
   // 綁定名稱欄位 inline 編輯事件
   tbody.querySelectorAll('.title-edit').forEach(el => {
@@ -399,13 +403,13 @@ function openDetail(id) {
   const wallDetail = `${wallCount} 段牆體，共 ${openingCount} 個開口`;
 
   const furnList = furnItems.slice(0, 12).map(f =>
-    `<span class="room-tag" style="background:#FEF3C7;color:#92400E">${f.icon || '📦'} ${f.name || f.type || '未知'}</span>`
+    `<span class="room-tag" style="background:#FEF3C7;color:#92400E">${f.name || f.type || '未知'}</span>`
   ).join('') + (furnItems.length > 12 ? `<span class="room-tag">+${furnItems.length - 12} 更多</span>` : '')
     || '<span style="color:#94A3B8">無</span>';
 
   const imgHtml = d.image_b64
     ? `<img class="detail-img" src="data:image/jpeg;base64,${d.image_b64}" alt="平面圖">`
-    : `<div class="no-img">🏠</div>`;
+    : `<div class="no-img"><i data-lucide="house" style="width:48px;height:48px"></i></div>`;
 
   const scaleLine = d.summary?.scale_px_per_cm
     ? `<p style="font-size:12px;color:#64748B;margin-top:4px">比例尺 ${d.summary.scale_px_per_cm.toFixed(3)} px/cm・圖片 ${d.summary.image_width_px}×${d.summary.image_height_px}</p>`
@@ -463,6 +467,7 @@ function openDetail(id) {
   document.getElementById('modal-delete-btn').onclick = () => confirmDelete(id);
   document.getElementById('modal-export-btn').onclick = () => exportOne(id);
   document.getElementById('modal-edit-btn').onclick   = () => editAnnotation(id);
+  if(window.lucide) lucide.createIcons({elements: document.getElementById('detail-modal').querySelectorAll('[data-lucide]')});
   document.getElementById('detail-modal').classList.add('open');
 }
 
@@ -491,7 +496,7 @@ async function doDelete(id) {
     allData = allData.filter(d => d.id !== id);
     updateStats();
     filterData();
-    showToast('✅ 已刪除', 'success');
+    showToast('已刪除', 'success');
   } catch (e) {
     showToast('刪除失敗：' + e.message, 'error');
   }
@@ -537,14 +542,14 @@ function exportOne(id) {
   const content = lines.length ? lines.join('\n') : JSON.stringify(d, null, 2);
   const ext     = lines.length ? 'jsonl' : 'json';
   download(`annotation_${id.slice(0, 8)}.${ext}`, content, 'application/x-jsonlines');
-  showToast('✅ 已匯出', 'success');
+  showToast('已匯出', 'success');
 }
 
 function exportAll() {
   if (!allData.length) { showToast('沒有資料可匯出', 'error'); return; }
   const jsonl = allData.map(d => JSON.stringify(d)).join('\n');
   download('annotations_' + new Date().toISOString().slice(0, 10) + '.jsonl', jsonl, 'application/x-jsonlines');
-  showToast(`✅ 已匯出 ${allData.length} 筆 JSONL`, 'success');
+  showToast(`已匯出 ${allData.length} 筆 JSONL`, 'success');
 }
 
 function download(filename, content, mime) {
@@ -573,6 +578,8 @@ document.getElementById('confirm-bg').addEventListener('click', e => {
 });
 
 loadData();
+document.addEventListener('DOMContentLoaded', () => { if(window.lucide) lucide.createIcons(); });
+setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 100);
 </script>
 </body>
 </html>
