@@ -358,6 +358,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 <!-- Notification bar -->
 <div id="notif-bar"></div>
 
+<!-- Mirror offer banner -->
+<div id="mirror-offer-bar" style="display:none;position:fixed;bottom:64px;left:50%;transform:translateX(-50%);z-index:3500;background:#fffbeb;border:1.5px solid #fde047;border-radius:12px;padding:10px 18px;font-size:13px;color:#713f12;gap:10px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.15)">
+  <span>🔗 偵測到相鄰牆面，設為聯通開口？</span>
+  <button onclick="acceptMirrorOffer()" style="padding:4px 12px;background:#185FA5;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">連通</button>
+  <button onclick="declineMirrorOffer()" style="padding:4px 10px;background:#f3f4f6;border:1px solid #ddd;border-radius:6px;cursor:pointer;font-size:12px">不連通</button>
+</div>
+
 <!-- Loading overlay -->
 <div id="loading-overlay">
   <div class="loading-box">
@@ -381,7 +388,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
     </div>
     <div class="form-row">
       <label>天花板高度（cm）</label>
-      <input type="number" id="room-ceiling-input" min="150" max="600" step="1" value="270" placeholder="270">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="number" id="room-ceiling-input" min="150" max="600" step="1" value="270" placeholder="270" style="flex:1">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer">
+          <input type="checkbox" id="room-outdoor-chk" onchange="document.getElementById('room-ceiling-input').disabled=this.checked"> 露天
+        </label>
+      </div>
     </div>
     <div class="modal-btns">
       <button class="btn btn-secondary" onclick="cancelRoom()">取消</button>
@@ -510,7 +522,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
     <h3>選擇傢俱類型</h3>
     <div id="furn-type-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:300px;overflow-y:auto;margin-bottom:12px"></div>
     <div class="form-row" id="furn-dir-row" style="display:none">
-      <label>方向（頭部朝向）</label>
+      <label id="furn-dir-label">朝向</label>
       <select id="furn-head-dir">
         <option value="0">上（↑）</option>
         <option value="1">右（→）</option>
@@ -533,7 +545,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
     <select id="fepp-type" style="padding:5px 8px;border:1px solid #CBD5E1;border-radius:6px;font-size:12px" onchange="onFeppTypeChange()">
     </select>
     <div id="fepp-dir-row" style="display:none;flex-direction:column;gap:4px">
-      <label style="font-size:11px;color:#64748B">方向</label>
+      <label id="fepp-dir-label" style="font-size:11px;color:#64748B">朝向</label>
       <select id="fepp-dir" style="padding:5px 8px;border:1px solid #CBD5E1;border-radius:6px;font-size:12px">
         <option value="0">上（↑）</option><option value="1">右（→）</option>
         <option value="2">下（↓）</option><option value="3">左（←）</option>
@@ -565,35 +577,42 @@ const COLORS=['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#F973
 const ROOM_TYPES=['客廳','餐廳','廚房','主臥室','次臥室','客房','兒童房','主衛浴','衛浴','玄關','陽台','工作陽台','走廊','儲藏室','更衣室','書房','工作區'];
 const FURNITURE_LIST=[
   // 臥室
-  {id:'bed_double',  name:'雙人床',   icon:'🛏', w:160,h:200, hasDirection:true},
-  {id:'bed_single',  name:'單人床',   icon:'🛏', w:100,h:200, hasDirection:true},
-  {id:'nightstand',  name:'床頭櫃',   icon:'🟫', w:50, h:50,  hasDirection:false},
+  {id:'bed_double',  name:'雙人床',      icon:'🛏', w:160,h:200, hasDirection:true,  directionLabel:'床頭朝向'},
+  {id:'bed_single',  name:'單人床',      icon:'🛏', w:100,h:200, hasDirection:true,  directionLabel:'床頭朝向'},
+  {id:'nightstand',  name:'床頭櫃',      icon:'🟫', w:50, h:50,  hasDirection:false},
   // 客廳
-  {id:'sofa',        name:'沙發',     icon:'🛋', w:200,h:80,  hasDirection:true},
-  {id:'sofa_l',      name:'L型沙發',  icon:'🛋', w:240,h:160, hasDirection:true},
-  {id:'coffee_table',name:'茶几',     icon:'🪵', w:110,h:60,  hasDirection:false},
+  {id:'sofa',        name:'沙發',        icon:'🛋', w:200,h:80,  hasDirection:true,  directionLabel:'背面朝向'},
+  {id:'sofa_l',      name:'L型沙發',     icon:'🛋', w:240,h:160, hasDirection:true,  directionLabel:'背面朝向'},
+  {id:'coffee_table',name:'茶几',        icon:'🪵', w:110,h:60,  hasDirection:false},
+  {id:'tv',          name:'電視',        icon:'📺', w:120,h:10,  hasDirection:false},
+  {id:'tv_cabinet',  name:'電視櫃',      icon:'🗃', w:160,h:45,  hasDirection:false},
   // 餐廳
-  {id:'dining_table',name:'餐桌',     icon:'🍽', w:120,h:80,  hasDirection:false},
-  {id:'chair',       name:'椅子',     icon:'🪑', w:45, h:45,  hasDirection:true},
+  {id:'dining_table',name:'餐桌',        icon:'🍽', w:120,h:80,  hasDirection:false},
+  {id:'chair',       name:'椅子',        icon:'🪑', w:45, h:45,  hasDirection:true,  directionLabel:'椅背朝向'},
   // 書房/工作
-  {id:'desk',        name:'書桌',     icon:'🖥', w:120,h:60,  hasDirection:true},
+  {id:'desk',        name:'書桌',        icon:'🖥', w:120,h:60,  hasDirection:true,  directionLabel:'椅子側'},
   // 廚房
-  {id:'kitchen_counter',name:'廚具台面',icon:'🍳',w:200,h:60, hasDirection:false},
-  {id:'refrigerator',name:'冰箱',     icon:'❄️',w:65, h:70,  hasDirection:false},
+  {id:'kitchen_counter',name:'廚具台面', icon:'🍳', w:200,h:60,  hasDirection:true,  directionLabel:'靠牆面'},
+  {id:'refrigerator',name:'冰箱',        icon:'❄️', w:65, h:70,  hasDirection:true,  directionLabel:'開門側'},
   // 衛浴
-  {id:'toilet',      name:'馬桶',     icon:'🚽', w:40, h:70,  hasDirection:true},
-  {id:'bathtub',     name:'浴缸',     icon:'🛁', w:80, h:160, hasDirection:true},
-  {id:'shower',      name:'淋浴間',   icon:'🚿', w:90, h:90,  hasDirection:false},
-  {id:'sink',        name:'洗手台',   icon:'🪥', w:60, h:50,  hasDirection:false},
+  {id:'toilet',      name:'馬桶',        icon:'🚽', w:40, h:70,  hasDirection:true,  directionLabel:'背對牆方向'},
+  {id:'bathtub',     name:'浴缸',        icon:'🛁', w:80, h:160, hasDirection:true,  directionLabel:'水龍頭方向'},
+  {id:'shower',      name:'淋浴間',      icon:'🚿', w:90, h:90,  hasDirection:true,  directionLabel:'出入口朝向'},
+  {id:'sink',        name:'洗手台',      icon:'🪥', w:60, h:50,  hasDirection:true,  directionLabel:'靠牆面'},
   // 收納
-  {id:'cabinet',     name:'櫃子',     icon:'🗄', w:120,h:50,  hasDirection:false},
+  {id:'wardrobe',    name:'衣櫃',        icon:'👗', w:180,h:60,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'cabinet_tall',name:'高櫃（落地頂天）',icon:'🗄',w:90,h:50,hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'cabinet_mid', name:'中高櫃（腰高以上）',icon:'🗄',w:90,h:45,hasDirection:true,directionLabel:'開口朝向'},
+  {id:'cabinet_low', name:'矮櫃（腰高以下）',icon:'🗄',w:120,h:40,hasDirection:true, directionLabel:'開口朝向'},
+  {id:'shoe_cabinet',name:'鞋櫃',        icon:'👟', w:90, h:35,  hasDirection:true,  directionLabel:'開口朝向'},
   // 家電
-  {id:'washing_machine',name:'洗衣機',icon:'👕',w:60, h:60,  hasDirection:false},
-  {id:'ac',          name:'冷氣',     icon:'❄', w:80, h:25,  hasDirection:false},
+  {id:'washing_machine',name:'洗衣機',   icon:'👕', w:60, h:60,  hasDirection:true,  directionLabel:'開門側'},
+  {id:'ac',          name:'冷氣（室內機）',icon:'❄', w:80, h:25,  hasDirection:true, directionLabel:'出風方向'},
   // 其他
-  {id:'staircase',   name:'樓梯',     icon:'🪜', w:100,h:200, hasDirection:false},
-  {id:'plant',       name:'植栽',     icon:'🌿', w:40, h:40,  hasDirection:false},
-  {id:'other',       name:'其他',     icon:'📦', w:60, h:60,  hasDirection:false},
+  {id:'staircase',   name:'樓梯',        icon:'🪜', w:100,h:200, hasDirection:true,  directionLabel:'上樓方向'},
+  {id:'elevator',    name:'電梯',        icon:'🛗', w:100,h:120, hasDirection:false},
+  {id:'plant',       name:'植栽',        icon:'🌿', w:40, h:40,  hasDirection:false},
+  {id:'other',       name:'其他',        icon:'📦', w:60, h:60,  hasDirection:false},
 ];
 const SNAP_DIST=18; // px screen distance for snapping
 
@@ -1055,6 +1074,36 @@ function createMirrorOpening(opId){
   }
 }
 
+// Offer user a choice to create mirror opening (instead of auto-creating)
+let _pendingMirrorOpId=null;
+function _offerMirrorOpening(opId){
+  _pendingMirrorOpId=null;
+  document.getElementById('mirror-offer-bar').style.display='none';
+  const found=findOpById(opId); if(!found) return;
+  const{seg:s1,op}=found;
+  if(op.autoMirror||op.mirrorKey) return;
+  for(const s2 of segments){
+    if(s2.id===s1.id) continue;
+    const params=_segMirrorParams(s1,s2); if(!params) continue;
+    const c2=_mirrorPos((op.position/100)*params.len1,params);
+    if(c2<0||c2>params.len2) continue;
+    // Found parallel wall — offer connection
+    _pendingMirrorOpId=opId;
+    document.getElementById('mirror-offer-bar').style.display='flex';
+    return;
+  }
+}
+function acceptMirrorOffer(){
+  if(_pendingMirrorOpId) createMirrorOpening(_pendingMirrorOpId);
+  _pendingMirrorOpId=null;
+  document.getElementById('mirror-offer-bar').style.display='none';
+  renderCanvas();
+}
+function declineMirrorOffer(){
+  _pendingMirrorOpId=null;
+  document.getElementById('mirror-offer-bar').style.display='none';
+}
+
 // Delete an opening and its auto-mirror partner (if it has one)
 function deleteOpeningWithMirror(segId,opIdx){
   const seg=getSegById(segId); if(!seg) return;
@@ -1263,7 +1312,7 @@ function confirmOpening(){
   };
   if(openingModalOpIdx===null){
     seg.openings.push(op);
-    createMirrorOpening(op.id); // auto-mirror onto parallel adjacent wall
+    _offerMirrorOpening(op.id); // prompt user instead of auto-create
   } else {
     seg.openings[openingModalOpIdx]=op;
     syncOpMirror(op.id);
@@ -1350,7 +1399,9 @@ function showFurnEditPopup(roomIdx,furnIdx,clientX,clientY){
   // direction
   const def=FURNITURE_LIST.find(f=>f.id===furn.type);
   const dirRow=document.getElementById('fepp-dir-row');
-  dirRow.style.display=(def?.hasDirection)?'flex':'none';
+  const hasDir=!!def?.hasDirection;
+  dirRow.style.display=hasDir?'flex':'none';
+  if(hasDir) document.getElementById('fepp-dir-label').textContent=def.directionLabel||'朝向';
   document.getElementById('fepp-dir').value=furn.headDir||0;
   document.getElementById('fepp-title').textContent=furn.name||'傢俱屬性';
   // position popup
@@ -1365,7 +1416,9 @@ function showFurnEditPopup(roomIdx,furnIdx,clientX,clientY){
 function onFeppTypeChange(){
   const typeId=document.getElementById('fepp-type').value;
   const def=FURNITURE_LIST.find(f=>f.id===typeId);
-  document.getElementById('fepp-dir-row').style.display=(def?.hasDirection)?'flex':'none';
+  const hasDir=!!def?.hasDirection;
+  document.getElementById('fepp-dir-row').style.display=hasDir?'flex':'none';
+  if(hasDir) document.getElementById('fepp-dir-label').textContent=def.directionLabel||'朝向';
 }
 function hideFurnEditPopup(){
   document.getElementById('furn-edit-popup').style.display='none';
@@ -1487,8 +1540,9 @@ function confirmRoom(){
   const type=document.getElementById('room-type-sel').value;
   const customName=document.getElementById('room-name-input').value.trim();
   const name=customName||type;
+  const isOutdoor=document.getElementById('room-outdoor-chk').checked;
   const ceilVal=parseFloat(document.getElementById('room-ceiling-input').value);
-  const ceilingHeight=(!isNaN(ceilVal)&&ceilVal>=100&&ceilVal<=600)?Math.round(ceilVal):270;
+  const ceilingHeight=isOutdoor?'露天':(!isNaN(ceilVal)&&ceilVal>=100&&ceilVal<=600)?Math.round(ceilVal):270;
   if(editingRoomIdx!==null){
     // Rename existing room
     rooms[editingRoomIdx].name=name;
@@ -1547,7 +1601,7 @@ function renderRoomList(){
   el.innerHTML=rooms.map((r,i)=>`
     <div class="room-row${i===selectedRoomIdx?' selected':''}" onclick="selectRoom(${i})">
       <div class="room-dot" style="background:${r.color}"></div>
-      <div style="flex:1"><div class="room-name">${r.name}</div><div class="room-meta">${r.segmentIds.length} 牆段 · ${r.furniture.length} 傢俱 · 天花 ${r.ceilingHeight||270}cm</div></div>
+      <div style="flex:1"><div class="room-name">${r.name}</div><div class="room-meta">${r.segmentIds.length} 牆段 · ${r.furniture.length} 傢俱 · 天花 ${r.ceilingHeight==='露天'?'露天':(r.ceilingHeight||270)+'cm'}</div></div>
       <button class="btn-icon" onclick="event.stopPropagation();deleteRoom(${i})">✕</button>
     </div>`).join('');
 }
@@ -1609,7 +1663,9 @@ function selectFurnType(typeId){
   // show/hide direction row
   const def=FURNITURE_LIST.find(f=>f.id===typeId);
   const dirRow=document.getElementById('furn-dir-row');
-  dirRow.style.display=(def&&def.hasDirection)?'flex':'none';
+  const hasDir=!!(def&&def.hasDirection);
+  dirRow.style.display=hasDir?'flex':'none';
+  if(hasDir) document.getElementById('furn-dir-label').textContent=def.directionLabel||'朝向';
   // auto-confirm if no direction needed
   if(def&&!def.hasDirection){ confirmFurnType(typeId); }
   else if(def){ _pendingFurnTypeId=typeId;
@@ -1699,7 +1755,8 @@ function renderCanvas(){
     if(!room.polygon||room.polygon.length<3)return;
     const isSelected=i===selectedRoomIdx;
     const isAuto=!!room.autoDetected;
-    const hex=room.color;
+    const hex=room.color||COLORS[i%COLORS.length];
+    if(!hex)return;
 
     // Polygon fill — snapped to wall geometry, always accurate
     ctx.beginPath();
@@ -1730,7 +1787,7 @@ function renderCanvas(){
     ctx.textAlign='center';ctx.textBaseline='middle';
     const tw=ctx.measureText(label).width;
     const pad=4/viewScale,rh=16/viewScale;
-    ctx.fillStyle=isAuto?hex+'99':hex+'cc';
+    ctx.fillStyle=hexAlpha(hex,isAuto?0.6:0.8);
     ctx.beginPath();
     ctx.roundRect?ctx.roundRect(cx-tw/2-pad,cy-rh/2,tw+pad*2,rh,4/viewScale)
                  :ctx.rect(cx-tw/2-pad,cy-rh/2,tw+pad*2,rh);
@@ -2320,13 +2377,11 @@ function onMouseDown(e){
     const detected=detectRoomPolygon(ip.x,ip.y);
     const poly=detected?.polygon;
     if(!detected||!poly||poly.length<4){
-      wallGapHints=findWallGaps();
-      const hint=wallGapHints.nearMiss.length
-        ?`找到 ${wallGapHints.nearMiss.length} 個近似缺口（紅色）、${wallGapHints.dangling.length} 個懸空端點（橘色），請回 Step 2 補齊牆段`
-        :wallGapHints.dangling.length
-          ?`找到 ${wallGapHints.dangling.length} 個懸空端點（橘色），請回 Step 2 將牆段接合`
-          :'此位置未形成封閉空間，請確認牆段已完全閉合';
-      showError(hint);
+      // Can't auto-detect → fall back to manual polygon drawing from this click point
+      setTool('room-poly');
+      polyDrawing=true;
+      polyPoints=[ip];
+      showError('無法自動偵測封閉邊界，已切換為手繪模式，請繼續點擊描繪空間輪廓');
       renderCanvas();
       return;
     }
@@ -2976,10 +3031,15 @@ function openRoomModal(){
     const r=rooms[editingRoomIdx];
     document.getElementById('room-name-input').value=r.name==='未命名空間'?'':r.name;
     document.getElementById('room-type-sel').value=r.type||ROOM_TYPES[0];
-    document.getElementById('room-ceiling-input').value=r.ceilingHeight||270;
+    const isOutdoor=r.ceilingHeight==='露天';
+    document.getElementById('room-outdoor-chk').checked=isOutdoor;
+    document.getElementById('room-ceiling-input').disabled=isOutdoor;
+    document.getElementById('room-ceiling-input').value=isOutdoor?270:(r.ceilingHeight||270);
   } else {
     document.getElementById('room-name-input').value='';
     document.getElementById('room-type-sel').value=ROOM_TYPES[0];
+    document.getElementById('room-outdoor-chk').checked=false;
+    document.getElementById('room-ceiling-input').disabled=false;
     document.getElementById('room-ceiling-input').value=270;
   }
   document.getElementById('room-modal').classList.add('open');
@@ -3633,7 +3693,7 @@ async function saveAnnotation(){
       // UPDATE existing
       const{error}=await sb.from('annotations').update(payload).eq('id',editingId);
       if(error)throw error;
-      showSuccess('✅ 已更新！ID: '+editingId.slice(0,8)+'...');
+      showSuccess('✅ 已更新！重新整理中...');
     } else {
       // INSERT new + image record
       const{data:imgRec,error:imgErr}=await sb.from('images').insert({
@@ -3644,8 +3704,9 @@ async function saveAnnotation(){
       payload.image_id=imgRec.id;
       const{error}=await sb.from('annotations').insert(payload);
       if(error)throw error;
-      showSuccess('✅ 已儲存！');
+      showSuccess('✅ 已儲存！重新整理中...');
     }
+    setTimeout(()=>location.reload(),1800);
     loadStats();
   }catch(e){showError('儲存失敗：'+e.message);}
   finally{btn.disabled=false;btn.textContent='💾 儲存到資料庫';}
