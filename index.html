@@ -93,7 +93,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* Edit mode banner */
-#edit-banner{background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400E;display:none;margin-bottom:8px}
+#edit-banner{background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:8px 14px;font-size:12px;color:#92400E;display:none;margin-bottom:8px;align-items:center;gap:10px}
+#edit-banner .edit-banner-text{flex:1}
+#edit-banner .edit-banner-btns{display:flex;gap:6px;flex-shrink:0}
+#edit-banner .eb-save{padding:5px 14px;background:#185FA5;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px}
+#edit-banner .eb-save:hover{background:#1451A0}
+#edit-banner .eb-cancel{padding:5px 12px;background:#fff;color:#92400E;border:1.5px solid #FCD34D;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px}
+#edit-banner .eb-cancel:hover{background:#FEF9C3}
 
 /* Opening modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9990;display:none;align-items:center;justify-content:center}
@@ -149,7 +155,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f0ee;
 </div>
 
 <!-- Edit banner -->
-<div id="edit-banner"><i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px"></i> 編輯模式：正在修改已存的標注 <span id="edit-id-label"></span></div>
+<div id="edit-banner">
+  <span class="edit-banner-text"><i data-lucide="pencil" style="width:13px;height:13px;vertical-align:-2px"></i> 編輯模式：正在修改已存的標注 <span id="edit-id-label"></span></span>
+  <span class="edit-banner-btns">
+    <button class="eb-save" onclick="saveAnnotation()"><i data-lucide="check" style="width:13px;height:13px"></i>儲存</button>
+    <button class="eb-cancel" onclick="cancelEdit()"><i data-lucide="x" style="width:13px;height:13px"></i>取消</button>
+  </span>
+</div>
 
 <!-- Steps -->
 <div class="steps">
@@ -617,11 +629,14 @@ const FURNITURE_LIST=[
   {id:'bathtub',     name:'浴缸',        icon:'bath',         w:80, h:160, hasDirection:true,  directionLabel:'水龍頭方向'},
   {id:'shower',      name:'淋浴間',      icon:'shower-head',  w:90, h:90,  hasDirection:true,  directionLabel:'出入口朝向'},
   {id:'sink',        name:'洗手台',      icon:'droplets',     w:60, h:50,  hasDirection:true,  directionLabel:'靠牆面'},
+  // 衣物收納
+  {id:'wardrobe',      name:'衣櫃',           icon:'shirt',        w:180,h:60,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'wardrobe_walk', name:'更衣室',          icon:'door-open',    w:200,h:200, hasDirection:true,  directionLabel:'入口朝向'},
   // 收納
-  {id:'wardrobe',    name:'衣櫃',        icon:'shirt',        w:180,h:60,  hasDirection:true,  directionLabel:'開口朝向'},
-  {id:'cabinet_tall',name:'高櫃（落地頂天）',icon:'archive', w:90, h:50,  hasDirection:true,  directionLabel:'開口朝向'},
-  {id:'cabinet_mid', name:'中高櫃（腰高以上）',icon:'archive',w:90,h:45,  hasDirection:true,  directionLabel:'開口朝向'},
-  {id:'cabinet_low', name:'矮櫃（腰高以下）',icon:'package', w:120,h:40,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'cabinet_tall',  name:'高櫃（落地頂天）', icon:'archive',      w:90, h:50,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'cabinet_open',  name:'開放櫃',          icon:'layout-list',  w:90, h:40,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'cabinet_mid',   name:'中高櫃（腰高以上）',icon:'archive',     w:90, h:45,  hasDirection:true,  directionLabel:'開口朝向'},
+  {id:'cabinet_low',   name:'矮櫃（腰高以下）', icon:'package',      w:120,h:40,  hasDirection:true,  directionLabel:'開口朝向'},
   {id:'shoe_cabinet',name:'鞋櫃',        icon:'footprints',   w:90, h:35,  hasDirection:true,  directionLabel:'開口朝向'},
   // 家電
   {id:'washing_machine',name:'洗衣機',   icon:'washing-machine',w:60,h:60, hasDirection:true,  directionLabel:'開門側'},
@@ -3813,7 +3828,10 @@ async function saveAnnotation(){
   if(!imgB64){showError('請先上傳圖片');return;}
   if(!segments.length&&!rooms.length){showError('請先標注內容');return;}
   const btn=document.getElementById('save-db-btn');
-  btn.disabled=true;btn.textContent='儲存中...';
+  // In edit mode, use the banner's save button instead
+  const ebSave=document.querySelector('#edit-banner .eb-save');
+  if(editingId&&ebSave){ebSave.disabled=true;ebSave.innerHTML='<i data-lucide="loader-circle" style="width:13px;height:13px"></i>儲存中...';if(window.lucide)lucide.createIcons({elements:ebSave.querySelectorAll('[data-lucide]')});}
+  else{btn.disabled=true;btn.textContent='儲存中...';}
   try{
     const totalOpenings=segments.reduce((s,seg)=>s+seg.openings.length,0);
     const totalFurn=rooms.reduce((s,r)=>s+r.furniture.length,0);
@@ -3855,7 +3873,26 @@ async function saveAnnotation(){
     setTimeout(()=>location.reload(),1800);
     loadStats();
   }catch(e){showError('儲存失敗：'+e.message);}
-  finally{btn.disabled=false;btn.innerHTML='<i data-lucide="database" style="width:14px;height:14px"></i> 儲存到資料庫';if(window.lucide)lucide.createIcons({elements:btn.querySelectorAll('[data-lucide]')});}
+  finally{
+    btn.disabled=false;
+    btn.innerHTML='<i data-lucide="database" style="width:14px;height:14px"></i> 儲存到資料庫';
+    if(window.lucide)lucide.createIcons({elements:btn.querySelectorAll('[data-lucide]')});
+    // Restore edit-banner save button state
+    const ebSave=document.querySelector('#edit-banner .eb-save');
+    if(ebSave){ebSave.disabled=false;ebSave.innerHTML='<i data-lucide="check" style="width:13px;height:13px"></i>儲存';if(window.lucide)lucide.createIcons({elements:ebSave.querySelectorAll('[data-lucide]')});}
+  }
+}
+function cancelEdit(){
+  if(!confirm('確定要取消編輯？未儲存的變更將會遺失。')) return;
+  editingId=null;
+  document.getElementById('edit-banner').style.display='none';
+  document.getElementById('save-db-btn').style.display='';
+  // reset all state
+  segments=[];rooms=[];furniture={};img=null;imgB64=null;imgMediaType=null;annotationName='';
+  scaleSet=false;pxPerCm=0;selectedSegId=null;selectedRoomIdx=-1;
+  document.getElementById('upload-zone').style.display='flex';
+  goStep(1);
+  renderCanvas();renderSegList();renderRoomList();updateStats();
 }
 
 async function loadAnnotationForEdit(id){
@@ -3898,8 +3935,10 @@ async function loadAnnotationForEdit(id){
       }
 
       editingId=id;
-      document.getElementById('edit-banner').style.display='block';
+      document.getElementById('edit-banner').style.display='flex';
       document.getElementById('edit-id-label').textContent='('+id.slice(0,8)+'...)';
+      document.getElementById('save-db-btn').style.display='none';
+      if(window.lucide) lucide.createIcons({elements:document.getElementById('edit-banner').querySelectorAll('[data-lucide]')});
 
       resetView();
       renderSegList();renderRoomList();renderRoomList3();updateStats();loadStats();
